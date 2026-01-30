@@ -1,0 +1,405 @@
+"""
+Context-RCA
+"""
+import os
+import json
+import asyncio
+import logging
+import random
+import argparse
+import uuid as uuid_lib
+import multiprocessing
+from pathlib import Path
+from datetime import datetime
+from typing import Any, Dict, List
+
+from dotenv import load_dotenv
+from google.adk.sessions import InMemorySessionService
+from google.adk.artifacts import InMemoryArtifactService
+from google.adk.runners import Runner
+from google.genai import types
+
+from history_rca.agent import orchestrator_agent
+
+# 加载环境变量
+_env_path = Path(__file__).resolve().parent / "history_rca" / ".env"
+load_dotenv(_env_path, override=False)
+
+# ============================================================
+# 配置
+# ============================================================
+USER_ID = "user"
+APP_NAME = "context_rca"
+
+LOG_DIR = "logs"
+
+# 基础日志配置 (控制台只输出 INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt='%H:%M:%S'
+)
+
+logger = logging.getLogger("RootCauseAnalysis")
+
+# ============================================================
+# 辅助类：独立文件日志
+# ============================================================
+class CaseLogger:
+    """为每个 Case 管理独立的文件日志"""
+    def __init__(self, log_dir: str):
+        self.log_dir = log_dir
+        os.makedirs(log_dir, exist_ok=True)
+        self.file_handler = None
+        self.logger = logging.getLogger()
+
+    def start(self, uuid: str, run_id: int = 1):
+        """开始记录：添加 FileHandler
+
+        Args:
+            uuid: case的UUID
+            run_id: 第几次运行 (1, 2, 3...)
+        """
+        # 按UUID创建子目录
+        case_dir = os.path.join(self.log_dir, uuid)
+        os.makedirs(case_dir, exist_ok=True)
+
+        # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # log_file = os.path.join(case_dir, f"run{run_id}_{timestamp}.log")
+        
+        # 使用固定文件名，覆盖旧日志
+        log_file = os.path.join(case_dir, "run.log")
+
+        self.file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+        self.file_handler.setLevel(logging.INFO) # 文件记录详细信息
+        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # 去除时间戳，只保留 Logger Name, Level 和 Message
+        formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+        self.file_handler.setFormatter(formatter)
+
+        self.logger.addHandler(self.file_handler)
+        self.logger.info(f"=== START SESSION: {uuid} (Run #{run_id}) ===")
+        return log_file
+
+    def stop(self):
+        """停止记录：移除 FileHandler"""
+        if self.file_handler:
+            self.logger.info("=== END SESSION ===")
+            self.logger.removeHandler(self.file_handler)
+            self.file_handler.close()
+            self.file_handler = None
+
+# ============================================================
+# 核心逻辑
+# ============================================================
+
+class RCARunner:
+    def __init__(self, output_path: str):
+        self.output_path = output_path
+        self.session_service = InMemorySessionService()
+        self.runner = Runner(
+            agent=orchestrator_agent,
+            session_service=self.session_service,
+            artifact_service=InMemoryArtifactService(),
+            app_name=APP_NAME,
+        )
+        self.case_logger = CaseLogger(LOG_DIR)
+
+    async def run_one(self, item: Dict[str, Any], run_id: int = 1) -> Dict[str, Any]:
+        """运行单条分析
+
+        Args:
+            item: 输入数据
+            run_id: 第几次运行 (用于日志区分)
+        """
+        uuid = item.get("uuid", "unknown")
+        session_id = f"session_{uuid_lib.uuid4().hex[:8]}"
+
+        # 开启独立日志
+        log_file = self.case_logger.start(uuid, run_id)
+        logger.info(f"[Processing] {uuid} (Run #{run_id}) | Log: {log_file}")
+        
+        # 构建查询
+        query_obj = {
+            "Anomaly Description": item.get("Anomaly Description"),
+            "uuid": uuid,
+        }
+        query_text = json.dumps(query_obj, ensure_ascii=False)
+        
+        # 创建会话
+        await self.session_service.create_session(
+            app_name=APP_NAME,
+            user_id=USER_ID,
+            session_id=session_id
+        )
+        
+        # 运行 Agent
+        content = types.Content(role="user", parts=[types.Part(text=query_text)])
+        final_response = ""
+        
+        try:
+            async for event in self.runner.run_async(
+                user_id=USER_ID,
+                session_id=session_id,
+                new_message=content
+            ):
+                self._log_event_details(event)
+                
+                if event.is_final_response() and event.content:
+                    final_response = event.content.parts[0].text
+        except Exception as e:
+            logger.error(f"Error in runner: {e}")
+            # 记录到文件日志
+            logging.getLogger("RootCauseAnalysis").error(f"Runner Exception: {e}", exc_info=True)
+
+        # 获取最终 State
+        session = await self.session_service.get_session(
+            app_name=APP_NAME,
+            user_id=USER_ID,
+            session_id=session_id
+        
+        )
+        state = session.state if session else {}
+        
+        self._log_state_summary(state)
+        
+        # 关闭独立日志
+        self.case_logger.stop()
+
+        return self._parse_result(state, final_response, uuid)
+
+    def _log_event_details(self, event: Any):
+        """记录详细事件到业务 Logger (会被写入文件)"""
+        biz_logger = logging.getLogger("RootCauseAnalysis")
+        
+        # 1. 工具调用
+        if hasattr(event, 'get_function_calls'):
+            for call in event.get_function_calls():
+                biz_logger.info(f"[Tool Call] {call.name}")
+                biz_logger.info(f"    Args: {str(call.args)[:500]}...") # 记录更多参数细节
+        
+        # 2. 工具返回
+        if hasattr(event, 'get_function_responses'):
+            for resp in event.get_function_responses():
+                resp_str = str(resp.response)
+                preview = resp_str[:500] + "..." if len(resp_str) > 500 else resp_str
+                biz_logger.info(f"[Tool Resp] {resp.name}")
+                biz_logger.info(f"    Result: {preview}")
+
+        # 3. 状态变更
+        if hasattr(event, 'actions') and event.actions and event.actions.state_delta:
+            delta = event.actions.state_delta
+            filtered_delta = {k: v for k, v in delta.items() if k not in ["uuid", "user_query"]}
+            if filtered_delta:
+                biz_logger.info(f"[State Update] {json.dumps(filtered_delta, ensure_ascii=False)}")
+
+    def _log_state_summary(self, state: Dict[str, Any]):
+        """记录最终状态摘要"""
+        biz_logger = logging.getLogger("RootCauseAnalysis")
+        biz_logger.info("[Final State Summary]")
+        keys_to_show = ["current_hypothesis", "consensus_decision", "consensus_iteration"]
+        for k in keys_to_show:
+            if k in state:
+                biz_logger.info(f"   - {k}: {state[k]}")
+
+    def _parse_result(self, state: Dict, text_resp: str, uuid: str) -> Dict:
+        """解析结果"""
+        # 优先从 report_agent 的输出中获取结果
+        report_findings = state.get("report_analysis_findings")
+        
+        if report_findings and isinstance(report_findings, dict):
+            logger.info(f"[Report Agent] Obtained structured report")
+            return report_findings
+
+        # 兜底逻辑
+        hypothesis = state.get("current_hypothesis", "")
+        if hypothesis == "（等待写入...）": hypothesis = ""
+        
+        return {
+            "uuid": uuid,
+            "component": "TODO", 
+            "reason": hypothesis or text_resp,
+        }
+
+    async def run_batch(self, items: List[Dict], repeat: int = 1):
+        """批量运行分析
+
+        Args:
+            items: 输入数据列表
+            repeat: 每个case重复运行的次数
+        """
+        dir_name = os.path.dirname(self.output_path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
+        
+        # Append mode for safety
+        with open(self.output_path, "a", encoding="utf-8") as f:
+            for item in items:
+                uuid = item.get("uuid", "unknown")
+                for run_id in range(1, repeat + 1):
+                    if repeat > 1:
+                        logger.info(f"[Repeat Mode] {uuid} - Run {run_id}/{repeat}")
+                    result = await self.run_one(item, run_id)
+                    # 添加 run_id 到结果中便于区分
+                    result["run_id"] = run_id
+                    f.write(json.dumps(result, ensure_ascii=False) + "\n")
+                    f.flush()
+
+# ============================================================
+# 多进程 Worker
+# ============================================================
+
+def process_item_worker(item, run_id, queue):
+    """Worker function for multiprocessing
+
+    Args:
+        item: 输入数据
+        run_id: 第几次运行 (1, 2, 3...)
+        queue: 结果队列
+    """
+    try:
+        runner = RCARunner(output_path="")
+
+        async def _run():
+            return await runner.run_one(item, run_id)
+
+        result = asyncio.run(_run())
+        result["run_id"] = run_id
+        queue.put(result)
+    except Exception as e:
+        logging.getLogger("RootCauseAnalysis").error(f"Worker failed for {item.get('uuid')} run {run_id}: {e}", exc_info=True)
+        queue.put({
+            "uuid": item.get("uuid"),
+            "run_id": run_id,
+            "component": "ERROR",
+            "reason": f"Worker Exception: {str(e)}"
+        })
+
+# ============================================================
+# 入口
+# ============================================================
+
+async def main():
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="Context-RCA Runner")
+    parser.add_argument("--batch", action="store_true", help="Run in batch mode (process all items)")
+    parser.add_argument("--workers", type=int, default=1, help="Number of workers for batch processing (default: 1)")
+    parser.add_argument("--random", type=int, default=0, help="Run in random mode with N items")
+    parser.add_argument("--single", type=str, default="1", help="Run in single mode (process the N-th item (1-based index) or specific UUID, default: 1)")
+    parser.add_argument("--repeat", type=int, default=1, help="Number of times to repeat each case (default: 1)")
+    parser.add_argument("--input", type=str, default=None, help="Path to input JSON file")
+    parser.add_argument("--output", type=str, default=None, help="Path to output JSONL file")
+    parser.add_argument("--log-dir", type=str, default="logs", help="Directory to store logs")
+    parser.add_argument("--start", type=int, default=0, help="Start index (0-based) for batch processing")
+    parser.add_argument("--limit", type=int, default=None, help="Limit number of items to process")
+    args = parser.parse_args()
+
+    # Update global LOG_DIR based on args
+    global LOG_DIR
+    LOG_DIR = args.log_dir
+
+    project_root = os.getenv("PROJECT_DIR", ".")
+    input_path = args.input if args.input else os.path.join(project_root, "input", "input.json")
+    output_path = args.output if args.output else os.path.join(project_root, "output", "result.jsonl")
+    
+    # 加载数据
+    try:
+        with open(input_path, "r") as f:
+            items = json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Input file not found: {input_path}")
+        return
+
+    # 模式选择
+    selected_items = []
+    
+    if args.batch:
+        start_idx = args.start
+        end_idx = start_idx + args.limit if args.limit is not None else len(items)
+        # Ensure bounds
+        end_idx = min(end_idx, len(items))
+        
+        logger.info(f"[Batch Mode] Processing items from index {start_idx} to {end_idx}...")
+        selected_items = items[start_idx:end_idx]
+        logger.info(f"[Batch Mode] Selected {len(selected_items)} items.")
+    elif args.random > 0:
+        count = min(args.random, len(items))
+        logger.info(f"[Random Mode] Selecting {count} random items...")
+        selected_items = random.sample(items, count)
+    else:
+        # Default to Single Mode
+        single_arg = args.single
+
+        # Try to parse as index if it looks like an integer
+        if single_arg.isdigit():
+            idx = int(single_arg) - 1 # Convert 1-based to 0-based
+            if 0 <= idx < len(items):
+                logger.info(f"[Single Mode] Selecting item #{single_arg} (UUID: {items[idx].get('uuid')})...")
+                selected_items = [items[idx]]
+            else:
+                logger.error(f"Index {single_arg} out of range (1-{len(items)})")
+                return
+        else:
+            # Treat as UUID
+            found_items = [item for item in items if item.get("uuid") == single_arg]
+            if found_items:
+                logger.info(f"[Single Mode] Selecting item with UUID: {single_arg}...")
+                selected_items = found_items
+            else:
+                logger.error(f"UUID {single_arg} not found in input items.")
+                return
+
+    # 显示 repeat 模式信息
+    if args.repeat > 1:
+        logger.info(f"[Repeat Mode] Each case will run {args.repeat} times")
+        logger.info(f"[Repeat Mode] Logs will be saved to: logs/<uuid>/run1_*.log, run2_*.log, ...")
+        logger.info(f"[Repeat Mode] Total runs: {len(selected_items)} cases x {args.repeat} repeats = {len(selected_items) * args.repeat}")
+
+    if args.workers > 1 and len(selected_items) > 1:
+        logger.info(f"[Batch Mode] Running with {args.workers} workers in parallel processes...")
+
+        # 使用 spawn 而不是 fork，避免 asyncio event loop 冲突
+        ctx = multiprocessing.get_context('spawn')
+        manager = ctx.Manager()
+        queue = manager.Queue()
+
+        # Start writer listener
+        pool = ctx.Pool(processes=args.workers)
+
+        # Use apply_async - 支持 repeat 参数
+        for item in selected_items:
+            for run_id in range(1, args.repeat + 1):
+                pool.apply_async(process_item_worker, args=(item, run_id, queue))
+
+        pool.close()
+
+        # Monitor queue and write to file
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        from tqdm import tqdm
+        total_count = len(selected_items) * args.repeat  # 总任务数 = cases × repeat
+        
+        with open(output_path, "a", encoding="utf-8") as f:
+            finished_count = 0
+            
+            # 使用 tqdm 显示进度条
+            with tqdm(total=total_count, desc="Processing Cases", unit="run") as pbar:
+                while finished_count < total_count:
+                    # Blocking get
+                    result = queue.get()
+                    f.write(json.dumps(result, ensure_ascii=False) + "\n")
+                    f.flush()
+                    finished_count += 1
+                    pbar.update(1)
+                    # logger.info(f"Progress: {finished_count}/{total_count}") # 移除旧的日志输出，避免干扰进度条
+
+        pool.join()
+    else:
+        runner = RCARunner(output_path)
+        await runner.run_batch(selected_items, repeat=args.repeat)
+
+if __name__ == "__main__":
+    # python main.py --batch --workers 10
+    # python main.py --single 1 --repeat 3  # 运行第1个case 3次
+    # python main.py --random 5 --repeat 3  # 随机选5个case，每个运行3次
+    asyncio.run(main())

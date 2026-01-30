@@ -1037,3 +1037,233 @@ def trace_analysis_tool(query: str) -> dict:
             "matched_anomaly": None
         }
         return result
+
+
+def search_raw_traces(
+    trace_id: Optional[str] = None,
+    operation_name: Optional[str] = None,
+    attribute_key: Optional[str] = None,
+    time_range: Optional[list] = None,
+    max_results: int = 20
+) -> dict:
+    """
+    Search raw traces for specific trace_id, operation_name, or attribute_key within a time range
+
+    This function searches the ORIGINAL trace data (not filtered/processed traces) in the trace-parquet files.
+
+    Args:
+        trace_id: Trace ID to search for (exact match)
+        operation_name: Operation name to search for (supports regex)
+        attribute_key: Attribute key to search in tags (e.g., "http.status_code", "error")
+        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds (optional)
+        max_results: Maximum number of spans to return (default 20)
+
+    Returns:
+        Dictionary containing:
+        - status: "success" or "error"
+        - message: Status message
+        - traces: List of matched trace spans from original data
+        - total_matched: Total number of matched spans
+        - returned: Number of spans actually returned
+
+    Example:
+        >>> from datetime import datetime
+        >>> start_time = datetime(2025, 6, 6, 10, 0, 0)
+        >>> end_time = datetime(2025, 6, 6, 10, 30, 0)
+        >>> start_ts = int(start_time.timestamp() * 1_000_000_000)
+        >>> end_ts = int(end_time.timestamp() * 1_000_000_000)
+        >>>
+        >>> # Search by trace_id
+        >>> result = search_raw_traces(trace_id="abc123", time_range=[start_ts, end_ts])
+        >>>
+        >>> # Search by operation_name
+        >>> result = search_raw_traces(operation_name="GET /product", time_range=[start_ts, end_ts])
+        >>>
+        >>> # Search by attribute_key in tags
+        >>> result = search_raw_traces(attribute_key="http.status_code", time_range=[start_ts, end_ts])
+    """
+    import re
+    from datetime import datetime
+
+    try:
+        # Validate input: at least one search criterion must be provided
+        if not trace_id and not operation_name and not attribute_key:
+            return {
+                "status": "error",
+                "message": "At least one search criterion (trace_id, operation_name, or attribute_key) must be provided",
+                "traces": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        # Determine time range
+        if time_range:
+            start_ts, end_ts = time_range
+            start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
+            end_dt = datetime.fromtimestamp(end_ts / 1_000_000_000)
+            date_str = start_dt.strftime('%Y-%m-%d')
+            start_hour = start_dt.hour
+            end_hour = end_dt.hour
+
+            # If time range spans multiple days, only search in the start date for now
+            if start_dt.date() != end_dt.date():
+                end_hour = 23
+        else:
+            return {
+                "status": "error",
+                "message": "time_range parameter is required",
+                "traces": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        trace_dir = os.path.join(PROJECT_DIR, 'data', 'processed', date_str, 'trace-parquet')
+
+        if not os.path.exists(trace_dir):
+            return {
+                "status": "error",
+                "message": f"Trace directory not found for date {date_str}",
+                "traces": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        # Compile regex pattern for operation_name if provided
+        operation_pattern = None
+        if operation_name:
+            try:
+                operation_pattern = re.compile(operation_name, re.IGNORECASE)
+            except re.error as e:
+                return {
+                    "status": "error",
+                    "message": f"Invalid regex pattern for operation_name: {str(e)}",
+                    "traces": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+        matched_traces = []
+        total_matched = 0
+
+        # Read trace files hour by hour from ORIGINAL data
+        for hour in range(start_hour, end_hour + 1):
+            # Try different file naming patterns
+            trace_files = [
+                f'trace_jaeger-span_{date_str}_{hour:02d}-00-00.parquet',
+                f'trace_jaeger_{date_str}_{hour:02d}-00-00.parquet'
+            ]
+
+            trace_path = None
+            for trace_file in trace_files:
+                potential_path = os.path.join(trace_dir, trace_file)
+                if os.path.exists(potential_path):
+                    trace_path = potential_path
+                    break
+
+            if not trace_path:
+                continue
+
+            try:
+                # Read original trace data
+                df_traces = pd.read_parquet(trace_path)
+
+                # Filter by time range
+                if time_range:
+                    df_traces = df_traces[(df_traces['timestamp_ns'] >= start_ts) & (df_traces['timestamp_ns'] <= end_ts)]
+
+                if len(df_traces) == 0:
+                    continue
+
+                # Filter by trace_id (exact match)
+                if trace_id:
+                    df_traces = df_traces[df_traces['traceID'] == trace_id]
+
+                if len(df_traces) == 0:
+                    continue
+
+                # Filter by operation_name (regex match)
+                if operation_name and operation_pattern:
+                    mask = df_traces['operationName'].astype(str).apply(lambda x: bool(operation_pattern.search(x)))
+                    df_traces = df_traces[mask]
+
+                if len(df_traces) == 0:
+                    continue
+
+                # Filter by attribute_key in tags
+                if attribute_key:
+                    mask = df_traces['tags'].astype(str).str.contains(attribute_key, case=False, na=False)
+                    df_traces = df_traces[mask]
+
+                if len(df_traces) == 0:
+                    continue
+
+                total_matched += len(df_traces)
+
+                # Convert to list of dicts
+                for _, row in df_traces.iterrows():
+                    if len(matched_traces) >= max_results:
+                        break
+
+                    # Extract service name and pod name from process
+                    service_name = None
+                    pod_name = None
+                    if isinstance(row['process'], dict):
+                        service_name = row['process'].get('serviceName')
+                        tags = row['process'].get('tags', [])
+                        for tag in tags:
+                            if tag.get('key') in ['name', 'podName']:
+                                pod_name = tag.get('value')
+                                break
+
+                    matched_traces.append({
+                        "timestamp": str(row['time_utc']),
+                        "timestamp_ns": int(row['timestamp_ns']),
+                        "trace_id": str(row['traceID']),
+                        "span_id": str(row['spanID']),
+                        "operation_name": str(row['operationName']),
+                        "duration": int(row['duration']),
+                        "service_name": str(service_name) if service_name else "N/A",
+                        "pod_name": str(pod_name) if pod_name else "N/A",
+                        "tags": str(row['tags']),
+                        "references": str(row['references'])
+                    })
+
+                if len(matched_traces) >= max_results:
+                    break
+
+            except Exception:
+                # Skip this file if there's an error
+                continue
+
+        # Sort by timestamp
+        matched_traces.sort(key=lambda x: x['timestamp_ns'])
+
+        search_criteria = []
+        if trace_id:
+            search_criteria.append(f"trace_id={trace_id}")
+        if operation_name:
+            search_criteria.append(f"operation_name={operation_name}")
+        if attribute_key:
+            search_criteria.append(f"attribute_key={attribute_key}")
+
+        return {
+            "status": "success",
+            "message": f"Found {total_matched} matching spans in original data, returning {len(matched_traces)}",
+            "traces": matched_traces,
+            "total_matched": total_matched,
+            "returned": len(matched_traces),
+            "search_criteria": ", ".join(search_criteria),
+            "time_range": {
+                "start": str(start_dt) if time_range else None,
+                "end": str(end_dt) if time_range else None
+            }
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error searching traces: {str(e)}",
+            "traces": [],
+            "total_matched": 0,
+            "returned": 0
+        }

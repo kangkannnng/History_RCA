@@ -1658,3 +1658,248 @@ def metric_analysis_tool(query: str) -> dict:
         return result
 
 
+def search_raw_metrics(
+    metric_name: str,
+    service_name: Optional[str] = None,
+    time_range: Optional[list] = None,
+    max_results: int = 100
+) -> dict:
+    """
+    Search raw metrics for a specific metric_name and optional service_name within a time range
+
+    This function searches the ORIGINAL metric data (not aggregated/processed metrics) in the metric-parquet files.
+
+    Args:
+        metric_name: Metric name to search for (e.g., "pod_cpu_usage", "rrt", "error_ratio")
+        service_name: Service name or pod name to filter (e.g., "adservice", "frontend-0") (optional)
+        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds
+        max_results: Maximum number of metric data points to return (default 100)
+
+    Returns:
+        Dictionary containing:
+        - status: "success" or "error"
+        - message: Status message
+        - metrics: List of matched metric data points from original data
+        - total_matched: Total number of matched data points
+        - returned: Number of data points actually returned
+        - metric_type: Type of metric (apm or infra)
+
+    Example:
+        >>> from datetime import datetime
+        >>> start_time = datetime(2025, 6, 6, 10, 0, 0)
+        >>> end_time = datetime(2025, 6, 6, 10, 30, 0)
+        >>> start_ts = int(start_time.timestamp() * 1_000_000_000)
+        >>> end_ts = int(end_time.timestamp() * 1_000_000_000)
+        >>>
+        >>> # Search for CPU usage of a specific service
+        >>> result = search_raw_metrics("pod_cpu_usage", service_name="frontend", time_range=[start_ts, end_ts])
+        >>>
+        >>> # Search for error ratio in APM data
+        >>> result = search_raw_metrics("error_ratio", service_name="adservice-0", time_range=[start_ts, end_ts])
+    """
+    from datetime import datetime
+
+    try:
+        # Validate input
+        if not metric_name:
+            return {
+                "status": "error",
+                "message": "metric_name parameter is required",
+                "metrics": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        if not time_range:
+            return {
+                "status": "error",
+                "message": "time_range parameter is required",
+                "metrics": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        start_ts, end_ts = time_range
+        start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
+        end_dt = datetime.fromtimestamp(end_ts / 1_000_000_000)
+        date_str = start_dt.strftime('%Y-%m-%d')
+
+        # Determine metric type and file location
+        # APM metrics: error_ratio, rrt, rrt_max, client_error_ratio, server_error_ratio, request, response, timeout
+        # Infra metrics: pod_cpu_usage, pod_memory_working_set_bytes, pod_network_*, node_cpu_usage_rate, etc.
+
+        apm_metrics = ['error_ratio', 'rrt', 'rrt_max', 'client_error_ratio', 'server_error_ratio',
+                       'request', 'response', 'timeout', 'client_error', 'server_error', 'error']
+
+        is_apm = metric_name in apm_metrics
+
+        matched_metrics = []
+        total_matched = 0
+
+        if is_apm:
+            # Search in APM pod data
+            apm_pod_dir = os.path.join(PROJECT_DIR, 'data', 'processed', date_str, 'metric-parquet', 'apm', 'pod')
+
+            if not os.path.exists(apm_pod_dir):
+                return {
+                    "status": "error",
+                    "message": f"APM pod directory not found for date {date_str}",
+                    "metrics": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+            # List all pod files
+            pod_files = [f for f in os.listdir(apm_pod_dir) if f.endswith('.parquet')]
+
+            # Filter by service_name if provided
+            if service_name:
+                pod_files = [f for f in pod_files if service_name.lower() in f.lower()]
+
+            for pod_file in pod_files:
+                if len(matched_metrics) >= max_results:
+                    break
+
+                pod_path = os.path.join(apm_pod_dir, pod_file)
+
+                try:
+                    df_metrics = pd.read_parquet(pod_path)
+
+                    # Check if metric exists in this file
+                    if metric_name not in df_metrics.columns:
+                        continue
+
+                    # Filter by time range
+                    df_metrics = df_metrics[(df_metrics['timestamp_ns'] >= start_ts) & (df_metrics['timestamp_ns'] <= end_ts)]
+
+                    if len(df_metrics) == 0:
+                        continue
+
+                    # Extract pod name from filename
+                    pod_name = pod_file.replace('pod_', '').replace(f'_{date_str}.parquet', '')
+
+                    total_matched += len(df_metrics)
+
+                    # Convert to list of dicts
+                    for _, row in df_metrics.iterrows():
+                        if len(matched_metrics) >= max_results:
+                            break
+
+                        matched_metrics.append({
+                            "timestamp": str(row['time_utc']),
+                            "timestamp_ns": int(row['timestamp_ns']),
+                            "pod_name": pod_name,
+                            "metric_name": metric_name,
+                            "metric_value": float(row[metric_name]) if pd.notna(row[metric_name]) else None,
+                            "object_type": str(row.get('object_type', 'N/A'))
+                        })
+
+                except Exception:
+                    continue
+
+        else:
+            # Search in Infra pod data
+            infra_pod_dir = os.path.join(PROJECT_DIR, 'data', 'processed', date_str, 'metric-parquet', 'infra', 'infra_pod')
+
+            if not os.path.exists(infra_pod_dir):
+                return {
+                    "status": "error",
+                    "message": f"Infra pod directory not found for date {date_str}",
+                    "metrics": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+            # Find the metric file
+            metric_file = f'infra_pod_{metric_name}_{date_str}.parquet'
+            metric_path = os.path.join(infra_pod_dir, metric_file)
+
+            if not os.path.exists(metric_path):
+                return {
+                    "status": "error",
+                    "message": f"Metric file not found: {metric_file}",
+                    "metrics": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+            try:
+                df_metrics = pd.read_parquet(metric_path)
+
+                # Filter by service_name/pod if provided
+                if service_name:
+                    df_metrics = df_metrics[df_metrics['pod'].str.contains(service_name, case=False, na=False)]
+
+                if len(df_metrics) == 0:
+                    return {
+                        "status": "success",
+                        "message": f"No data found for service '{service_name}'",
+                        "metrics": [],
+                        "total_matched": 0,
+                        "returned": 0
+                    }
+
+                # Filter by time range
+                df_metrics = df_metrics[(df_metrics['timestamp_ns'] >= start_ts) & (df_metrics['timestamp_ns'] <= end_ts)]
+
+                if len(df_metrics) == 0:
+                    return {
+                        "status": "success",
+                        "message": "No data found in the specified time range",
+                        "metrics": [],
+                        "total_matched": 0,
+                        "returned": 0
+                    }
+
+                total_matched = len(df_metrics)
+
+                # Limit results
+                df_metrics = df_metrics.head(max_results)
+
+                # Convert to list of dicts
+                for _, row in df_metrics.iterrows():
+                    matched_metrics.append({
+                        "timestamp": str(row['time_utc']),
+                        "timestamp_ns": int(row['timestamp_ns']),
+                        "pod_name": str(row['pod']),
+                        "node_name": str(row.get('kubernetes_node', 'N/A')),
+                        "metric_name": metric_name,
+                        "metric_value": float(row[metric_name]) if pd.notna(row[metric_name]) else None,
+                        "namespace": str(row.get('namespace', 'N/A'))
+                    })
+
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Error reading metric file: {str(e)}",
+                    "metrics": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+        # Sort by timestamp
+        matched_metrics.sort(key=lambda x: x['timestamp_ns'])
+
+        return {
+            "status": "success",
+            "message": f"Found {total_matched} matching data points in original data, returning {len(matched_metrics)}",
+            "metrics": matched_metrics,
+            "total_matched": total_matched,
+            "returned": len(matched_metrics),
+            "metric_name": metric_name,
+            "metric_type": "apm" if is_apm else "infra",
+            "service_name": service_name,
+            "time_range": {
+                "start": str(start_dt),
+                "end": str(end_dt)
+            }
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error searching metrics: {str(e)}",
+            "metrics": [],
+            "total_matched": 0,
+            "returned": 0
+        }

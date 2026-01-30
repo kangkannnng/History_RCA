@@ -470,3 +470,156 @@ def log_analysis_tool(query: str) -> dict:
         }
         return result
 
+
+def search_raw_logs(service_name: str, keyword: str, time_range: list, max_results: int = 20) -> dict:
+    """
+    Search raw logs for a specific service/pod within a time range using keyword (supports regex)
+
+    This function searches the ORIGINAL log data (not filtered/processed logs) in the log-parquet files.
+
+    Args:
+        service_name: Service name (e.g., "adservice") or pod name (e.g., "adservice-0")
+        keyword: Search keyword, supports regular expression (e.g., "error|exception|fail")
+        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds
+        max_results: Maximum number of logs to return (default 20)
+
+    Returns:
+        Dictionary containing:
+        - status: "success" or "error"
+        - message: Status message
+        - logs: List of matched log entries from original data
+        - total_matched: Total number of matched logs
+        - returned: Number of logs actually returned
+
+    Example:
+        >>> from datetime import datetime
+        >>> start_time = datetime(2025, 6, 6, 10, 0, 0)
+        >>> end_time = datetime(2025, 6, 6, 10, 30, 0)
+        >>> start_ts = int(start_time.timestamp() * 1_000_000_000)
+        >>> end_ts = int(end_time.timestamp() * 1_000_000_000)
+        >>> result = search_raw_logs("frontend", "error|exception", [start_ts, end_ts], max_results=10)
+    """
+    import re
+    from datetime import datetime
+
+    try:
+        start_ts, end_ts = time_range
+
+        # Convert timestamp to date to locate log files
+        start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
+        end_dt = datetime.fromtimestamp(end_ts / 1_000_000_000)
+        date_str = start_dt.strftime('%Y-%m-%d')
+
+        # Determine which hourly log files to read
+        start_hour = start_dt.hour
+        end_hour = end_dt.hour
+
+        # If time range spans multiple days, we need to handle that
+        if start_dt.date() != end_dt.date():
+            # For simplicity, only search in the start date for now
+            # You can extend this to handle multi-day searches
+            end_hour = 23
+
+        log_dir = os.path.join(PROJECT_DIR, 'data', 'processed', date_str, 'log-parquet')
+
+        if not os.path.exists(log_dir):
+            return {
+                "status": "error",
+                "message": f"Log directory not found for date {date_str}",
+                "logs": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        # Compile regex pattern
+        try:
+            pattern = re.compile(keyword, re.IGNORECASE)
+        except re.error as e:
+            return {
+                "status": "error",
+                "message": f"Invalid regex pattern: {str(e)}",
+                "logs": [],
+                "total_matched": 0,
+                "returned": 0
+            }
+
+        matched_logs = []
+        total_matched = 0
+
+        # Read log files hour by hour from ORIGINAL data
+        for hour in range(start_hour, end_hour + 1):
+            log_file = f'log_filebeat-server_{date_str}_{hour:02d}-00-00.parquet'
+            log_path = os.path.join(log_dir, log_file)
+
+            if not os.path.exists(log_path):
+                continue
+
+            try:
+                # Read original log data
+                df_logs = pd.read_parquet(log_path)
+
+                # Filter by service/pod name
+                if service_name:
+                    # Try to match pod name (exact or prefix match)
+                    df_logs = df_logs[df_logs['k8_pod'].str.contains(service_name, case=False, na=False)]
+
+                if len(df_logs) == 0:
+                    continue
+
+                # Filter by time range
+                df_logs = df_logs[(df_logs['timestamp_ns'] >= start_ts) & (df_logs['timestamp_ns'] <= end_ts)]
+
+                if len(df_logs) == 0:
+                    continue
+
+                # Filter by keyword (regex search in message field)
+                mask = df_logs['message'].astype(str).apply(lambda x: bool(pattern.search(x)))
+                df_matched = df_logs[mask]
+
+                total_matched += len(df_matched)
+
+                # Convert to list of dicts
+                for _, row in df_matched.iterrows():
+                    if len(matched_logs) >= max_results:
+                        break
+
+                    matched_logs.append({
+                        "timestamp": str(row['time_utc']),
+                        "timestamp_ns": int(row['timestamp_ns']),
+                        "pod": str(row['k8_pod']),
+                        "node": str(row['k8_node_name']),
+                        "message": str(row['message'])
+                    })
+
+                if len(matched_logs) >= max_results:
+                    break
+
+            except Exception:
+                # Skip this file if there's an error
+                continue
+
+        # Sort by timestamp
+        matched_logs.sort(key=lambda x: x['timestamp_ns'])
+
+        return {
+            "status": "success",
+            "message": f"Found {total_matched} matching logs in original data, returning {len(matched_logs)}",
+            "logs": matched_logs,
+            "total_matched": total_matched,
+            "returned": len(matched_logs),
+            "service_name": service_name,
+            "keyword": keyword,
+            "time_range": {
+                "start": str(start_dt),
+                "end": str(end_dt)
+            }
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error searching logs: {str(e)}",
+            "logs": [],
+            "total_matched": 0,
+            "returned": 0
+        }

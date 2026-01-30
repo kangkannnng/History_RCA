@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-Reasoning Policy Knowledge Base using ChromaDB
+Knowledge Base using ChromaDB for fault diagnosis rules
 
 This module provides:
-1. Build knowledge base from reasoning policies
-2. Retrieve similar policies based on query
+1. Build knowledge base from expert knowledge entries
+2. Retrieve similar cases based on query
 3. Tool interface for agent integration
 """
 import os
 import json
-from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 import chromadb
 from chromadb.config import Settings
-from google.adk.tools.tool_context import ToolContext
 
-class ReasoningPolicyKB:
-    """Knowledge Base for historical reasoning policies"""
+
+class KnowledgeBaseDB:
+    """ChromaDB-based Knowledge Base for fault diagnosis rules"""
 
     def __init__(
         self,
-        persist_directory: str = "./chroma_db",
+        persist_directory: str = "./chroma_kb",
+        collection_name: str = "fault_diagnosis_kb",
         use_openai_embeddings: bool = False,
         openai_api_key: Optional[str] = None,
         openai_api_base: Optional[str] = None
@@ -30,11 +30,13 @@ class ReasoningPolicyKB:
 
         Args:
             persist_directory: Directory to persist the database
-            use_openai_embeddings: If True, use OpenAI embeddings instead of local model
-            openai_api_key: OpenAI API key (or set OPENAI_API_KEY env var)
-            openai_api_base: OpenAI API base URL (for custom endpoints)
+            collection_name: Name of the collection
+            use_openai_embeddings: If True, use OpenAI embeddings
+            openai_api_key: OpenAI API key
+            openai_api_base: OpenAI API base URL
         """
         self.persist_directory = persist_directory
+        self.collection_name = collection_name
 
         # Initialize ChromaDB client with persistence
         self.client = chromadb.PersistentClient(
@@ -47,7 +49,6 @@ class ReasoningPolicyKB:
 
         # Choose embedding function
         if use_openai_embeddings:
-            import os
             api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise ValueError("OpenAI API key required when use_openai_embeddings=True")
@@ -64,100 +65,83 @@ class ReasoningPolicyKB:
 
         # Get or create collection
         self.collection = self.client.get_or_create_collection(
-            name="reasoning_policies",
-            metadata={"description": "Historical RCA reasoning trajectories"},
+            name=collection_name,
+            metadata={"description": "Fault diagnosis knowledge base with expert reasoning"},
             embedding_function=self.embedding_function
         )
 
-    def build_from_policies(
+    def build_from_jsonl(
         self,
-        policies_dir: str,
-        gt_file: str,
+        jsonl_file: str,
         overwrite: bool = False
     ) -> Dict[str, int]:
         """
-        Build knowledge base from reasoning policy files
+        Build knowledge base from knowledge_base.jsonl
 
         Args:
-            policies_dir: Directory containing policy files
-            gt_file: Ground truth JSONL file for metadata
+            jsonl_file: Path to knowledge_base.jsonl
             overwrite: If True, clear existing collection first
 
         Returns:
             Statistics dict with counts
         """
         if overwrite:
-            self.client.delete_collection("reasoning_policies")
+            self.client.delete_collection(self.collection_name)
             self.collection = self.client.get_or_create_collection(
-                name="reasoning_policies",
-                metadata={"description": "Historical RCA reasoning trajectories"},
+                name=self.collection_name,
+                metadata={"description": "Fault diagnosis knowledge base with expert reasoning"},
                 embedding_function=self.embedding_function
             )
 
-        # Load ground truth for metadata
-        gt_data = {}
-        with open(gt_file, 'r', encoding='utf-8') as f:
+        # Load entries
+        entries = []
+        with open(jsonl_file, 'r', encoding='utf-8') as f:
             for line in f:
-                if line.strip():
-                    case = json.loads(line)
-                    gt_data[case['uuid']] = case
-
-        # Process policy files
-        policies_path = Path(policies_dir)
-        policy_files = list(policies_path.glob("*_policy.txt"))
+                line = line.strip()
+                if line:
+                    entries.append(json.loads(line))
 
         documents = []
         metadatas = []
         ids = []
 
         added_count = 0
-        discard_count = 0
         error_count = 0
 
-        for policy_file in policy_files:
-            uuid = policy_file.stem.replace('_policy', '')
+        for entry in entries:
+            try:
+                uuid = entry['uuid']
+                expert_knowledge = entry['expert_knowledge']
 
-            # Read policy content
-            policy_content = policy_file.read_text(encoding='utf-8')
+                # Build document text for embedding
+                # Combine symptom, root cause, and reasoning chain
+                doc_parts = [
+                    f"Symptom: {entry['symptom_vector']}",
+                    f"Root Cause: {expert_knowledge['root_cause_desc']}",
+                    "Reasoning: " + " ".join(expert_knowledge['reasoning_chain'])
+                ]
+                document = "\n".join(doc_parts)
 
-            # Skip DISCARD cases
-            if policy_content.strip().startswith('[Decision: DISCARD]'):
-                discard_count += 1
-                continue
+                # Build metadata
+                metadata = {
+                    'uuid': uuid,
+                    'fault_type': entry['fault_type'],
+                    'symptom_vector': entry['symptom_vector'],
+                    'root_cause_desc': expert_knowledge['root_cause_desc'],
+                    'num_reasoning_steps': len(expert_knowledge['reasoning_chain']),
+                    'num_checks': len(expert_knowledge['critical_checks']),
+                    # Store modalities used
+                    'modalities': ','.join(set(check['modality'] for check in expert_knowledge['critical_checks']))
+                }
 
-            # Skip error cases
-            if policy_content.startswith('ERROR:'):
+                documents.append(document)
+                metadatas.append(metadata)
+                ids.append(uuid)
+                added_count += 1
+
+            except Exception as e:
+                print(f"Error processing entry {entry.get('uuid', 'unknown')}: {e}")
                 error_count += 1
-                continue
-
-            # Parse policy sections
-            sections = self._parse_policy(policy_content)
-
-            # Skip if missing critical sections
-            if not sections.get('trigger') or not sections.get('conclusion'):
-                error_count += 1
-                continue
-
-            # Get metadata from GT
-            gt = gt_data.get(uuid, {})
-
-            # Prepare metadata
-            metadata = {
-                'uuid': uuid,
-                'service': gt.get('service', 'unknown'),
-                'fault_type': gt.get('fault_type', 'unknown'),
-                'fault_category': gt.get('fault_category', 'unknown'),
-                # Store section lengths for filtering
-                'has_trigger': bool(sections.get('trigger')),
-                'has_reasoning': bool(sections.get('reasoning')),
-                'has_conclusion': bool(sections.get('conclusion')),
-            }
-
-            # Add to batch
-            documents.append(policy_content)
-            metadatas.append(metadata)
-            ids.append(uuid)
-            added_count += 1
 
         # Add to ChromaDB in batch
         if documents:
@@ -169,54 +153,27 @@ class ReasoningPolicyKB:
 
         return {
             'added': added_count,
-            'discarded': discard_count,
             'errors': error_count,
-            'total': len(policy_files)
+            'total': len(entries)
         }
-
-    def _parse_policy(self, policy_content: str) -> Dict[str, str]:
-        """Parse policy content into sections"""
-        sections = {}
-        current_section = None
-        current_content = []
-
-        for line in policy_content.split('\n'):
-            if line.startswith('[') and line.endswith(']'):
-                # Save previous section
-                if current_section:
-                    sections[current_section] = '\n'.join(current_content).strip()
-
-                # Start new section
-                section_name = line[1:-1].lower().replace(' ', '_')
-                current_section = section_name
-                current_content = []
-            else:
-                current_content.append(line)
-
-        # Save last section
-        if current_section:
-            sections[current_section] = '\n'.join(current_content).strip()
-
-        return sections
 
     def retrieve(
         self,
         query: str,
-        n_results: int = 5,
+        n_results: int = 3,
         filter_metadata: Optional[Dict] = None
     ) -> List[Dict]:
         """
-        Retrieve similar reasoning policies
+        Retrieve similar knowledge base entries
 
         Args:
-            query: Query text (can be anomaly description, symptoms, etc.)
+            query: Query text (symptom description, fault description, etc.)
             n_results: Number of results to return
-            filter_metadata: Optional metadata filters (e.g., {'fault_type': 'network delay'})
+            filter_metadata: Optional metadata filters (e.g., {'fault_type': 'cpu stress'})
 
         Returns:
-            List of dicts with 'uuid', 'policy', 'metadata', 'distance'
+            List of dicts with 'uuid', 'metadata', 'distance'
         """
-        # Query ChromaDB
         results = self.collection.query(
             query_texts=[query],
             n_results=n_results,
@@ -228,58 +185,22 @@ class ReasoningPolicyKB:
         for i in range(len(results['ids'][0])):
             retrieved.append({
                 'uuid': results['ids'][0][i],
-                'policy': results['documents'][0][i],
+                'document': results['documents'][0][i],
                 'metadata': results['metadatas'][0][i],
                 'distance': results['distances'][0][i] if 'distances' in results else None
             })
 
         return retrieved
 
-    def retrieve_by_symptoms(
-        self,
-        symptoms: Dict[str, List[str]],
-        n_results: int = 5
-    ) -> List[Dict]:
-        """
-        Retrieve policies based on symptom description
-
-        Args:
-            symptoms: Dict with keys like 'logs', 'metrics', 'traces'
-                     Example: {
-                         'logs': ['connection refused', 'timeout'],
-                         'metrics': ['high CPU', 'memory spike'],
-                         'traces': ['latency increase']
-                     }
-            n_results: Number of results to return
-
-        Returns:
-            List of similar policies
-        """
-        # Build query from symptoms
-        query_parts = []
-
-        if symptoms.get('logs'):
-            query_parts.append("Log anomalies: " + ", ".join(symptoms['logs']))
-
-        if symptoms.get('metrics'):
-            query_parts.append("Metric anomalies: " + ", ".join(symptoms['metrics']))
-
-        if symptoms.get('traces'):
-            query_parts.append("Trace anomalies: " + ", ".join(symptoms['traces']))
-
-        query = ". ".join(query_parts)
-
-        return self.retrieve(query, n_results)
-
     def get_by_uuid(self, uuid: str) -> Optional[Dict]:
         """
-        Get a specific policy by UUID
+        Get a specific entry by UUID
 
         Args:
             uuid: Case UUID
 
         Returns:
-            Policy dict or None if not found
+            Entry dict or None if not found
         """
         try:
             result = self.collection.get(ids=[uuid])
@@ -287,12 +208,32 @@ class ReasoningPolicyKB:
             if result['ids']:
                 return {
                     'uuid': result['ids'][0],
-                    'policy': result['documents'][0],
+                    'document': result['documents'][0],
                     'metadata': result['metadatas'][0]
                 }
             return None
         except Exception:
             return None
+
+    def get_full_entry(self, uuid: str, jsonl_file: str) -> Optional[Dict]:
+        """
+        Get full entry with all details from original JSONL
+
+        Args:
+            uuid: Case UUID
+            jsonl_file: Path to knowledge_base.jsonl
+
+        Returns:
+            Full entry dict or None if not found
+        """
+        with open(jsonl_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    entry = json.loads(line)
+                    if entry['uuid'] == uuid:
+                        return entry
+        return None
 
     def get_stats(self) -> Dict:
         """Get knowledge base statistics"""
@@ -302,108 +243,76 @@ class ReasoningPolicyKB:
         all_data = self.collection.get()
 
         fault_types = {}
-        services = {}
+        modalities = {}
 
         for metadata in all_data['metadatas']:
             ft = metadata.get('fault_type', 'unknown')
             fault_types[ft] = fault_types.get(ft, 0) + 1
 
-            svc = metadata.get('service', 'unknown')
-            services[svc] = services.get(svc, 0) + 1
+            mods = metadata.get('modalities', '').split(',')
+            for mod in mods:
+                if mod:
+                    modalities[mod] = modalities.get(mod, 0) + 1
 
         return {
-            'total_policies': count,
+            'total_entries': count,
             'fault_types': fault_types,
-            'services': services
+            'modalities': modalities
         }
 
     def reset(self):
         """Clear all data from the knowledge base"""
-        self.client.delete_collection("reasoning_policies")
+        self.client.delete_collection(self.collection_name)
         self.collection = self.client.get_or_create_collection(
-            name="reasoning_policies",
-            metadata={"description": "Historical RCA reasoning trajectories"},
+            name=self.collection_name,
+            metadata={"description": "Fault diagnosis knowledge base with expert reasoning"},
             embedding_function=self.embedding_function
         )
 
 
 # Tool interface for agent integration
-def _retrieve_similar_cases_tool(
-    symptoms: str,
-    n_results: int = 3,
-    kb_path: str = "./chroma_db"
-) -> str:
-    """
-    Tool function for agent to retrieve similar historical cases
-
-    Args:
-        symptoms: Description of current symptoms (free text)
-        n_results: Number of similar cases to retrieve
-        kb_path: Path to ChromaDB database
-
-    Returns:
-        Formatted string with retrieved cases
-    """
-    kb = ReasoningPolicyKB(persist_directory=kb_path)
-
-    results = kb.retrieve(symptoms, n_results=n_results)
-
-    if not results:
-        return "No similar cases found in knowledge base."
-
-    output = f"Found {len(results)} similar historical cases:\n\n"
-
-    for i, result in enumerate(results, 1):
-        output += f"--- Case {i}: {result['uuid']} ---\n"
-        output += f"Service: {result['metadata'].get('service', 'unknown')}\n"
-        output += f"Similarity: {1 - result['distance']:.2%}\n\n"
-
-        # Extract key sections
-        policy = result['policy']
-        sections = {}
-        current_section = None
-        current_content = []
-
-        for line in policy.split('\n'):
-            if line.startswith('[') and line.endswith(']'):
-                if current_section:
-                    sections[current_section] = '\n'.join(current_content).strip()
-                current_section = line[1:-1]
-                current_content = []
-            else:
-                current_content.append(line)
-
-        if current_section:
-            sections[current_section] = '\n'.join(current_content).strip()
-
-        # Show key sections
-        if 'Trigger' in sections:
-            output += f"Trigger:\n{sections['Trigger'][:300]}...\n\n"
-
-        if 'Conclusion' in sections:
-            output += f"Conclusion:\n{sections['Conclusion']}\n\n"
-
-        output += "-" * 60 + "\n\n"
-
-    return output
-
-
 def rag_analysis_tool(query: str) -> dict:
     """
-    Tool interface for retrieving similar historical cases
+    Tool interface for retrieving similar historical cases from knowledge base
+
+    This function is exposed to agents for querying the fault diagnosis knowledge base.
 
     Args:
-        query: Symptom description
-    
-    Returns:
-        Results with retrieved cases
-    """
-    PROJECT_DIR = os.getenv('PROJECT_DIR', '.')
-    kb_path = os.path.join(PROJECT_DIR, 'chroma_db')
-    results = _retrieve_similar_cases_tool(
-        symptoms=query,
-        n_results=3,
-        kb_path=kb_path
-    )
+        query: Symptom description or fault description (free text)
 
-    return results
+    Returns:
+        Dictionary containing:
+        - status: "success" or "error"
+        - message: Status message
+        - results: List of retrieved results from ChromaDB
+    """
+    try:
+        # Get paths from environment
+        PROJECT_DIR = os.getenv('PROJECT_DIR', '.')
+        kb_path = os.path.join(PROJECT_DIR, 'chroma_kb')
+
+        # Initialize knowledge base
+        kb = KnowledgeBaseDB(persist_directory=kb_path)
+
+        # Retrieve similar cases
+        results = kb.retrieve(query, n_results=3)
+
+        if not results:
+            return {
+                "status": "success",
+                "message": "No similar cases found in knowledge base",
+                "results": []
+            }
+
+        return {
+            "status": "success",
+            "message": f"Found {len(results)} similar cases",
+            "results": results
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error querying knowledge base: {str(e)}",
+            "results": []
+        }

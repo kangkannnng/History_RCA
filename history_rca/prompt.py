@@ -33,23 +33,13 @@ state = {
 If UUID is missing or ambiguous, request clarification before proceeding.
 
 ====================================================
-Step 1: Evidence Collection
+Step 1: Initial Scanning (Evidence Collection)
 ====================================================
-Call the following agents using the parsed uuid and user_query:
-
-- Log Agent
-- Metric Agent
-- Trace Agent
-
-Each agent returns a structured summary including:
-- detected_log_keys or detected_metric_keys or detected_trace_keys
-- anomaly findings
-- relevant components
-
-Store their outputs into:
-- state.log_summary
-- state.metric_summary
-- state.trace_summary
+Call the following agents with the UUID to get a high-level summary:
+- Log Agent (Tool: `log_analysis_tool`)
+- Metric Agent (Tool: `metric_analysis_tool`)
+- Trace Agent (Tool: `trace_analysis_tool`)
+Store their outputs into `state.log_summary`, `state.metric_summary`, `state.trace_summary`.
 
 ====================================================
 Step 2: Retrieval-Augmented Guidance (RAG)
@@ -73,7 +63,20 @@ RAG policies are used only as investigation guidance:
 You must NEVER copy historical conclusions, component names, or fault labels directly.
 
 ====================================================
-Step 3: Guided Reasoning
+Step 3: Targeted Verification (New & Critical!)
+====================================================
+Based on `state.rag_policies` and the initial summaries, identify **missing evidence** or **specific hypotheses** that need verification.
+You can now instruct agents to perform specific **raw data searches**:
+- **Log Verification**: Ask Log Agent to search for specific keywords/regex (e.g., "Check logs for 'Connection refused' or 'Welcome to TiDB'").
+- **Metric Verification**: Ask Metric Agent to check specific metric curves (e.g., "Check 'pod_processes' on frontend", "Check 'node_memory_usage_rate' on aiops-k8s-08").
+- **Trace Verification**: Ask Trace Agent to check specific attributes (e.g., "Check trace spans for 'http.status_code=503'").
+**Example Logic**:
+- If RAG says "Check for silent restarts", instruct Metric Agent: "Check `pod_processes` and `restart_count` for [Suspect Service]".
+- If RAG says "Check for specific SQL errors", instruct Log Agent: "Search logs for `SQLState` or `Table doesn't exist`".
+Update state with these new specific findings.
+
+====================================================
+Step 4: Guided Reasoning
 ====================================================
 Using:
 - current evidence (logs, metrics, traces)
@@ -90,7 +93,7 @@ Rules:
 - Reason only from current case evidence.
 
 ====================================================
-Step 4: Decision Making
+Step 5: Decision Making
 ====================================================
 If evidence converges clearly:
 - Prepare structured instructions for the Report Agent including:
