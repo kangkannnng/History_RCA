@@ -176,15 +176,14 @@ class RCARunner:
         if hasattr(event, 'get_function_calls'):
             for call in event.get_function_calls():
                 biz_logger.info(f"[Tool Call] {call.name}")
-                biz_logger.info(f"    Args: {str(call.args)[:500]}...") # 记录更多参数细节
+                biz_logger.info(f"    Args: {str(call.args)}") # 记录更多参数细节
         
         # 2. 工具返回
         if hasattr(event, 'get_function_responses'):
             for resp in event.get_function_responses():
                 resp_str = str(resp.response)
-                preview = resp_str[:500] + "..." if len(resp_str) > 500 else resp_str
                 biz_logger.info(f"[Tool Resp] {resp.name}")
-                biz_logger.info(f"    Result: {preview}")
+                biz_logger.info(f"    Result: {resp_str}")
 
         # 3. 状态变更
         if hasattr(event, 'actions') and event.actions and event.actions.state_delta:
@@ -211,7 +210,7 @@ class RCARunner:
             logger.info(f"[Report Agent] Obtained structured report")
             return report_findings
 
-        # 兜底逻辑
+        # 兜底逻辑，也是TODO的来源
         hypothesis = state.get("current_hypothesis", "")
         if hypothesis == "（等待写入...）": hypothesis = ""
         
