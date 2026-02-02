@@ -4,7 +4,7 @@ from google.adk.models.lite_llm import LiteLlm
 from history_rca.sub_agents.report_agent.prompt import REPORT_AGENT_PROMPT
 from history_rca.schemas.report_schema import AnalysisReport
 
-model = LiteLlm(model='openai/deepseek-chat')
+model = LiteLlm(model='openai/qwen3-max')
 
 report_agent = Agent(
     name="report_agent",

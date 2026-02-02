@@ -1662,7 +1662,8 @@ def search_raw_metrics(
     metric_name: str,
     service_name: Optional[str] = None,
     time_range: Optional[list] = None,
-    max_results: int = 100
+    uuid: Optional[str] = None,
+    max_results: int = 200  # 增加到 200，确保覆盖完整时间窗口
 ) -> dict:
     """
     Search raw metrics for a specific metric_name and optional service_name within a time range
@@ -1672,8 +1673,9 @@ def search_raw_metrics(
     Args:
         metric_name: Metric name to search for (e.g., "pod_cpu_usage", "rrt", "error_ratio")
         service_name: Service name or pod name to filter (e.g., "adservice", "frontend-0") (optional)
-        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds
-        max_results: Maximum number of metric data points to return (default 100)
+        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds (optional if uuid provided)
+        uuid: Case UUID (if provided, automatically fetch time range from df_input_timestamp)
+        max_results: Maximum number of metric data points to return (default 200)
 
     Returns:
         Dictionary containing:
@@ -1685,19 +1687,19 @@ def search_raw_metrics(
         - metric_type: Type of metric (apm or infra)
 
     Example:
+        >>> # Method 1: Use UUID (simplest - recommended for agents)
+        >>> result = search_raw_metrics("pod_cpu_usage", service_name="frontend", uuid="38ee3d45-82")
+        >>>
+        >>> # Method 2: Use nanosecond timestamps
         >>> from datetime import datetime
         >>> start_time = datetime(2025, 6, 6, 10, 0, 0)
         >>> end_time = datetime(2025, 6, 6, 10, 30, 0)
         >>> start_ts = int(start_time.timestamp() * 1_000_000_000)
         >>> end_ts = int(end_time.timestamp() * 1_000_000_000)
-        >>>
-        >>> # Search for CPU usage of a specific service
         >>> result = search_raw_metrics("pod_cpu_usage", service_name="frontend", time_range=[start_ts, end_ts])
-        >>>
-        >>> # Search for error ratio in APM data
-        >>> result = search_raw_metrics("error_ratio", service_name="adservice-0", time_range=[start_ts, end_ts])
     """
     from datetime import datetime
+    global df_input_timestamp
 
     try:
         # Validate input
@@ -1710,16 +1712,41 @@ def search_raw_metrics(
                 "returned": 0
             }
 
-        if not time_range:
+        # Determine time range
+        start_ts = None
+        end_ts = None
+
+        # Priority 1: Use UUID to fetch time range from df_input_timestamp
+        if uuid:
+            try:
+                uuid_match = df_input_timestamp[df_input_timestamp['uuid'].str.contains(uuid, case=False, na=False)]
+                if not uuid_match.empty:
+                    row = uuid_match.iloc[0]
+                    start_ts = int(row['start_timestamp'])
+                    end_ts = int(row['end_timestamp'])
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Failed to fetch time range for UUID '{uuid}': {str(e)}",
+                    "metrics": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+        # Priority 2: Use provided time_range
+        elif time_range:
+            start_ts, end_ts = time_range
+
+        # If neither uuid nor time_range provided
+        if start_ts is None or end_ts is None:
             return {
                 "status": "error",
-                "message": "time_range parameter is required",
+                "message": "Either 'uuid' or 'time_range' parameter must be provided",
                 "metrics": [],
                 "total_matched": 0,
                 "returned": 0
             }
 
-        start_ts, end_ts = time_range
         start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
         end_dt = datetime.fromtimestamp(end_ts / 1_000_000_000)
         date_str = start_dt.strftime('%Y-%m-%d')
@@ -1892,7 +1919,8 @@ def search_raw_metrics(
             "time_range": {
                 "start": str(start_dt),
                 "end": str(end_dt)
-            }
+            },
+            "uuid": uuid if uuid else "N/A"
         }
 
     except Exception as e:

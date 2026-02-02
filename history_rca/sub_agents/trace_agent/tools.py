@@ -1044,6 +1044,7 @@ def search_raw_traces(
     operation_name: Optional[str] = None,
     attribute_key: Optional[str] = None,
     time_range: Optional[list] = None,
+    uuid: Optional[str] = None,
     max_results: int = 20
 ) -> dict:
     """
@@ -1055,7 +1056,8 @@ def search_raw_traces(
         trace_id: Trace ID to search for (exact match)
         operation_name: Operation name to search for (supports regex)
         attribute_key: Attribute key to search in tags (e.g., "http.status_code", "error")
-        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds (optional)
+        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds (optional if uuid provided)
+        uuid: Case UUID (if provided, automatically fetch time range from df_input_timestamp)
         max_results: Maximum number of spans to return (default 20)
 
     Returns:
@@ -1067,23 +1069,23 @@ def search_raw_traces(
         - returned: Number of spans actually returned
 
     Example:
+        >>> # Method 1: Use UUID (simplest - recommended for agents)
+        >>> result = search_raw_traces(
+        ...     operation_name="CartService",
+        ...     uuid="38ee3d45-82"
+        ... )
+        >>>
+        >>> # Method 2: Use nanosecond timestamps
         >>> from datetime import datetime
         >>> start_time = datetime(2025, 6, 6, 10, 0, 0)
         >>> end_time = datetime(2025, 6, 6, 10, 30, 0)
         >>> start_ts = int(start_time.timestamp() * 1_000_000_000)
         >>> end_ts = int(end_time.timestamp() * 1_000_000_000)
-        >>>
-        >>> # Search by trace_id
         >>> result = search_raw_traces(trace_id="abc123", time_range=[start_ts, end_ts])
-        >>>
-        >>> # Search by operation_name
-        >>> result = search_raw_traces(operation_name="GET /product", time_range=[start_ts, end_ts])
-        >>>
-        >>> # Search by attribute_key in tags
-        >>> result = search_raw_traces(attribute_key="http.status_code", time_range=[start_ts, end_ts])
     """
     import re
     from datetime import datetime
+    global df_input_timestamp
 
     try:
         # Validate input: at least one search criterion must be provided
@@ -1097,25 +1099,49 @@ def search_raw_traces(
             }
 
         # Determine time range
-        if time_range:
-            start_ts, end_ts = time_range
-            start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
-            end_dt = datetime.fromtimestamp(end_ts / 1_000_000_000)
-            date_str = start_dt.strftime('%Y-%m-%d')
-            start_hour = start_dt.hour
-            end_hour = end_dt.hour
+        start_ts = None
+        end_ts = None
 
-            # If time range spans multiple days, only search in the start date for now
-            if start_dt.date() != end_dt.date():
-                end_hour = 23
-        else:
+        # Priority 1: Use UUID to fetch time range from df_input_timestamp
+        if uuid:
+            try:
+                uuid_match = df_input_timestamp[df_input_timestamp['uuid'].str.contains(uuid, case=False, na=False)]
+                if not uuid_match.empty:
+                    row = uuid_match.iloc[0]
+                    start_ts = int(row['start_timestamp'])
+                    end_ts = int(row['end_timestamp'])
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Failed to fetch time range for UUID '{uuid}': {str(e)}",
+                    "traces": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+        # Priority 2: Use provided time_range
+        elif time_range:
+            start_ts, end_ts = time_range
+
+        # If neither uuid nor time_range provided
+        if start_ts is None or end_ts is None:
             return {
                 "status": "error",
-                "message": "time_range parameter is required",
+                "message": "Either 'uuid' or 'time_range' parameter must be provided",
                 "traces": [],
                 "total_matched": 0,
                 "returned": 0
             }
+
+        start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
+        end_dt = datetime.fromtimestamp(end_ts / 1_000_000_000)
+        date_str = start_dt.strftime('%Y-%m-%d')
+        start_hour = start_dt.hour
+        end_hour = end_dt.hour
+
+        # If time range spans multiple days, only search in the start date for now
+        if start_dt.date() != end_dt.date():
+            end_hour = 23
 
         trace_dir = os.path.join(PROJECT_DIR, 'data', 'processed', date_str, 'trace-parquet')
 
@@ -1254,9 +1280,10 @@ def search_raw_traces(
             "returned": len(matched_traces),
             "search_criteria": ", ".join(search_criteria),
             "time_range": {
-                "start": str(start_dt) if time_range else None,
-                "end": str(end_dt) if time_range else None
-            }
+                "start": str(start_dt),
+                "end": str(end_dt)
+            },
+            "uuid": uuid if uuid else "N/A"
         }
 
     except Exception as e:

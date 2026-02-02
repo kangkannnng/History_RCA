@@ -1,0 +1,121 @@
+root - INFO - === START SESSION: d9fb014e-206 (Run #1) ===
+RootCauseAnalysis - INFO - [Processing] d9fb014e-206 (Run #1) | Log: logs/d9fb014e-206/run.log
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] parse_user_input
+RootCauseAnalysis - INFO -     Args: {'input_json': '{"Anomaly Description": "Please analyze the abnormal event between 2025-06-11T01:10:22Z and 2025-06-11T01:29:22Z and provide the root cause.", "uuid": "d9fb014e-206"}'}
+RootCauseAnalysis - INFO - [Tool Resp] parse_user_input
+RootCauseAnalysis - INFO -     Result: {'uuid': 'd9fb014e-206', 'user_query': 'Please analyze the abnormal event between 2025-06-11T01:10:22Z and 2025-06-11T01:29:22Z and provide the root cause.'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] log_agent
+RootCauseAnalysis - INFO -     Args: {'request': 'Summarize anomalous logs for case d9fb014e-206 between 2025-06-11T01:10:22Z and 2025-06-11T01:29:22Z. Include key log patterns, affected components, and error types.'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] log_agent
+RootCauseAnalysis - INFO -     Result: {'result': '```json\n{\n  "detected_log_keys": ["DeadlineExceeded", "context deadline exceeded", "stream terminated by RST_STREAM", "Byteman agent", "InvocationTargetException", "AdService-getRandomAds-latency"],\n  "affected_components": ["adservice"],\n  "missing_logs": [],\n  "log_summary": "Frontend services consistently report \'DeadlineExceeded\' errors when calling adservice, indicating adservice is not responding within expected time. Adservice logs show Byteman agent injection for latency simulation rule \'AdService-getRandomAds-latency\', followed by agent startup failures and invocation target exceptions. The root cause appears to be faulty Byteman agent configuration causing adservice performance degradation or failure.",\n  "next_verification": {\n    "action": "check_byteman_agent_config",\n    "reason": "Byteman agent injection is causing startup failures and likely introducing artificial latency that exceeds frontend timeouts",\n    "suggested_metrics": ["adservice_response_time", "adservice_cpu_usage", "adservice_jvm_gc_time"],\n    "suggested_log_keywords": ["Byteman", "agent", "latency", "getRandomAds"]\n  }\n}\n```'}
+RootCauseAnalysis - INFO - [State Update] {"log_analysis_findings": "```json\n{\n  \"detected_log_keys\": [\"DeadlineExceeded\", \"context deadline exceeded\", \"stream terminated by RST_STREAM\", \"Byteman agent\", \"InvocationTargetException\", \"AdService-getRandomAds-latency\"],\n  \"affected_components\": [\"adservice\"],\n  \"missing_logs\": [],\n  \"log_summary\": \"Frontend services consistently report 'DeadlineExceeded' errors when calling adservice, indicating adservice is not responding within expected time. Adservice logs show Byteman agent injection for latency simulation rule 'AdService-getRandomAds-latency', followed by agent startup failures and invocation target exceptions. The root cause appears to be faulty Byteman agent configuration causing adservice performance degradation or failure.\",\n  \"next_verification\": {\n    \"action\": \"check_byteman_agent_config\",\n    \"reason\": \"Byteman agent injection is causing startup failures and likely introducing artificial latency that exceeds frontend timeouts\",\n    \"suggested_metrics\": [\"adservice_response_time\", \"adservice_cpu_usage\", \"adservice_jvm_gc_time\"],\n    \"suggested_log_keywords\": [\"Byteman\", \"agent\", \"latency\", \"getRandomAds\"]\n  }\n}\n```"}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] metric_agent
+RootCauseAnalysis - INFO -     Args: {'request': 'Summarize anomalous metrics for case d9fb014e-206 between 2025-06-11T01:10:22Z and 2025-06-11T01:29:22Z. Include key metric patterns, affected components, and resource usage anomalies.'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] metric_agent
+RootCauseAnalysis - INFO -     Result: {'result': '```json\n{\n  "detected_metric_keys": ["error_ratio", "client_error_ratio", "rrt", "rrt_max", "io_util", "node_memory_MemAvailable_bytes", "request", "response"],\n  "affected_components": ["cartservice-1", "checkoutservice-2", "frontend-0", "frontend-1", "frontend-2", "shippingservice-0", "tidb-tikv", "aiops-k8s-04", "productcatalogservice-0"],\n  "metric_summary": "Multiple services show elevated error ratios (cartservice-1, checkoutservice-2) and significant latency increases in rrt/rrt_max (frontend pods, shippingservice-0, cartservice-2). TiDB TiKV shows slight io_util increase. Node aiops-k8s-04 exhibits reduced available memory. Product catalog service shows decreased request/response rates.",\n  "time_series_analysis": null,\n  "contradictions": null,\n  "next_verification": null\n}\n```'}
+RootCauseAnalysis - INFO - [State Update] {"metric_analysis_findings": "```json\n{\n  \"detected_metric_keys\": [\"error_ratio\", \"client_error_ratio\", \"rrt\", \"rrt_max\", \"io_util\", \"node_memory_MemAvailable_bytes\", \"request\", \"response\"],\n  \"affected_components\": [\"cartservice-1\", \"checkoutservice-2\", \"frontend-0\", \"frontend-1\", \"frontend-2\", \"shippingservice-0\", \"tidb-tikv\", \"aiops-k8s-04\", \"productcatalogservice-0\"],\n  \"metric_summary\": \"Multiple services show elevated error ratios (cartservice-1, checkoutservice-2) and significant latency increases in rrt/rrt_max (frontend pods, shippingservice-0, cartservice-2). TiDB TiKV shows slight io_util increase. Node aiops-k8s-04 exhibits reduced available memory. Product catalog service shows decreased request/response rates.\",\n  \"time_series_analysis\": null,\n  \"contradictions\": null,\n  \"next_verification\": null\n}\n```"}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] trace_agent
+RootCauseAnalysis - INFO -     Args: {'request': 'Summarize anomalous traces for case d9fb014e-206 between 2025-06-11T01:10:22Z and 2025-06-11T01:29:22Z. Include key trace patterns, affected components, and error/latency anomalies.'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] trace_agent
+RootCauseAnalysis - INFO -     Result: {'result': '```json\n{\n  "detected_trace_keys": ["rrt_max", "error_ratio", "frontend->adservice", "deadline_exceeded"],\n  "affected_components": ["adservice", "frontend"],\n  "missing_traces": ["adservice server spans"],\n  "trace_summary": "Frontend service calls to adservice (hipstershop.AdService/GetAds) show severe latency degradation (90x normal duration) and high error rate (1484 errors) with \'context deadline exceeded\' status. The adservice appears to be unresponsive or crashed, as no server-side spans for adservice were found during the fault period, indicating the service never received or processed the requests.",\n  "next_verification": {\n    "action": "check_pod_status",\n    "reason": "No adservice server spans found during fault period suggests pod crash or unavailability",\n    "suggested_metrics": ["pod_cpu_usage", "pod_memory_usage", "pod_restart_count"],\n    "suggested_log_keywords": ["adservice", "OOMKilled", "crash", "panic"]\n  }\n}\n```'}
+RootCauseAnalysis - INFO - [State Update] {"trace_analysis_findings": "```json\n{\n  \"detected_trace_keys\": [\"rrt_max\", \"error_ratio\", \"frontend->adservice\", \"deadline_exceeded\"],\n  \"affected_components\": [\"adservice\", \"frontend\"],\n  \"missing_traces\": [\"adservice server spans\"],\n  \"trace_summary\": \"Frontend service calls to adservice (hipstershop.AdService/GetAds) show severe latency degradation (90x normal duration) and high error rate (1484 errors) with 'context deadline exceeded' status. The adservice appears to be unresponsive or crashed, as no server-side spans for adservice were found during the fault period, indicating the service never received or processed the requests.\",\n  \"next_verification\": {\n    \"action\": \"check_pod_status\",\n    \"reason\": \"No adservice server spans found during fault period suggests pod crash or unavailability\",\n    \"suggested_metrics\": [\"pod_cpu_usage\", \"pod_memory_usage\", \"pod_restart_count\"],\n    \"suggested_log_keywords\": [\"adservice\", \"OOMKilled\", \"crash\", \"panic\"]\n  }\n}\n```"}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] rag_agent
+RootCauseAnalysis - INFO -     Args: {'request': "Log summary: Frontend services report 'DeadlineExceeded' errors when calling adservice. Adservice logs show Byteman agent injection for latency simulation rule 'AdService-getRandomAds-latency', followed by agent startup failures and invocation target exceptions. Metric summary: Multiple services show elevated error ratios and significant latency increases. TiDB TiKV shows slight io_util increase. Node aiops-k8s-04 exhibits reduced available memory. Trace summary: Frontend calls to adservice show severe latency degradation and high error rate with 'context deadline exceeded' status. No adservice server spans found during fault period."}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] rag_agent
+RootCauseAnalysis - INFO -     Result: {'result': '{\n  "retrieved_policies": [\n    "Symptom: high JVM latency with elevated request latency and DeadlineExceeded errors\\nRoot Cause: adservice 组件因 Byteman agent 注入导致 adservice-getRandomAds-latency 指标异常升高，引发 JVM 响应延迟\\nReasoning: Step 1: 观察到 adservice-0 的 pod_cpu_usage 指标从 0.01 增加到 0.17 (p99_change_ratio 1.7819)，表明 CPU 使用率显著上升 Step 2: 分析 adservice 组件的日志发现 Byteman agent 正在注入延迟规则 AdService-getRandomAds-latency-1749399002，Rule.execute 被频繁调用 Step 3: 确认 frontend 服务调用 adservice 时出现大量 DeadlineExceeded 错误，表明 adservice 响应超时，与延迟注入现象一致",\n    "Symptom: high JVM latency with elevated request latency and JVM response delay\\nRoot Cause: adservice-0 组件因 adservice-getRandomAds-latency 指标异常导致 JVM 延迟问题\\nReasoning: Step 1: 观察到 adservice-0 的日志中出现 AdService-getRandomAds-latency-1749791449 规则注入相关异常 Step 2: 分析 adservice-0 的日志显示 Byteman agent 加载失败和 InvocationTargetException 异常 Step 3: 确认 adservice-0 存在 JVM 层面的延迟注入问题，导致 getRandomAds 方法性能下降",\n    "Symptom: high JVM latency with elevated request latency and JVM response delay\\nRoot Cause: adservice 组件因 Byteman 代理重复加载失败并注入 AdService-getRandomAds-latency-1749546648 延迟规则，导致 adservice-getRandomAds-latency 和 rrt 指标异常飙升\\nReasoning: Step 1: 观察到 adservice 的 rrt 指标从 3081.34 激增至 161041.4，rrt_max 从 43075.0 增至 349903.0，表明服务响应延迟严重恶化 Step 2: 分析 adservice 日志发现 Byteman 代理重复加载失败（\'attempting to load Byteman agent more than once\'）和 AdService-getRandomAds-latency-1749546648 规则注入记录 Step 3: 确认调用链中 frontend->adservice 调用出现 context deadline exceeded 错误，平均延迟从 5.5秒激增至 339秒，验证了延迟问题的级联影响"\n  ]\n}'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] log_agent
+RootCauseAnalysis - INFO -     Args: {'request': "Check adservice logs for specific Byteman agent errors and 'AdService-getRandomAds-latency' rule injection during 2025-06-11T01:10:22Z to 2025-06-11T01:29:22Z. Look for 'attempting to load Byteman agent more than once', 'InvocationTargetException', and agent startup failures."}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] log_agent
+RootCauseAnalysis - INFO -     Result: {'result': '```json\n{\n  "detected_log_keys": [],\n  "affected_components": [],\n  "missing_logs": ["adservice"],\n  "log_summary": "No logs found for adservice during the fault window (2025-06-05T18:10:05Z to 2025-06-05T18:34:05Z) when searching for Byteman agent errors. This suggests the adservice pod may have crashed or failed to start properly.",\n  "next_verification": {\n    "action": "check_pod_lifecycle",\n    "reason": "Complete absence of logs for adservice indicates potential pod crash or startup failure during the fault window",\n    "suggested_metrics": ["pod_processes", "container_restarts", "pod_uptime"],\n    "suggested_log_keywords": ["Byteman", "agent", "AdService-getRandomAds-latency"]\n  }\n}\n```'}
+RootCauseAnalysis - INFO - [State Update] {"log_analysis_findings": "```json\n{\n  \"detected_log_keys\": [],\n  \"affected_components\": [],\n  \"missing_logs\": [\"adservice\"],\n  \"log_summary\": \"No logs found for adservice during the fault window (2025-06-05T18:10:05Z to 2025-06-05T18:34:05Z) when searching for Byteman agent errors. This suggests the adservice pod may have crashed or failed to start properly.\",\n  \"next_verification\": {\n    \"action\": \"check_pod_lifecycle\",\n    \"reason\": \"Complete absence of logs for adservice indicates potential pod crash or startup failure during the fault window\",\n    \"suggested_metrics\": [\"pod_processes\", \"container_restarts\", \"pod_uptime\"],\n    \"suggested_log_keywords\": [\"Byteman\", \"agent\", \"AdService-getRandomAds-latency\"]\n  }\n}\n```"}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] metric_agent
+RootCauseAnalysis - INFO -     Args: {'request': 'Check adservice pod metrics during 2025-06-11T01:10:22Z to 2025-06-11T01:29:22Z, specifically pod_processes, container_restarts, and pod_uptime to determine if the pod crashed or failed to start.'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] metric_agent
+RootCauseAnalysis - INFO -     Result: {'result': '```json\n{\n  "detected_metric_keys": ["pod_processes"],\n  "affected_components": [],\n  "metric_summary": "pod_processes metric shows all adservice pods (adservice-0, adservice-1, adservice-2) maintained stable process count of 1.0 throughout the queried time period from 2025-06-11T00:51:00Z to 2025-06-11T01:09:00Z, indicating no pod crashes occurred. However, container_restarts and pod_uptime metrics are unavailable due to missing metric files.",\n  "time_series_analysis": {\n    "metric_name": "pod_processes",\n    "pattern": "stable",\n    "critical_timestamps": [],\n    "value_change": "1.0 → 1.0"\n  },\n  "contradictions": [],\n  "next_verification": {\n    "action": "check_logs",\n    "reason": "pod_processes indicates stable operation but container_restarts and pod_uptime metrics are unavailable. Need to verify actual pod health through logs since critical restart metrics cannot be retrieved.",\n    "suggested_metrics": [],\n    "suggested_log_keywords": ["OOMKilled", "Error", "exit", "terminated", "crash"]\n  }\n}\n```'}
+RootCauseAnalysis - INFO - [State Update] {"metric_analysis_findings": "```json\n{\n  \"detected_metric_keys\": [\"pod_processes\"],\n  \"affected_components\": [],\n  \"metric_summary\": \"pod_processes metric shows all adservice pods (adservice-0, adservice-1, adservice-2) maintained stable process count of 1.0 throughout the queried time period from 2025-06-11T00:51:00Z to 2025-06-11T01:09:00Z, indicating no pod crashes occurred. However, container_restarts and pod_uptime metrics are unavailable due to missing metric files.\",\n  \"time_series_analysis\": {\n    \"metric_name\": \"pod_processes\",\n    \"pattern\": \"stable\",\n    \"critical_timestamps\": [],\n    \"value_change\": \"1.0 → 1.0\"\n  },\n  \"contradictions\": [],\n  \"next_verification\": {\n    \"action\": \"check_logs\",\n    \"reason\": \"pod_processes indicates stable operation but container_restarts and pod_uptime metrics are unavailable. Need to verify actual pod health through logs since critical restart metrics cannot be retrieved.\",\n    \"suggested_metrics\": [],\n    \"suggested_log_keywords\": [\"OOMKilled\", \"Error\", \"exit\", \"terminated\", \"crash\"]\n  }\n}\n```"}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] trace_agent
+RootCauseAnalysis - INFO -     Args: {'request': 'Check if there are any adservice server-side spans during the fault period 2025-06-11T01:10:22Z to 2025-06-11T01:29:22Z, and analyze the timing of frontend-to-adservice calls to confirm if requests reached adservice.'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] trace_agent
+RootCauseAnalysis - INFO -     Result: {'result': '```json\n{\n  "detected_trace_keys": ["rrt_max", "error_ratio", "frontend->adservice", "deadline_exceeded"],\n  "affected_components": ["adservice"],\n  "missing_traces": ["adservice server spans during 2025-06-11T01:10:22Z to 2025-06-11T01:29:22Z"],\n  "trace_summary": "Frontend to adservice calls fail with \'context deadline exceeded\' errors (1484 occurrences total). All frontend client spans show normal behavior before the fault period, but during the fault period, requests timeout after ~500ms. Critically, there are ZERO adservice server-side spans during the entire fault period, indicating requests never reached the adservice - the service likely crashed or became unavailable.",\n  "next_verification": {\n    "action": "check_pod_status_at_timestamp",\n    "reason": "Server spans completely missing during fault period suggests adservice pod crash or unavailability",\n    "suggested_metrics": ["pod_processes", "pod_cpu_usage", "pod_memory_usage"],\n    "suggested_log_keywords": ["adservice", "OOMKilled", "exit", "crash", "panic"],\n    "critical_timestamp": "2025-06-11 01:10:22"\n  }\n}\n```'}
+RootCauseAnalysis - INFO - [State Update] {"trace_analysis_findings": "```json\n{\n  \"detected_trace_keys\": [\"rrt_max\", \"error_ratio\", \"frontend->adservice\", \"deadline_exceeded\"],\n  \"affected_components\": [\"adservice\"],\n  \"missing_traces\": [\"adservice server spans during 2025-06-11T01:10:22Z to 2025-06-11T01:29:22Z\"],\n  \"trace_summary\": \"Frontend to adservice calls fail with 'context deadline exceeded' errors (1484 occurrences total). All frontend client spans show normal behavior before the fault period, but during the fault period, requests timeout after ~500ms. Critically, there are ZERO adservice server-side spans during the entire fault period, indicating requests never reached the adservice - the service likely crashed or became unavailable.\",\n  \"next_verification\": {\n    \"action\": \"check_pod_status_at_timestamp\",\n    \"reason\": \"Server spans completely missing during fault period suggests adservice pod crash or unavailability\",\n    \"suggested_metrics\": [\"pod_processes\", \"pod_cpu_usage\", \"pod_memory_usage\"],\n    \"suggested_log_keywords\": [\"adservice\", \"OOMKilled\", \"exit\", \"crash\", \"panic\"],\n    \"critical_timestamp\": \"2025-06-11 01:10:22\"\n  }\n}\n```"}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Tool Call] report_agent
+RootCauseAnalysis - INFO -     Args: {'request': '{\n  "final_component": "adservice",\n  "reason": "Byteman agent injection causing startup failure and service unavailability",\n  "reasoning_trace": [\n    "Frontend services show \'DeadlineExceeded\' errors when calling adservice during the fault window",\n    "Trace analysis reveals zero adservice server spans during the fault period, indicating requests never reached the service",\n    "Log analysis shows Byteman agent injection with \'AdService-getRandomAds-latency\' rule and agent startup failures",\n    "Despite stable pod_processes metric, complete absence of adservice logs during fault window suggests pod crash or failure to start properly due to faulty Byteman configuration",\n    "RAG policies consistently point to Byteman agent issues as the root cause of adservice performance degradation"\n  ],\n  "observation": "Frontend logs show \'DeadlineExceeded\' errors; Trace data shows 1484 \'context deadline exceeded\' errors with zero adservice server spans; Logs indicate Byteman agent injection with \'AdService-getRandomAds-latency\' rule and startup failures; No adservice logs available during fault window despite stable pod_processes metric"\n}'}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+google_adk.google.adk.runners - INFO - Closing runner...
+google_adk.google.adk.runners - INFO - Runner closed.
+RootCauseAnalysis - INFO - [Tool Resp] report_agent
+RootCauseAnalysis - INFO -     Result: {'uuid': 'd9fb014e-206', 'component': 'adservice', 'reason': 'Byteman agent injection causing startup failure and service unavailability', 'reasoning_trace': [{'step': 1, 'action': 'TraceAnalysis(d9fb014e-206)', 'observation': "Zero adservice server spans, 1484 'context deadline exceeded' errors from frontend"}, {'step': 2, 'action': 'LogSearch(adservice)', 'observation': "Byteman agent injection with 'AdService-getRandomAds-latency' rule and startup failures"}, {'step': 3, 'action': 'LoadMetrics(adservice)', 'observation': 'pod_processes stable but no logs during fault window indicating crash loop'}]}
+RootCauseAnalysis - INFO - [State Update] {"report_analysis_findings": {"uuid": "d9fb014e-206", "component": "adservice", "reason": "Byteman agent injection causing startup failure and service unavailability", "reasoning_trace": [{"step": 1, "action": "TraceAnalysis(d9fb014e-206)", "observation": "Zero adservice server spans, 1484 'context deadline exceeded' errors from frontend"}, {"step": 2, "action": "LogSearch(adservice)", "observation": "Byteman agent injection with 'AdService-getRandomAds-latency' rule and startup failures"}, {"step": 3, "action": "LoadMetrics(adservice)", "observation": "pod_processes stable but no logs during fault window indicating crash loop"}]}}
+LiteLLM - INFO - 
+LiteLLM completion() model= qwen3-max; provider = openai
+RootCauseAnalysis - INFO - [Final State Summary]
+root - INFO - === END SESSION ===

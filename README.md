@@ -144,3 +144,163 @@ Set environment variables in `history_rca/.env`:
 - Google ADK (Agent Development Kit)
 - LiteLLM for model access
 - Access to observability data sources
+
+## Recent Improvements
+
+### Enhanced Search Tools with UUID Support (v2.0)
+
+The search tools (`search_raw_logs`, `search_raw_metrics`, `search_raw_traces`) have been enhanced to support direct UUID parameter, making it much easier for agents to perform targeted verification without manually constructing time ranges.
+
+#### Key Improvements
+
+1. **Simplified API**: Agents can now use UUID directly instead of nanosecond timestamps
+2. **Backward Compatible**: Original `time_range` parameter still works
+3. **Enhanced Prompts**: All agent prompts updated with clear usage examples
+4. **Better Error Handling**: Clear error messages when parameters are missing
+
+#### Usage Examples
+
+**Before (Complex)**:
+```python
+from datetime import datetime
+
+# Agent had to manually construct nanosecond timestamps
+start_time = datetime(2025, 6, 5, 18, 10, 5)
+end_time = datetime(2025, 6, 5, 18, 34, 5)
+start_ts = int(start_time.timestamp() * 1_000_000_000)
+end_ts = int(end_time.timestamp() * 1_000_000_000)
+
+result = search_raw_logs("cartservice", "error", time_range=[start_ts, end_ts])
+```
+
+**After (Simple)**:
+```python
+# Agent can use UUID directly
+result = search_raw_logs("cartservice", "error", uuid="38ee3d45-82")
+```
+
+#### Tool Signatures
+
+```python
+# Log Agent
+search_raw_logs(
+    service_name: str,
+    keyword: str,
+    time_range: Optional[list] = None,  # [start_ns, end_ns]
+    uuid: Optional[str] = None,          # NEW: Use UUID instead
+    max_results: int = 20
+)
+
+# Metric Agent
+search_raw_metrics(
+    metric_name: str,
+    service_name: Optional[str] = None,
+    time_range: Optional[list] = None,  # [start_ns, end_ns]
+    uuid: Optional[str] = None,          # NEW: Use UUID instead
+    max_results: int = 100
+)
+
+# Trace Agent
+search_raw_traces(
+    trace_id: Optional[str] = None,
+    operation_name: Optional[str] = None,
+    attribute_key: Optional[str] = None,
+    time_range: Optional[list] = None,  # [start_ns, end_ns]
+    uuid: Optional[str] = None,          # NEW: Use UUID instead
+    max_results: int = 20
+)
+```
+
+#### Testing
+
+Run the test suite to verify the improvements:
+
+```bash
+# Run all tests
+python tests/test_search_tools_with_uuid.py
+
+# Or use pytest
+pytest tests/test_search_tools_with_uuid.py -v
+```
+
+The test suite includes:
+- ✅ UUID parameter functionality
+- ✅ Backward compatibility with time_range
+- ✅ Error handling for missing parameters
+- ✅ Time series analysis for pod_processes metric
+
+### Enhanced Agent Prompts
+
+All agent prompts have been updated with:
+
+1. **Missing Data Analysis**: Agents now recognize when data is missing as critical evidence
+   - Example: No logs from target service → possible pod crash
+
+2. **Time Series Analysis**: Metric Agent now analyzes trends, not just single values
+   - Detects sudden drops (pod crash)
+   - Detects sudden spikes (resource saturation)
+   - Detects oscillations (repeated restarts)
+
+3. **Contradiction Detection**: Agents identify conflicting evidence
+   - Example: `pod_processes=1.0` but `connection refused` → re-verify time series
+
+4. **Symptom vs Root Cause**: Clear distinction between symptoms and underlying causes
+   - Symptom: "connection refused"
+   - Root Cause: "pod_processes dropped to 0 (pod crash)"
+
+5. **Next Verification Suggestions**: Agents suggest follow-up actions
+   - Missing logs → check pod lifecycle metrics
+   - Contradictions → re-check time series data
+
+#### Example Output Format
+
+```json
+{
+  "detected_log_keys": ["connection refused", "Error while dialing"],
+  "affected_components": ["cartservice"],
+  "missing_logs": ["cartservice"],
+  "log_summary": "Frontend reports connection refused to cartservice. No cartservice logs found.",
+  "next_verification": {
+    "action": "check_pod_lifecycle",
+    "reason": "Missing logs suggest pod may not be running",
+    "suggested_metrics": ["pod_processes", "container_restarts"]
+  }
+}
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run specific test file
+python tests/test_search_tools_with_uuid.py
+
+# Run all tests with pytest
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=history_rca --cov-report=html
+```
+
+### Adding New Agents
+
+1. Create agent directory under `history_rca/sub_agents/`
+2. Implement `agent.py` with agent logic
+3. Create `prompt.py` with agent instructions
+4. Implement `tools.py` with agent-specific tools
+5. Register agent in orchestrator
+
+### Debugging
+
+Enable detailed logging:
+```bash
+export LOG_LEVEL=DEBUG
+python main.py --single 1
+```
+
+View agent conversation logs:
+```bash
+cat logs/<uuid>/run.log
+```
+

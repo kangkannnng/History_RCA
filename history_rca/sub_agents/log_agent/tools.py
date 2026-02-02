@@ -471,7 +471,7 @@ def log_analysis_tool(query: str) -> dict:
         return result
 
 
-def search_raw_logs(service_name: str, keyword: str, time_range: list, max_results: int = 20) -> dict:
+def search_raw_logs(service_name: str, keyword: str, time_range: Optional[list] = None, uuid: Optional[str] = None, max_results: int = 20) -> dict:
     """
     Search raw logs for a specific service/pod within a time range using keyword (supports regex)
 
@@ -480,7 +480,8 @@ def search_raw_logs(service_name: str, keyword: str, time_range: list, max_resul
     Args:
         service_name: Service name (e.g., "adservice") or pod name (e.g., "adservice-0")
         keyword: Search keyword, supports regular expression (e.g., "error|exception|fail")
-        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds
+        time_range: Time range tuple (start_timestamp_ns, end_timestamp_ns) in nanoseconds (optional if uuid provided)
+        uuid: Case UUID (if provided, automatically fetch time range from df_input_timestamp)
         max_results: Maximum number of logs to return (default 20)
 
     Returns:
@@ -492,18 +493,56 @@ def search_raw_logs(service_name: str, keyword: str, time_range: list, max_resul
         - returned: Number of logs actually returned
 
     Example:
+        >>> # Method 1: Use UUID (simplest - recommended for agents)
+        >>> result = search_raw_logs("frontend", "error|exception", uuid="38ee3d45-82")
+        >>>
+        >>> # Method 2: Use nanosecond timestamps
         >>> from datetime import datetime
         >>> start_time = datetime(2025, 6, 6, 10, 0, 0)
         >>> end_time = datetime(2025, 6, 6, 10, 30, 0)
         >>> start_ts = int(start_time.timestamp() * 1_000_000_000)
         >>> end_ts = int(end_time.timestamp() * 1_000_000_000)
-        >>> result = search_raw_logs("frontend", "error|exception", [start_ts, end_ts], max_results=10)
+        >>> result = search_raw_logs("frontend", "error|exception", time_range=[start_ts, end_ts])
     """
     import re
     from datetime import datetime
+    global df_input_timestamp
 
     try:
-        start_ts, end_ts = time_range
+        # Determine time range
+        start_ts = None
+        end_ts = None
+
+        # Priority 1: Use UUID to fetch time range from df_input_timestamp
+        if uuid:
+            try:
+                uuid_match = df_input_timestamp[df_input_timestamp['uuid'].str.contains(uuid, case=False, na=False)]
+                if not uuid_match.empty:
+                    row = uuid_match.iloc[0]
+                    start_ts = int(row['start_timestamp'])
+                    end_ts = int(row['end_timestamp'])
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "message": f"Failed to fetch time range for UUID '{uuid}': {str(e)}",
+                    "logs": [],
+                    "total_matched": 0,
+                    "returned": 0
+                }
+
+        # Priority 2: Use provided time_range
+        elif time_range:
+            start_ts, end_ts = time_range
+
+        # If neither uuid nor time_range provided
+        if start_ts is None or end_ts is None:
+            return {
+                "status": "error",
+                "message": "Either 'uuid' or 'time_range' parameter must be provided",
+                "logs": [],
+                "total_matched": 0,
+                "returned": 0
+            }
 
         # Convert timestamp to date to locate log files
         start_dt = datetime.fromtimestamp(start_ts / 1_000_000_000)
@@ -612,7 +651,8 @@ def search_raw_logs(service_name: str, keyword: str, time_range: list, max_resul
             "time_range": {
                 "start": str(start_dt),
                 "end": str(end_dt)
-            }
+            },
+            "uuid": uuid if uuid else "N/A"
         }
 
     except Exception as e:

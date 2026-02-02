@@ -4,7 +4,7 @@ from google.adk.models.lite_llm import LiteLlm
 from history_rca.sub_agents.log_agent.tools import log_analysis_tool,search_raw_logs
 from history_rca.sub_agents.log_agent.prompt import LOG_AGENT_PROMPT
 
-model = LiteLlm(model='openai/deepseek-chat')
+model = LiteLlm(model='openai/qwen3-max')
 
 log_agent = Agent(
     name="log_agent",

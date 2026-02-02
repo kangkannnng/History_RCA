@@ -13,7 +13,7 @@ from history_rca.tools import parse_user_input
 
 from history_rca.prompt import ORCHESTRATOR_PROMPT
 
-model = LiteLlm(model='openai/deepseek-chat')
+model = LiteLlm(model='openai/qwen3-max')
 
 orchestrator_agent = Agent(
     name="orchestrator_agent",

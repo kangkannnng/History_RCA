@@ -4,7 +4,7 @@ from google.adk.models.lite_llm import LiteLlm
 from history_rca.sub_agents.trace_agent.tools import trace_analysis_tool, search_raw_traces
 from history_rca.sub_agents.trace_agent.prompt import TRACE_AGENT_PROMPT
 
-model = LiteLlm(model='openai/deepseek-chat')
+model = LiteLlm(model='openai/qwen3-max')
 
 trace_agent = Agent(
     name="trace_agent",
