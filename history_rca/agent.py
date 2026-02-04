@@ -11,7 +11,10 @@ from history_rca.sub_agents.rag_agent.agent import rag_agent
 
 from history_rca.tools import parse_user_input
 
+# Ablation: without RAG
+# from history_rca.prompt_no_rag import ORCHESTRATOR_PROMPT
 from history_rca.prompt import ORCHESTRATOR_PROMPT
+
 
 model = LiteLlm(model='openai/qwen3-max')
 
@@ -25,6 +28,7 @@ orchestrator_agent = Agent(
         AgentTool(agent=log_agent),
         AgentTool(agent=metric_agent),
         AgentTool(agent=trace_agent),
+        # Ablation: without RAG
         AgentTool(agent=rag_agent),
         AgentTool(agent=report_agent),
     ]

@@ -10,6 +10,8 @@ from typing import Optional, List, Tuple, Dict, Set
 from collections import defaultdict
 from sklearn.ensemble import IsolationForest
 
+from google.adk.tools.tool_context import ToolContext
+
 # Suppress sklearn version warnings and pandas warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -890,7 +892,7 @@ def _load_filtered_trace(df_input_timestamp: pd.DataFrame, index: int) -> Option
     except Exception:
         return None  # Return None on error
 
-def trace_analysis_tool(query: str) -> dict:
+def trace_analysis_tool(query: str, tool_context: ToolContext) -> dict:
     """
     Analyze trace data based on anomaly description or UUID, return anomalous trace combinations and status statistics for that time period.
 
@@ -1025,6 +1027,11 @@ def trace_analysis_tool(query: str) -> dict:
             "time_range": f"{matched_row['start_time_utc']} to {matched_row['end_time_utc']}"
         }
 
+        # 存储原始结果到上下文中
+        state = tool_context.state
+
+        state["raw_trace_analysis_result"] = result
+
         return result
 
     except Exception as e:
@@ -1045,7 +1052,8 @@ def search_raw_traces(
     attribute_key: Optional[str] = None,
     time_range: Optional[list] = None,
     uuid: Optional[str] = None,
-    max_results: int = 20
+    max_results: int = 20,
+    tool_context: Optional[ToolContext] = None
 ) -> dict:
     """
     Search raw traces for specific trace_id, operation_name, or attribute_key within a time range
@@ -1272,7 +1280,7 @@ def search_raw_traces(
         if attribute_key:
             search_criteria.append(f"attribute_key={attribute_key}")
 
-        return {
+        result = {
             "status": "success",
             "message": f"Found {total_matched} matching spans in original data, returning {len(matched_traces)}",
             "traces": matched_traces,
@@ -1285,6 +1293,11 @@ def search_raw_traces(
             },
             "uuid": uuid if uuid else "N/A"
         }
+        
+        state = tool_context.state
+        state["raw_trace_search_result"] = result
+
+        return result
 
     except Exception as e:
         return {

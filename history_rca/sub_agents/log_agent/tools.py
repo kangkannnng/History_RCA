@@ -2,6 +2,7 @@ import os
 import pickle
 import pandas as pd
 from typing import Optional
+from google.adk.tools.tool_context import ToolContext
 
 PROJECT_DIR = os.getenv('PROJECT_DIR', '.')
 
@@ -340,7 +341,7 @@ def _load_filtered_log(df_input_timestamp: pd.DataFrame, index: int) -> Optional
         return None  # Return None on error
 
 
-def log_analysis_tool(query: str) -> dict:
+def log_analysis_tool(query: str, tool_context: ToolContext) -> dict:
     """
     Analyze log data based on anomaly description or UUID, return error logs and related information for that time period.
 
@@ -458,6 +459,11 @@ def log_analysis_tool(query: str) -> dict:
             "time_range": f"{matched_row['start_time_utc']} to {matched_row['end_time_utc']}"
         }
 
+        # 存储原始结果到上下文中
+        state = tool_context.state
+
+        state["raw_log_analysis_result"] = result
+
         return result
 
     except Exception as e:
@@ -471,7 +477,7 @@ def log_analysis_tool(query: str) -> dict:
         return result
 
 
-def search_raw_logs(service_name: str, keyword: str, time_range: Optional[list] = None, uuid: Optional[str] = None, max_results: int = 20) -> dict:
+def search_raw_logs(service_name: str, keyword: str, time_range: Optional[list] = None, uuid: Optional[str] = None, max_results: int = 20, tool_context: Optional[ToolContext] = None) -> dict:
     """
     Search raw logs for a specific service/pod within a time range using keyword (supports regex)
 
@@ -640,7 +646,7 @@ def search_raw_logs(service_name: str, keyword: str, time_range: Optional[list] 
         # Sort by timestamp
         matched_logs.sort(key=lambda x: x['timestamp_ns'])
 
-        return {
+        result = {
             "status": "success",
             "message": f"Found {total_matched} matching logs in original data, returning {len(matched_logs)}",
             "logs": matched_logs,
@@ -654,6 +660,12 @@ def search_raw_logs(service_name: str, keyword: str, time_range: Optional[list] 
             },
             "uuid": uuid if uuid else "N/A"
         }
+
+        state = tool_context.state
+        
+        state["raw_log_search_result"] = result
+
+        return result
 
     except Exception as e:
         return {

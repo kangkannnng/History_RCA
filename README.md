@@ -38,7 +38,83 @@ The system maintains a shared state across all agents using Google ADK's session
 
 ## Usage
 
-### Basic Usage
+### Quick Start (Recommended)
+
+For most use cases, use [run.py](run.py) which provides intelligent orchestration with automatic retry and validation:
+
+```bash
+# Run with automatic retry and validation
+python run.py run --input data/cases.json --output results.jsonl --workers 4
+
+# Resume from previous run
+python run.py run --input data/cases.json --output results.jsonl --resume
+
+# Compare results with baseline
+python run.py compare --current results.jsonl --baseline baseline.jsonl
+```
+
+### Advanced Usage with run.py
+
+#### Distributed Execution with Auto-Retry
+
+The `run` command provides intelligent orchestration:
+
+```bash
+python run.py run \
+  --input data/cases.json \
+  --output results.jsonl \
+  --workers 4 \
+  --rounds 3 \
+  --retries 2
+```
+
+**Key Features:**
+- **Automatic validation**: Checks for format errors (missing fields, TODO placeholders, empty values)
+- **Ground truth verification**: Validates answers against expected results
+- **Multi-round retry**: Failed cases are automatically retried up to `--rounds` times
+- **Format fixing**: Attempts to fix format errors up to `--retries` times per round
+- **Progress monitoring**: Real-time monitoring of all worker outputs
+- **Result merging**: Automatically merges outputs from multiple workers
+- **Resume support**: Continue from interrupted runs with `--resume`
+
+**Parameters:**
+- `--input`: Input JSON file with test cases
+- `--output`: Output JSONL file for results
+- `--workers`: Number of parallel workers (default: 4)
+- `--rounds`: Maximum retry rounds for failed cases (default: 3)
+- `--retries`: Format fix attempts per round (default: 2)
+- `--resume`: Resume from previous run (skips completed cases)
+
+#### Result Comparison
+
+Compare current results against a baseline:
+
+```bash
+python run.py compare \
+  --current results.jsonl \
+  --baseline baseline.jsonl \
+  --output-failed failed_cases.json
+```
+
+**Output:**
+- Accuracy comparison (current vs baseline)
+- List of failed cases for targeted re-testing
+- Detailed metrics on improvements
+
+**Example Output:**
+```
+Baseline Accuracy: 75.5% (151/200)
+Current Accuracy: 82.0% (164/200)
+Improvement: +6.5% (+13 cases)
+
+Failed cases saved to: failed_cases.json
+```
+
+### Direct Execution with main.py
+
+For development and debugging, use [main.py](main.py) directly:
+
+#### Basic Usage
 
 Run analysis on a single case:
 
@@ -52,7 +128,7 @@ Run analysis on a specific UUID:
 python main.py --single <uuid>
 ```
 
-### Batch Processing
+#### Batch Processing
 
 Process all cases in the input file:
 
@@ -72,7 +148,7 @@ Process a subset of cases:
 python main.py --batch --start 0 --limit 50
 ```
 
-### Random Sampling
+#### Random Sampling
 
 Analyze N randomly selected cases:
 
@@ -80,7 +156,7 @@ Analyze N randomly selected cases:
 python main.py --random 5
 ```
 
-### Repeated Runs
+#### Repeated Runs
 
 Run each case multiple times for consistency testing:
 
@@ -89,7 +165,7 @@ python main.py --single 1 --repeat 3
 python main.py --batch --repeat 3 --workers 10
 ```
 
-### Custom Paths
+#### Custom Paths
 
 Specify custom input/output paths:
 

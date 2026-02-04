@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from typing import Optional, List, Tuple, Dict
+from google.adk.tools.tool_context import ToolContext
 
 PROJECT_DIR = os.getenv('PROJECT_DIR', '.')
 
@@ -1515,7 +1516,7 @@ def _load_filtered_metric(df_fault_timestamps: pd.DataFrame, index: int) -> tupl
     except Exception:
         return None, {}, {}  # Return None to indicate error, distinguish from empty string (no anomalies)
 
-def metric_analysis_tool(query: str) -> dict:
+def metric_analysis_tool(query: str, tool_context: ToolContext) -> dict:
     """
     Analyze system metric data based on anomaly description or UUID, return metrics with significant changes during that time period.
 
@@ -1644,6 +1645,17 @@ def metric_analysis_tool(query: str) -> dict:
             "time_range": f"{matched_row['start_time_utc']} to {matched_row['end_time_utc']}"
         }
 
+        # 存储原始结果到上下文中
+        state = tool_context.state
+        
+        state["raw_metric_analysis_result"] = result
+
+        # 存储node_pod_mapping到上下文中
+        state["node_pod_mapping"] = node_pod_mapping
+        
+        # 存储 metric_name 列表到上下文中，供 Prompt 约束使用
+        state["available_metric_names"] = metric_unique_dict['metric_name']
+
         return result
 
     except Exception as e:
@@ -1663,7 +1675,8 @@ def search_raw_metrics(
     service_name: Optional[str] = None,
     time_range: Optional[list] = None,
     uuid: Optional[str] = None,
-    max_results: int = 200  # 增加到 200，确保覆盖完整时间窗口
+    max_results: int = 200,  # 增加到 200，确保覆盖完整时间窗口
+    tool_context: Optional[ToolContext] = None
 ) -> dict:
     """
     Search raw metrics for a specific metric_name and optional service_name within a time range
@@ -1907,7 +1920,7 @@ def search_raw_metrics(
         # Sort by timestamp
         matched_metrics.sort(key=lambda x: x['timestamp_ns'])
 
-        return {
+        result = {
             "status": "success",
             "message": f"Found {total_matched} matching data points in original data, returning {len(matched_metrics)}",
             "metrics": matched_metrics,
@@ -1922,6 +1935,13 @@ def search_raw_metrics(
             },
             "uuid": uuid if uuid else "N/A"
         }
+
+        state = tool_context.state
+
+        state["raw_metric_search_result"] = result
+
+        return result
+
 
     except Exception as e:
         return {
