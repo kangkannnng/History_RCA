@@ -1,0 +1,53 @@
+{
+  "uuid": "fa555038-392",
+  "fault_type": "io_util region_pending",
+  "symptom_vector": "Database latency and performance degradation due to IO faults, filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [io_util region_pending] fault, accompanied by [raft_apply_wait qps grpc_qps memory_usage store_size] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data showing latency anomalies (From GT key_observations: trace subtype latency_anomalies keyword productcatalogservice)",
+      "Step 3: Check Observation - Found keyword [io_util] in Metric data with P99 value increased from 0.02 to 0.21 (165.87% change) (From GT key_observations: metric keyword io_util)",
+      "Step 4: Check Observation - Found keyword [region_pending] in Metric data with median changed 173.84% (From GT key_observations: metric keyword region_pending)",
+      "Step 5: Derive Root Cause - Based on IO utilization spike and region pending metrics anomaly, determined cause is [io_util region_pending] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "productcatalogservice shows extreme latency anomalies (24.8x to 60.0x increase) in trace data",
+        "instruction": "Search for keyword 'productcatalogservice' in trace data and check for latency anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "io_util P99 value increased from 0.02 to 0.21 (165.87% change ratio) in tidb-tikv metrics",
+        "instruction": "Check metric [io_util] for tidb-tikv component and verify P99 value spike"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "region_pending median changed 173.84% (from 10445.0 to 731.0) in tidb-tikv metrics",
+        "instruction": "Check metric [region_pending] for tidb-tikv component and verify significant change ratio"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "raft_apply_wait metric should show anomalies in TiDB cluster metrics",
+        "instruction": "Search for metric [raft_apply_wait] in TiDB-related metrics"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "qps metric anomalies in service metrics",
+        "instruction": "Check [qps] metric across services for throughput degradation"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "grpc_qps metric anomalies in TiDB-related services",
+        "instruction": "Search for [grpc_qps] metric in TiDB cluster metrics"
+      }
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+```json
+{
+    "uuid": "25368410-268",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "JVM CPU spike, overload, high usage, and saturation leading to performance degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice] experienced [pod_cpu_usage] fault, accompanied by [adservice--stress] anomaly.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [adservice--stress] in [Log] (From GT key_observations).",
+            "Step 3: Check Observation - Found keyword [invocationtargetexception] in [Log] (From GT key_observations).",
+            "Step 4: Check Observation - Found keyword [transformlistener] in [Log] (From GT key_observations).",
+            "Step 5: Check Observation - Found keyword [pod_cpu_usage] in [Metric] (From GT key_observations).",
+            "Step 6: Derive Root Cause - Based on the combined features of high-frequency stress test logs and abnormal CPU metric, determined cause is [pod_cpu_usage] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice--stress",
+                "expected_pattern": "Log entries containing 'AdService--stress-1749831003 execute()' appear 142 times, indicating high-frequency stress test execution.",
+                "instruction": "Search for keyword 'AdService--stress' in logs from service 'adservice' within the fault time window."
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Error log 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' appears, indicating JVM agent attachment failure.",
+                "instruction": "Search for keyword 'InvocationTargetException' in logs from service 'adservice' within the fault time window."
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Log entries containing 'org.jboss.byteman.agent.Transformer' appear, indicating Byteman bytecode transformation activity.",
+                "instruction": "Search for keyword 'Transformer' in logs from service 'adservice' within the fault time window."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Metric value for pods 'adservice-0', 'adservice-1', 'adservice-2' increases significantly (e.g., from 0.01 to 0.6 for adservice-0).",
+                "instruction": "Check if metric 'pod_cpu_usage' for pods belonging to service 'adservice' shows a sharp increase during the fault time window."
+            }
+        ]
+    }
+}
+```

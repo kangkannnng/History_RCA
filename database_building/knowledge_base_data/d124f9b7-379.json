@@ -1,0 +1,49 @@
+{
+  "uuid": "d124f9b7-379",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, overload, usage spike, and stress leading to performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component productcatalogservice-0 experienced pod_cpu_usage fault, with CPU usage increasing from 0.01 to 0.4.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is productcatalogservice-0 (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword checkoutservice, frontend, recommendationservice in Trace data showing latency anomalies (From GT key_observations trace subtype)",
+      "Step 3: Check Observation - Found keyword rrt_max in Metric data with significant increase from 15769ms to 192622ms for productcatalogservice-0 (From GT key_observations metric keyword)",
+      "Step 4: Check Observation - Found keyword pod_cpu_usage in Metric data spiking from 0.01 to 0.4 for productcatalogservice-0 (From GT key_observations metric keyword)",
+      "Step 5: Check Observation - Found keyword pod_processes in Metric data increasing from 1.0 to 9.0 for productcatalogservice-0 (From GT key_observations metric keyword)",
+      "Step 6: Check Observation - Keyword http.resp.status and 302 in Log data expected per GT, but not detected in this session's log analysis (From GT key_observations log keyword)",
+      "Step 7: Derive Root Cause - Based on above features, especially pod_cpu_usage spike, determined cause is pod_cpu_usage (From GT key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, frontend, recommendationservice",
+        "expected_pattern": "Latency anomalies in calls involving these services, e.g., checkoutservice->productcatalogservice latency increased from 10.3s to 93.9s, recommendationservice->productcatalogservice from 2.9s to 39.4s",
+        "instruction": "Search for services checkoutservice, frontend, recommendationservice in trace data for latency increases during anomaly period"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entries indicating HTTP response status 302, but in this session, log analysis found no error logs (detected_log_keys: [])",
+        "instruction": "Search for keywords 'http.resp.status' and '302' in application logs for productcatalogservice-0"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max metric for productcatalogservice-0 increased from 15769ms to 192622ms (median change ratio 1.6973)",
+        "instruction": "Check rrt_max metric for productcatalogservice-0 for abnormal increases during anomaly timeframe"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "pod_cpu_usage for productcatalogservice-0 spiked from 0.01 to 0.4 (median change ratio 1.9024)",
+        "instruction": "Monitor pod_cpu_usage metric for productcatalogservice-0 for spikes indicating high CPU utilization"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "pod_processes for productcatalogservice-0 increased from 1.0 to 9.0 (median change ratio 1.6)",
+        "instruction": "Check pod_processes metric for productcatalogservice-0 for abnormal process count changes"
+      }
+    ]
+  }
+}

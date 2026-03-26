@@ -1,0 +1,39 @@
+{
+  "uuid": "8a7a8a00-85",
+  "fault_type": "network_latency",
+  "symptom_vector": "Severe latency spike in service-to-service calls, particularly in self-calls of frontend service, with no error logs observed.",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend服务的自调用操作出现极端延迟，GetProduct延迟增加158倍，ListProducts延迟增加890倍，是独立的内部性能问题。",
+    "reasoning_chain": [
+      "Step 1: 观察到Trace数据中，所有frontend服务实例的自调用（parent_pod与child_pod均为frontend-*）出现极端延迟。例如：frontend-1的GetProduct调用从正常约11.2秒激增至异常约1778秒（约158倍），其ListProducts调用从约2秒激增至约1753秒（约890倍）。",
+      "Step 2: 分析调用下游服务productcatalogservice的Trace数据，发现frontend->productcatalogservice的GetProduct调用延迟仅从约10秒轻微增加至约11.2秒（约14%增长），变化幅度远低于其自调用。同时，其他服务（如recommendationservice）调用productcatalogservice的延迟增长也远小于frontend的自调用延迟增长（如70ms到122ms）。这表明下游服务延迟并非主要矛盾，而frontend自身的自调用延迟异常非常独立且严重。",
+      "Step 3: 确认Metric数据显示frontend服务的rrt和rrt_max指标普遍出现超过1900%的增长率，同时Log数据分析确认在故障时间窗口内没有检测到错误日志，排除了显性逻辑故障。结合Trace中下游服务延迟增加有限的现象，最终判断问题根源在于frontend服务自身的内部性能逻辑，而非由productcatalogservice的异常级联导致。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend->frontend (GetProduct, ListProducts)",
+        "expected_pattern": "Severe Spike (e.g., rrt_max increase >100x)",
+        "instruction": "检查调用链数据中，是否存在parent_pod和child_pod均属于同一frontend实例的调用（自调用）。重点分析GetProduct和ListProducts操作的normal_avg_duration与anomaly_avg_duration，计算延迟增长倍数。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->productcatalogservice (GetProduct)",
+        "expected_pattern": "Minor Increase (e.g., rrt_max increase <20%)",
+        "instruction": "检查frontend对下游productcatalogservice服务的GetProduct调用链的延迟数据。若自调用延迟激增数千倍，而下游调用延迟仅轻微增加，则表明frontend内部问题独立于下游服务。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max, rrt",
+        "expected_pattern": "Sharp Increase (>100% change rate)",
+        "instruction": "分析frontend和productcatalogservice服务的rrt与rrt_max指标。虽然两者都表现出高增长率，但应结合Trace数据分析异常的实际来源，判断是级联效应还是独立根因。"
+      },
+      {
+        "modality": "Log",
+        "target": "frontend logs (error, warn)",
+        "expected_pattern": "No Significant Error",
+        "instruction": "检索故障时间窗口内frontend服务的错误或警告日志。如果性能延迟问题未在日志中体现（没有明显的OOM、超时、连接错误等），则提示这是一个隐蔽的性能瓶颈，而非显性功能故障。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "uuid": "c3f4fde9-330",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice, emailservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty components are [checkoutservice, emailservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [checkoutservice, frontend] in Trace data showing latency anomalies (From GT key_observations trace subtype latency_anomalies)",
+      "Step 3: Check Observation - Found keyword [http.resp.status, 302] in Log data (From GT key_observations log keyword)",
+      "Step 4: Check Observation - Found keyword [rrt, rrt_max] in Metric data showing extreme increases (From GT key_observations metric keyword)",
+      "Step 5: Check Observation - Found keyword [request, response] in Metric data (From GT key_observations metric keyword)",
+      "Step 6: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric data (From GT key_observations metric keyword)",
+      "Step 7: Derive Root Cause - Based on above network-related features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, frontend",
+        "expected_pattern": "Latency anomalies in trace data showing checkoutservice and frontend operations with extreme duration increases",
+        "instruction": "Search for keyword 'checkoutservice' and 'frontend' in trace data and check for latency anomalies in operations like 'hipstershop.CheckoutService/PlaceOrder'"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "HTTP response status 302 appearing in log entries",
+        "instruction": "Search for keyword 'http.resp.status' and '302' in log messages during the anomaly period"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "rrt and rrt_max metrics showing significant increases (e.g., rrt_max from 5-6s to 67-68s with 196% growth)",
+        "instruction": "Check metric data for 'rrt' and 'rrt_max' values for emailservice and checkoutservice, verify extreme increases during anomaly period"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Request and response related metrics showing abnormal patterns",
+        "instruction": "Search for metrics containing 'request' or 'response' keywords in metric names and check for anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network-related metrics showing abnormal traffic patterns",
+        "instruction": "Check pod network metrics for receive/transmit bytes and packets for checkoutservice and emailservice pods"
+      }
+    ]
+  }
+}

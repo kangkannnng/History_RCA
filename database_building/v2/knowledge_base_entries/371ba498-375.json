@@ -1,0 +1,33 @@
+{
+  "uuid": "371ba498-375",
+  "fault_type": "request/response",
+  "symptom_vector": "500 HTTP errors from frontend, RPC connection refused errors, increased latency in downstream services.",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice端口配置错误导致服务完全不可达。",
+    "reasoning_chain": [
+      "Step 1: 在Log数据中观察到，所有frontend实例在尝试处理订单时都抛出相同错误，错误信息明确为'connection refused'，并指向目标地址`10.233.55.4:50051`，这暗示一个下游服务无法连接。",
+      "Step 2: 在Trace数据中，观察到所有失败的调用链最终都源于`checkoutservice`向`paymentservice`发起的`hipstershop.PaymentService/Charge`调用，该操作发生了287次状态码为14 (UNAVAILABLE) 的错误，具体描述同样是连接被拒绝。这确定了故障传播的下游源头是paymentservice。",
+      "Step 3: 结合Metric数据，`paymentservice-1`实例的`rrt_max`（最大响应时间）在故障窗口期内显著增长了46.9%，这通常发生在服务端拒绝连接或处理能力异常时。此异常先于上游frontend的错误率飙升，进一步确认了paymentservice是根本原因组件。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused, port, Error while dialing",
+        "expected_pattern": "Contains error. 关键证据：日志中重复出现连接被拒绝的错误，并指明具体的IP和端口号（如10.233.55.4:50051）。",
+        "instruction": "搜索所有服务的错误日志，重点关注包含'connection refused'、'Error while dialing'以及具体端口号的条目，以定位不可达的服务端点。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.PaymentService/Charge",
+        "expected_pattern": "High error rate with status code 14 (UNAVAILABLE). 关键证据：该接口调用失败次数显著（如287次），且错误信息明确为连接相关错误。",
+        "instruction": "分析调用链的状态码数据，筛选出错误率高的下游接口调用，特别是状态码为14（gRPC UNAVAILABLE）或描述中包含'connection refused'的调用，以识别故障传播的终点。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max (paymentservice)",
+        "expected_pattern": "Sudden increase or abnormal value. 关键证据：在故障起始时间点，paymentservice的`rrt_max`指标出现显著跳变或处于异常高位。",
+        "instruction": "对比故障窗口与正常窗口下`paymentservice`各实例的`rrt_max`（最大响应时间）和`rrt`（平均响应时间）指标，确认是否在故障起始点出现性能劣化，这有助于与Trace/Log发现的连接问题相互印证。"
+      }
+    ]
+  }
+}

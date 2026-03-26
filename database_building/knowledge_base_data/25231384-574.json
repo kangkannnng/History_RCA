@@ -1,0 +1,60 @@
+{
+  "uuid": "25231384-574",
+  "fault_type": "region_pending, io_util, memory_usage, cpu_usage, tidb, io fault",
+  "symptom_vector": "IO-related faults including filesystem call errors, read and write operation errors, permission denied errors, and file descriptor errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, memory_usage, cpu_usage, tidb, io] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field, with 'tidb-tikv' appearing in Full Context metric data).",
+      "Step 2: Check Observation - Found keyword [region_pending] in Metric data showing 152.83% increase from median 9566.5 to 1279.0 during fault window (From GT key_observations, verified in Full Context metric_analysis_findings).",
+      "Step 3: Check Observation - Found keyword [productcatalogservice] in Trace data with latency anomalies, specifically GetProduct interface delay increased 6.9-18.4x (From GT key_observations, verified in Full Context trace_analysis_findings).",
+      "Step 4: Check Observation - Found keyword [memory_usage] as node_memory_usage_rate increased 72.52% from 30.15% to 64.45% on node aiops-k8s-05 (From GT key_observations, implied in Full Context metric_analysis_findings).",
+      "Step 5: Check Observation - Found keyword [cpu_usage] in Metric data for tidb components, with variations noted (From GT key_observations, present in Full Context metric data).",
+      "Step 6: Derive Root Cause - Based on above features, determined cause is [region_pending, io_util, memory_usage, cpu_usage, tidb, io] (From Ground Truth key_metrics, supported by observed anomalies)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Trace data shows latency anomalies for service 'productcatalogservice' with GetProduct interface average duration increasing from normal 8-11 seconds to anomaly 69-211 seconds.",
+        "instruction": "Search for keyword 'productcatalogservice' in trace data to identify latency spikes and anomaly counts."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Metric 'region_pending' for tidb-tikv shows median increase from 9566.5 to 1279.0 with 152.83% change ratio during fault window.",
+        "instruction": "Check metric 'region_pending' in metric data for abnormal spikes and compare normal vs. fault medians."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization metric expected to indicate high IO activity or bottlenecks, though not explicitly listed in provided Full Context metric names.",
+        "instruction": "Search for metric 'io_util' or related IO metrics in metric data to assess IO performance during fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "snapshot_apply_count",
+        "expected_pattern": "Snapshot apply count metric may show anomalies, but not directly observed in provided Full Context data.",
+        "instruction": "Look for metric 'snapshot_apply_count' in metric data to monitor TiDB snapshot operations."
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Store size metric could indicate storage issues, but not explicitly found in provided Full Context.",
+        "instruction": "Check metric 'store_size' or similar storage-related metrics in metric data for deviations."
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage reflected as node_memory_usage_rate increased from 30.15% to 64.45% on node aiops-k8s-05, indicating memory exhaustion.",
+        "instruction": "Monitor metric 'node_memory_usage_rate' or equivalent for memory usage trends on relevant nodes."
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU usage metrics for tidb components (e.g., tidb-tidb, tidb-pd) show variations, such as cpu_usage changes noted in metric data.",
+        "instruction": "Check CPU usage metrics like 'cpu_usage' for tidb services in metric data to identify resource bottlenecks."
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "1ae8a5c3-555",
+    "fault_type": "pod_failure",
+    "symptom_vector": "High error ratio (up to 13.62%) and latency spike (rrt_max increased by up to 24x) observed across frontend services, cascading upstream failures.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB-TiDB pod发生crash，导致依赖它的productcatalogservice等上游服务连接失败，引发系统性高错误率与延迟激增。",
+        "reasoning_chain": [
+            "Step 1: 在指标数据中观察到 frontend 服务 (frontend-0, frontend-1, frontend-2) 的 error_ratio 和 server_error_ratio 从正常时的 0% 激增至 11.54%-13.62%，同时 rrt_max（最大请求响应时间）出现数倍至数十倍的增加，表明系统存在严重的可用性与性能问题。",
+            "Step 2: 追踪数据显示，大量 frontend->productcatalogservice 的 GetProduct 调用失败，伴随 'dial tcp 223.193.36.56:32187: connect: connection refused' 错误，且 productcatalogservice-2 的 rrt_max 从 24.7ms 激增至 1061ms。日志数据进一步证实，多个 productcatalogservice pod 也记录了相同的连接拒绝错误，指向其自身或其下游依赖的通信故障。",
+            "Step 3: 虽然全量上下文直接展示了 productcatalogservice 的现象，但 Ground Truth 指出根本故障组件为 tidb-tidb-0 与 tidb-tidb，且原因为 'pod crash'。因此，综合分析指向故障链条：TiDB pod 意外终止 -> productcatalogservice 因无法连接到数据库（TiDB）而报 'connection refused' 并性能恶化 -> 依赖 productcatalogservice 的 frontend 等服务出现高错误率与高延迟。Metric 中的 connection_count 归零、uptime 中断、qps 骤降及 block_cache_size 异常变化可作为 TiDB pod crash 的关键间接证据。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "tidb_tidb_connection_count",
+                "expected_pattern": "Sudden drop to zero or significant decline",
+                "instruction": "检查 TiDB-TiDB pod 的活跃连接数指标。若出现 Pod Crash，其 connection_count 应会骤降或归零，这是下游服务连接失败的源头。"
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb_tidb_uptime",
+                "expected_pattern": "Abrupt interruption or reset",
+                "instruction": "检查 TiDB-TiDB pod 的运行时间指标。Uptime 中断是 Pod 发生重启或终止的明确信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb_tidb_qps",
+                "expected_pattern": "Sudden drop to near zero",
+                "instruction": "检查 TiDB-TiDB pod 的每秒查询数。Pod Crash 将导致 QPS 骤降，反映服务处理能力丧失。"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains error messages indicating container exit or pod termination",
+                "instruction": "在 TiDB 相关组件的日志中搜索 'failure'、'crash'、'exit'、'terminated' 等关键词，寻找 Pod 异常退出的直接证据。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,33 @@
+{
+  "uuid": "e909315f-411",
+  "fault_type": "metric",
+  "symptom_vector": "Response latency spike in microservices (especially checkoutservice and cartservice), Redis operations significantly slower",
+  "expert_knowledge": {
+    "root_cause_desc": "Redis 实例 redis-cart-0 性能严重下降（HMSET 操作延迟增加 15.3 倍），导致依赖它的 cartservice 和 checkoutservice 出现级联延迟",
+    "reasoning_chain": [
+      "Step 1: 从指标数据中观察到 redis-cart-0 的 pod_cpu_usage p99 变化率达到 121.78%，rrt_max p99 变化率达到 15.78%，表明 Redis 实例存在资源使用异常和性能下降",
+      "Step 2: 在调用链数据中确认 Redis 的 HMSET 操作延迟从正常的 1.57 秒飙升至异常期的 24.12 秒（15.3 倍），这是所有检测到的延迟增加中最严重的倍数",
+      "Step 3: 追踪依赖链发现级联影响路径：Redis（redis-cart-0）→ cartservice（EmptyCart 操作延迟增加 4.1 倍）→ checkoutservice（支付、配送服务调用延迟增加 3.0-3.4 倍），符合存储层性能问题向上传播的典型模式"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "HMSET operation latency",
+        "expected_pattern": "Sudden spike in operation duration (e.g., 10x+ increase)",
+        "instruction": "检查从 cartservice 到 Redis 的 HMSET 操作调用链，查看正常时期和故障时期的平均耗时对比，重点关注延迟倍数最高的操作"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Abnormal change ratio in p99 values (>100%)",
+        "instruction": "查询 redis-cart-0 Pod 的 CPU 使用率指标，对比故障前后 p99 值的变化率，识别资源使用异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Significant increase in response time (p99 change ratio > 15%)",
+        "instruction": "分析 Redis 服务（redis-cart-0）的 rrt_max 指标，查看 p99 百分位数在故障期间的变化，确认是否存在性能瓶颈"
+      }
+    ]
+  }
+}

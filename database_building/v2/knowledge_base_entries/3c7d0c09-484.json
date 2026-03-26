@@ -1,0 +1,33 @@
+{
+  "uuid": "3c7d0c09-484",
+  "fault_type": "io_util",
+  "symptom_vector": "Severe latency spike in Redis HMSET operations (18.5x increase) and upstream CartService operations (e.g., AddItem 19.7x increase). Key metrics (io_util, region_pending, raft_apply_wait, qps) associated with the tidb-tikv component show significant deviation.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiKV组件的底层IO性能故障，导致依赖它的Redis服务操作（如HMSET）出现严重延迟，并引发上游CartService的连锁性能下降。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到`tidb-tikv`组件的`io_util`指标在故障窗口期出现显著变化（p99_change_ratio: 0.5828），这指示了存储层I/O存在异常。同时，Metric扫描还识别出与TiKV相关的`region_pending`、`raft_apply_wait`、`qps`等关键指标异常，共同指向存储层问题。",
+      "Step 2: 从Trace数据中观察到最严重的延迟发生在`cartservice->redis`的`HMSET`操作上（延迟激增18.5倍，从1361ms增至25192ms）以及上游`frontend->cartservice`的`AddItem`操作（延迟激增19.7倍）。这种延迟模式符合底层存储（TiKV）性能劣化导致上层依赖服务（Redis）操作超时的故障传播模式。",
+      "Step 3: 综合Log分析结果（无显式错误日志，暗示可能为底层性能问题）与Metric、Trace证据链，确认根因在于`tidb-tikv-0`及`tidb-tikv`组件的I/O故障。历史分析（结论为redis-cart-0）仅捕捉到了故障的直接表现（Redis延迟），而未能追溯到其根本依赖组件TiKV的Metric异常。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "指标值在故障期间出现显著上涨或变化（例如p99_change_ratio > 0.5）",
+        "instruction": "检查目标组件（特别是tidb-tikv及其Pod实例）的io_util指标在故障时间窗口前后的变化趋势，确认是否存在I/O使用率异常。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Redis HMSET operation latency",
+        "expected_pattern": "响应时间出现数量级级别的突发性激增（例如10倍以上）",
+        "instruction": "在故障时间窗口内，搜索所有调用Redis服务的链路，重点关注HMSET等写入操作的耗时，并与基线正常值进行对比，确认是否出现极端延迟。"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending, raft_apply_wait, qps",
+        "expected_pattern": "一个或多个指标在故障期间出现协同变化（如region_pending堆积，raft_apply_wait时间增长）",
+        "instruction": "检查TiKV组件相关的核心性能指标（region_pending, raft_apply_wait, qps等），分析其在故障窗口期的变化模式，以验证存储层内部是否出现瓶颈或处理延迟。"
+      }
+    ]
+  }
+}

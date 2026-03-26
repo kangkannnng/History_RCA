@@ -1,0 +1,27 @@
+{
+  "uuid": "cc8e0450-593",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full with high disk utilization and disk space exhaustion",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点因 node_filesystem_usage_rate 异常飙升导致磁盘空间耗尽",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-08 节点的 node_filesystem_usage_rate 指标从 53.2% 上升至 78.16%，变化率 37.99%",
+      "Step 2: 分析 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 同时下降 39.57%，表明节点资源紧张",
+      "Step 3: 确认该节点上运行的 redis-cart-0 pod 的 rrt_max 指标异常增加 66.46%，符合节点级故障影响模式"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden increase from baseline (e.g., >30% change)",
+        "instruction": "检查所有节点的 node_filesystem_usage_rate 指标是否异常飙升，重点关注变化率超过30%的节点"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "Contains HTTP 302 redirect status codes",
+        "instruction": "在故障时间段的日志中搜索 HTTP 响应状态码 302 的记录"
+      }
+    ]
+  }
+}

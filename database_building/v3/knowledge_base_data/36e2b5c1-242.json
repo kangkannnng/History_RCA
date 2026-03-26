@@ -1,0 +1,51 @@
+{
+  "uuid": "36e2b5c1-242",
+  "fault_type": "pod_processes",
+  "symptom_vector": "pod crash with pod_processes anomaly and error ratio spike",
+  "expert_knowledge": {
+    "root_cause_desc": "emailservice-2 组件因 pod_processes 指标异常变化导致 Pod 故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 emailservice-2 的 pod_processes 指标出现异常变化，p99 值从正常基准下降",
+      "Step 2: 分析 emailservice-2 的 rrt_max 和 rrt 响应时间指标同时出现异常波动",
+      "Step 3: 确认 emailservice-2 的 pod_memory_working_set_bytes 和 pod_network 相关指标存在异常模式"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "p99 value dropping from baseline",
+        "instruction": "检查 emailservice-2 的 pod_processes 指标 p99 值是否从正常值下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Abnormal memory usage pattern",
+        "instruction": "检查 emailservice-2 的 pod_memory_working_set_bytes 指标是否存在异常内存使用模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Network traffic anomaly",
+        "instruction": "检查 emailservice-2 的 pod_network_receive_bytes 指标是否存在网络流量异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Packet receive anomaly",
+        "instruction": "检查 emailservice-2 的 pod_network_receive_packets 指标是否存在数据包接收异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Network transmit anomaly",
+        "instruction": "检查 emailservice-2 的 pod_network_transmit_bytes 指标是否存在网络发送异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Packet transmit anomaly",
+        "instruction": "检查 emailservice-2 的 pod_network_transmit_packets 指标是否存在数据包发送异常"
+      }
+    ]
+  }
+}

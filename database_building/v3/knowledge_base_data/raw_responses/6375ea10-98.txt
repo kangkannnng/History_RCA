@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "6375ea10-98",
+    "fault_type": "client_error_ratio",
+    "symptom_vector": "pod crash with connection refused errors causing service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "recommendationservice 组件因 pod failure 导致连接拒绝，引发前端服务的 client_error_ratio 和 server_error_ratio 异常飙升",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 server_error_ratio 和 error_ratio 从 0% 飙升至 10% 以上，client_error_ratio 也出现异常",
+            "Step 2: 分析日志发现所有 frontend 实例都报告 connection refused 错误，目标指向 10.233.43.10:8080，对应 recommendationservice 服务",
+            "Step 3: 确认 trace 数据中 recommendationservice 出现超过 4600 次连接拒绝错误（状态码14），pod_cpu_usage 和 pod_memory_working_set_bytes 等指标异常，确认为 pod failure"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection|refused",
+                "expected_pattern": "Contains connection refused errors from frontend to recommendationservice",
+                "instruction": "在 frontend 日志中搜索 Connection refused 关键词，检查是否指向 recommendationservice 服务"
+            },
+            {
+                "modality": "Log",
+                "target": "Error|while|dialing",
+                "expected_pattern": "Contains transport error while dialing messages",
+                "instruction": "检查日志中是否包含 Error while dialing 错误信息，确认连接失败的具体原因"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Contains service unavailable errors",
+                "instruction": "搜索日志中的 unavailable 关键词，确认服务不可用状态"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Abnormal memory usage pattern indicating pod issues",
+                "instruction": "检查 recommendationservice 的 pod_memory_working_set_bytes 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "Network traffic anomalies indicating pod communication issues",
+                "instruction": "检查 recommendationservice 的网络指标（接收/发送字节数、数据包数）是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "Sudden increase from baseline to high error rates",
+                "instruction": "检查 frontend 服务的 client_error_ratio 是否从正常值突然飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "Error ratio spike from 0% to over 10%",
+                "instruction": "监控 frontend 服务的 server_error_ratio 是否异常增加"
+            }
+        ]
+    }
+}
+```

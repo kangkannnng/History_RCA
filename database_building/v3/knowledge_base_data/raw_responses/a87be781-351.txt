@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "a87be781-351",
+    "fault_type": "region_pending",
+    "symptom_vector": "io fault with filesystem call error and database performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 组件因 region_pending 和 cpu_usage 指标异常导致 IO 故障和数据库性能下降",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 的 region_pending 指标 P99 值从 22737.25 急剧下降到 1293.32，同时 cpu_usage P99 值从 0.11 上升到 0.58（362% 增长）",
+            "Step 2: 分析 tidb-tidb 的 duration_99th 指标 P99 值从 0.02ms 飙升到 10.93ms（19927% 增长），表明数据库层存在严重性能问题",
+            "Step 3: 追踪数据显示 productcatalogservice 调用数据库的延迟激增 900 多倍，checkoutservice 延迟增加 56 倍，确认上游服务延迟由数据库性能问题导致"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "productcatalogservice 调用延迟激增 900 倍以上",
+                "instruction": "检查 productcatalogservice 的调用链中是否存在严重的延迟异常，特别是与数据库相关的操作"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "IO 使用率异常升高",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标是否出现异常峰值"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "region_pending 指标 P99 值显著下降",
+                "instruction": "检查 tidb-tikv 的 region_pending 指标 P99 值是否从正常值急剧下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "raft_apply_wait 时间异常增加",
+                "instruction": "检查 tidb-tikv 的 raft_apply_wait 指标是否出现异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_size",
+                "expected_pattern": "存储大小异常变化",
+                "instruction": "检查 tidb-tikv 的 store_size 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "内存使用率异常升高",
+                "instruction": "检查 tidb-tikv 的内存使用率指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "CPU 使用率 P99 值显著上升（362% 增长）",
+                "instruction": "检查 tidb-tikv 的 cpu_usage 指标 P99 值是否从 0.11 上升到 0.58"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,77 @@
+{
+  "uuid": "238afe01-573",
+  "fault_type": "server_error server_error_ratio error error_ratio dns http.resp.status 302",
+  "symptom_vector": "DNS lookup failure, DNS resolution timeout, incorrect DNS response, DNS server unreachable, truncated DNS packet causing cartservice unavailability",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice-0] experienced [server_error, server_error_ratio, error, error_ratio, dns, http.resp.status, 302] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice-0] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [latency_anomalies] in Trace (From GT key_observations: trace subtype)",
+      "Step 3: Check Observation - Found keyword [failure] in Log (From GT key_observations: log keyword)",
+      "Step 4: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations: log keyword)",
+      "Step 5: Check Observation - Found keyword [Internal] in Log (From GT key_observations: log keyword)",
+      "Step 6: Check Observation - Found keyword [request error] in Log (From GT key_observations: log keyword)",
+      "Step 7: Check Observation - Found keyword [rpc, error] in Log (From GT key_observations: log keyword)",
+      "Step 8: Check Observation - Found keyword [transport, Error, while, dialing] in Log (From GT key_observations: log keyword)",
+      "Step 9: Check Observation - Found keyword [unavailable] in Log (From GT key_observations: log keyword)",
+      "Step 10: Check Observation - Found keyword [error, error_ratio, server_error, server_error_ratio] in Metric (From GT key_observations: metric keyword)",
+      "Step 11: Derive Root Cause - Based on above features, determined cause is [server_error, server_error_ratio, error, error_ratio, dns, http.resp.status, 302] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "checkoutservice->cartservice calls showing extreme latency increase from 8.45ms to 1549.53ms (183x) in GetCart operation",
+        "instruction": "Search for latency anomalies in trace data for checkoutservice-0 calling cartservice"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'cart failure: failed to get user cart during checkout'",
+        "instruction": "Search for keyword 'failure' in logs related to checkoutservice-0"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "HTTP response status codes in log messages",
+        "instruction": "Search for 'http.resp.status' and '302' patterns in logs"
+      },
+      {
+        "modality": "Log",
+        "target": "Internal",
+        "expected_pattern": "Log entries with 'rpc error: code = Internal desc = cart failure'",
+        "instruction": "Search for keyword 'Internal' in error logs"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log messages with 'message': 'request error' in frontend logs",
+        "instruction": "Search for keyword 'request error' in log messages"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Log entries containing 'rpc error: code = Unavailable desc = connection error'",
+        "instruction": "Search for keywords 'rpc' and 'error' together in logs"
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "Specific error message: 'transport: Error while dialing dial tcp: lookup cartservice on 10.233.33.139:53: server misbehaving'",
+        "instruction": "Search for exact phrase 'transport: Error while dialing' in logs"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries with 'rpc error: code = Unavailable desc = connection error'",
+        "instruction": "Search for keyword 'unavailable' in error logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "error error_ratio server_error server_error_ratio",
+        "expected_pattern": "checkoutservice-0 error_ratio increased from 0% to 88.89%, server_error_ratio increased from 0% to 88.89%",
+        "instruction": "Check metric values for error_ratio and server_error_ratio for checkoutservice-0 during fault period"
+      }
+    ]
+  }
+}

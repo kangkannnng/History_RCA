@@ -1,0 +1,57 @@
+{
+  "uuid": "541f72de-115",
+  "fault_type": "network_corrupt_rrt_metrics_anomaly",
+  "symptom_vector": "packet corruption leading to RPC timeouts, service unavailability and network traffic anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend与productcatalogservice之间的网络包损坏导致rrt_max指标异常飙升和网络流量模式异常",
+    "reasoning_chain": [
+      "Step 1: 观察到frontend调用productcatalogservice的rrt_max指标在故障期间异常飙升，延迟增加超过30000倍，表明网络通信严重异常",
+      "Step 2: 分析日志发现所有frontend实例报告大量'context canceled'和'rpc error'错误，主要涉及对productcatalogservice的RPC调用超时",
+      "Step 3: 检查网络指标pod_network_receive_bytes和pod_network_transmit_bytes，发现流量模式异常，与packet corruption特征一致"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Sudden increase in response time (5000x-30000x baseline)",
+        "instruction": "检查frontend调用productcatalogservice的rrt_max指标是否出现异常飙升，重点关注GetProduct和ListProducts操作"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc|error|code|canceled|desc|context canceled",
+        "expected_pattern": "Contains RPC timeout and context canceled errors",
+        "instruction": "在frontend和productcatalogservice的日志中搜索RPC调用取消和超时相关错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Contains service unavailable messages",
+        "instruction": "检查日志中是否存在服务不可用(unavailable)相关记录"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Abnormal request distribution patterns",
+        "instruction": "分析调用链中是否存在请求比例异常，特别是checkoutservice和frontend之间的调用关系"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio|error_ratio",
+        "expected_pattern": "Sudden increase in error rates",
+        "instruction": "检查productcatalogservice和frontend服务的client_error_ratio和error_ratio指标是否异常上升"
+      },
+      {
+        "modality": "Metric",
+        "target": "request|response",
+        "expected_pattern": "Significant decrease in request count",
+        "instruction": "监控productcatalogservice的request指标是否出现急剧下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+        "expected_pattern": "Abnormal network traffic patterns indicating packet corruption",
+        "instruction": "检查frontend和productcatalogservice的网络流量指标，识别是否存在包损坏的特征模式"
+      }
+    ]
+  }
+}

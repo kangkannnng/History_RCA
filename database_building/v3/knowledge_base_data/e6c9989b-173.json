@@ -1,0 +1,52 @@
+{
+  "uuid": "e6c9989b-173",
+  "fault_type": "network_delay",
+  "symptom_vector": "high network latency with increased RTT and network delay spike between checkoutservice and paymentservice",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 到 paymentservice 之间的网络攻击导致网络延迟，表现为 rrt 和 rrt_max 指标异常飙升",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice 和 paymentservice 之间的 rrt 和 rrt_max 指标出现异常飙升，变化率达到180%-200%",
+      "Step 2: 分析 paymentservice 所有三个实例(paymentservice-0/1/2)的 rrt_max 指标从正常值(1708-1893)激增至故障值(1028381-1107171)，rrt 指标从正常值(1419-1553)激增至故障值(502649-532923)",
+      "Step 3: 检查 checkoutservice-2 实例也出现 rrt_max 从141720.5增至3467599.0，rrt 从5192.36增至130775.16，同时伴随 error_ratio 和 client_error_ratio 异常",
+      "Step 4: 确认故障影响范围是 checkoutservice 到 paymentservice 之间的网络通信，表现为典型的网络延迟特征"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "突然飙升，变化率超过150%",
+        "instruction": "检查 checkoutservice 到 paymentservice 之间的 rrt 指标是否出现异常飙升，特别是 checkoutservice-2 和 paymentservice 所有实例"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "极端峰值，变化率接近200%",
+        "instruction": "检查 paymentservice-0/1/2 和 checkoutservice-2 的 rrt_max 指标是否出现极端峰值"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "网络接收流量异常模式",
+        "instruction": "检查故障时间段内 checkoutservice 和 paymentservice 的网络接收流量指标，确认是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "网络发送流量异常模式",
+        "instruction": "检查故障时间段内 checkoutservice 和 paymentservice 的网络发送流量指标，确认是否存在异常模式"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout|latency|network",
+        "expected_pattern": "包含网络超时、延迟或连接相关错误",
+        "instruction": "在 checkoutservice 和 paymentservice 的日志中搜索网络超时、延迟或连接相关的错误信息"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->paymentservice",
+        "expected_pattern": "调用链延迟异常，跨度时间显著增加",
+        "instruction": "分析从 checkoutservice 到 paymentservice 的调用链，检查是否存在异常延迟或超时"
+      }
+    ]
+  }
+}

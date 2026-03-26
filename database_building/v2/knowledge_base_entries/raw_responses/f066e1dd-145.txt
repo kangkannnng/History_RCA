@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "f066e1dd-145",
+    "fault_type": "pod_termination",
+    "symptom_vector": "Multiple Pod resource metrics drop to zero (CPU, memory, network packets), abnormal latency fluctuations in service traces, no error logs detected during fault window",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice-2 Pod被强制终止导致服务中断",
+        "reasoning_chain": [
+            "Step 1: 通过Metric数据分析，观察到多个Pod的pod_network_transmit_packets、pod_network_receive_packets、pod_cpu_usage和pod_memory_working_set_bytes指标同时降为0，包括frontend-0、frontend-1、frontend-2、productcatalogservice-0、redis-cart-0等，变化率均为2.0，表明这些Pod在故障时间窗口内同时停止运行。",
+            "Step 2: 检查Trace数据，发现frontend到productcatalogservice和recommendationservice的调用延迟出现异常波动，例如frontend-1到productcatalogservice-0的调用延迟从正常9948.04ms下降到异常7509.88ms，虽然下降但仍显著高于基线，表明上游服务不可用导致的连锁反应。",
+            "Step 3: 分析节点与Pod映射关系，确认shippingservice-2位于aiops-k8s-03节点，该节点上其他Pod（如adservice-0）也显示资源指标归零，结合故障描述中的'pod killed'和'pod eviction'特征，推断节点级事件导致shippingservice-2被强制终止。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "突然降至零值且变化率为2.0",
+                "instruction": "检查多个Pod的网络发送包数是否在故障时间窗口内同时降为0，特别是frontend系列Pod和shippingservice所在节点的其他Pod。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "突然降至零值且P99值归零",
+                "instruction": "监控Pod的内存工作集大小，若中位数和P99值同时归零，表明Pod进程已终止。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->productcatalogservice",
+                "expected_pattern": "调用延迟显著波动但整体仍高于正常基线",
+                "instruction": "分析frontend服务到下游服务的调用链延迟，若出现异常下降但仍维持高延迟，可能指示服务不可用后的超时或重试行为。"
+            }
+        ]
+    }
+}
+```

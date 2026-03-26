@@ -1,0 +1,33 @@
+{
+  "uuid": "4b98f078-560",
+  "fault_type": "rrt_latency_spike",
+  "symptom_vector": "Extreme latency spike in emailservice (rrt_max p99 from 9k to 2.28M ms), accompanied by connection I/O timeout errors (\"i/o timeout\") from calling services (checkoutservice), leading to failed frontend checkout requests.",
+  "expert_knowledge": {
+    "root_cause_desc": "由于网络数据包损坏，导致emailservice连接I/O超时，引发从checkoutservice到frontend的级联故障。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据观察到，emailservice-1实例的rrt_max p99指标从9013.71ms急剧飙升到2,287,630.17ms，变化率高达198.43%，指示服务响应出现极端延迟。",
+      "Step 2: 从Log数据中发现，checkoutservice-2在尝试连接emailservice（IP: 10.233.49.244，端口: 5000）时，反复出现\"i/o timeout\"和\"transport: Error while dialing\"的错误，总计34次，确认了网络连接层面的具体故障。",
+      "Step 3: 从Trace数据分析确认，调用链 checkoutservice -> emailservice 上的关键操作 \"hipstershop.EmailService/SendOrderConfirmation\" 平均延迟从正常的20.2ms激增至26,305ms，并有15次异常，同时状态码显示大量\"timed out\"和\"context canceled\"，这验证了Metric和Log中的异常导致了上游业务调用的失败。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Sudden and extreme spike, especially at p99 percentile, for the suspected downstream service (e.g., emailservice).",
+        "instruction": "检查故障时间窗口内，所有服务的rrt_max指标（特别是p99分位数）。寻找变化率最高、绝对增长最剧烈的服务。这通常是故障的起始点或直接受影响点。"
+      },
+      {
+        "modality": "Log",
+        "target": "i/o timeout",
+        "expected_pattern": "Log entries containing keywords like \"i/o timeout\", \"transport: Error while dialing\", and \"connection error\", indicating network-level connection failures.",
+        "instruction": "在调用方服务（如checkoutservice）的日志中，搜索包含网络连接超时或失败的报错信息。这些信息会指向具体无法连接的目标IP和端口，从而定位故障服务。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.EmailService/SendOrderConfirmation",
+        "expected_pattern": "Significant increase in average latency and high occurrence of error status codes (e.g., timeout, canceled) for the calls targeting the suspected faulty service.",
+        "instruction": "分析调用链数据，重点关注指向上一检查中定位到的故障服务（如emailservice）的调用。检查其操作（如SendOrderConfirmation）的延迟是否异常飙升，并查看其状态码是否为超时或取消。"
+      }
+    ]
+  }
+}

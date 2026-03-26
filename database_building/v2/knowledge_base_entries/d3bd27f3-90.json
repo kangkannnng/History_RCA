@@ -1,0 +1,33 @@
+{
+  "uuid": "d3bd27f3-90",
+  "fault_type": "network_packet_corruption",
+  "symptom_vector": "RPC connection timeout errors (transport: Error while dialing, i/o timeout), extreme latency spikes in shipping service calls (3000x increase), client error ratio surge (40% for shippingservice), HTTP 500 errors propagating upstream through checkout service to frontend",
+  "expert_knowledge": {
+    "root_cause_desc": "网络包损坏导致shippingservice服务不可达，引发连接超时和级联故障",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据观察到shippingservice-1的error_ratio从0.0飙升到40.0，client_error_ratio同样激增，表明服务端处理大量失败请求",
+      "Step 2: 从Log数据中发现大量'transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout'和'timed out waiting for server handshake'错误，明确指向shippingservice的TCP连接问题",
+      "Step 3: 从Trace数据确认checkoutservice调用shippingservice的GetQuote操作延迟从9.3秒激增至2831万秒（3027倍增长），ShipOrder操作从12.5秒增至2000万秒（1598倍增长），表明shippingservice完全不可用且连接超时导致请求积压"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "shippingservice.error_ratio",
+        "expected_pattern": "Sudden spike from 0.0 to 40.0+ (2.0 change ratio)",
+        "instruction": "检查shippingservice的错误率指标，关注是否有从正常水平（接近0）急剧飙升到高值（>40%）的异常变化"
+      },
+      {
+        "modality": "Log",
+        "target": "transport: Error while dialing, i/o timeout",
+        "expected_pattern": "Contains connection timeout errors with TCP dial failures",
+        "instruction": "在shippingservice相关日志中搜索'transport: Error while dialing'和'i/o timeout'关键词，确认是否存在TCP连接超时错误"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->shippingservice/GetQuote.rrt_max",
+        "expected_pattern": "Extreme latency increase (1000x+ multiplication)",
+        "instruction": "分析checkoutservice调用shippingservice的GetQuote操作的调用链延迟，检查rrt_max是否出现极端增长（从秒级增至千万秒级）"
+      }
+    ]
+  }
+}

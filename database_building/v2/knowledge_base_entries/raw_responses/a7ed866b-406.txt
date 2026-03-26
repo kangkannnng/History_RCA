@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "a7ed866b-406",
+    "fault_type": "request_response_error",
+    "symptom_vector": "High HTTP 5xx error rate observed on frontend services, service call chain failures, and specific RPC connection refused errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice的端口配置错误，导致上游服务无法建立连接，引发请求失败和错误率飙升。",
+        "reasoning_chain": [
+            "Step 1: 通过Trace数据观察到，来自frontend服务的`hipstershop.CheckoutService/PlaceOrder`调用大量失败，状态码为14，错误详情为`connection error: desc = \"transport: Error while dialing dial tcp 10.233.61.165:5050: connect: connection refused\"`，合计出现101次。这直接定位了故障的调用关系和目标地址。",
+            "Step 2: 结合Log数据确认，所有前端（frontend-1, frontend-2）的错误日志均指向上一步发现的同一目标地址`10.233.61.165:5050`，核心错误信息为`transport: Error while dialing dial tcp 10.233.61.165:5050: connect: connection refused`。这排除了DNS问题，明确是到该IP端口的网络层连接被拒绝。",
+            "Step 3: 通过Metric数据量化影响，发现frontend-1和frontend-2的`server_error_ratio`和`error_ratio`从0.0分别飙升到0.32和0.31，与下游`checkoutservice`不可用导致的请求失败直接相关。综合三模态证据，可以推断目标服务`checkoutservice`（位于10.233.61.165:5050）因端口配置错误或服务未监听，导致其完全不可用，成为系统故障的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "status_combinations (状态码为14的调用记录)",
+                "expected_pattern": "Specific downstream service calls fail repeatedly with connection error details, pinpointing the faulty endpoint.",
+                "instruction": "分析调用链状态组合数据，筛选状态码（status_code）为14（或类似表示连接错误的代码）的记录。重点检查错误详情（status_message）是否包含明确的连接错误信息（如connection refused）和目标地址（IP:Port）。"
+            },
+            {
+                "modality": "Log",
+                "target": "message (包含 'connection refused' 和 'dial tcp [IP]:[PORT]')",
+                "expected_pattern": "Logs from multiple upstream service instances report consistent connection refusal errors when trying to connect to the same downstream endpoint.",
+                "instruction": "在日志数据中搜索同时包含`connection refused`和`dial tcp`关键词的错误条目。提取并对比其中的目标IP地址和端口，确认是否为同一服务端点。"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio, error_ratio (for upstream services)",
+                "expected_pattern": "A sudden increase from near-zero baseline to a high value (e.g., >0.3), correlating with the timing of trace and log errors.",
+                "instruction": "检查故障时间范围内，调用链路中上游服务（在本例中为frontend）的`server_error_ratio`和`error_ratio`指标。观察其是否从正常值（如0.0）急剧上升，变化率是否为2.0（表示从无到有）。"
+            }
+        ]
+    }
+}
+```

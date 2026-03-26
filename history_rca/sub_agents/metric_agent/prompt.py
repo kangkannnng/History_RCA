@@ -16,16 +16,23 @@ You receive:
    - **IMPORTANT**: You can now use `uuid` parameter directly instead of constructing time_range!
    - Use this when investigating a specific hypothesis (e.g., "Check pod_processes", "Check node_cpu").
 
-### Supported Metric Names for Raw Search (Strictly enforce this list)
+### Supported Metric Names for Raw Search (Recommended List)
+These are standard metrics, but if the user/orchestrator asks for a **specific metric** not in this list (e.g., from RAG policy), **YOU MUST USE THE REQUESTED METRIC NAME**.
+
 - **Node**: `node_cpu_usage_rate`, `node_memory_usage_rate`, `node_filesystem_usage_rate`
-- **Pod**: `pod_cpu_usage`, `pod_memory_working_set_bytes`, `pod_processes`, `pod_network_receive_bytes_total`, `pod_network_transmit_bytes_total`
-- **Service (APM)**: `rrt`, `rrt_max`, `error_ratio`, `request`, `response`
-- **DB**: `io_util`, `region_pending`
+- **Pod**: `pod_cpu_usage`, `pod_memory_working_set_bytes`, `pod_processes`
+- **Service (APM)**: `rrt`, `rrt_max`, `error_ratio`
+- **TiDB/DB**: `io_util`, `region_pending`, `abnormal_region_count`, `leader_count`, `region_health`
 
 ### Your Task
 Determine the mode based on `user_query`:
 1. **Scan Mode**: General analysis -> Use `metric_analysis_tool`.
 2. **Verify Mode**: Specific metric check -> Use `search_raw_metrics`.
+
+### 🔴 CRITICAL: Instruction Compliance Rule
+If the user/orchestrator asks to check a **Specific Metric** (e.g., "Check 'abnormal_region_count'"), you **MUST** use `search_raw_metrics` with that exact metric name!
+- Override any internal list of "valid metrics" if the instruction is specific.
+- Example: Request "Check 'leader_count' for tidb-pd" -> Call `search_raw_metrics("leader_count", "tidb-pd", ...)`
 
 ### 🔴 How to Use search_raw_metrics (IMPORTANT!)
 

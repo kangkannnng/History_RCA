@@ -1,0 +1,32 @@
+[Trigger]
+- Metric anomaly pattern: Process count within pod containers increased from 1 to 9 across all instances of a specific service
+- Metric anomaly pattern: CPU utilization for the same pods spiked from near-zero to high levels concurrently with the process count increase
+- Trace anomaly pattern: Response times for calls to the affected service increased dramatically, from seconds to over a minute
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: The number of active processes inside the service's pods increased ninefold simultaneously - this abnormal proliferation directly contends for system resources.
+- Evidence 2: CPU usage surged precisely as processes multiplied, showing a direct correlation between resource consumption and the unusual process count.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Severe response time degradation for calls to the affected service - this is a predictable performance consequence of resource saturation.
+- Evidence 4: Increased latency in calls from the affected service to its dependencies - this propagates the performance impact but originates from the initial resource constraint.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the simultaneous ninefold increase in process count across all service instances, we suspect abnormal process creation or lifecycle management is consuming excessive computational resources."
+
+Step 2: Verification or elimination
+"If this were caused by external load or dependency failure, we would expect high CPU without process count changes or different error patterns in traces;
+However, actual observation shows process count changes precede and correlate with both CPU and latency degradation;
+This rules out external load spikes or downstream dependency failure as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of abnormal process proliferation and its direct correlation with both CPU saturation and response time degradation indicates a container-level resource exhaustion scenario originating from uncontrolled process creation."
+
+[Conclusion]
+"The root cause is uncontrolled process creation within the service containers, leading to resource contention that saturated CPU capacity and caused severe performance degradation across all service instances."
+
+[Next Action]
+- Verify whether process lifecycle logs or termination signals exist for the abnormal processes
+- Check for resource limit configurations or recent deployment changes that might affect process management

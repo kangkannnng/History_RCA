@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "a0e512ba-384",
+    "fault_type": "metric",
+    "symptom_vector": "Service error ratios (error_ratio, client_error_ratio) spike and response latency (rrt_max) increase across multiple services.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-07 CPU 使用率异常飙升导致运行其上的 Pod 性能普遍下降。",
+        "reasoning_chain": [
+            "Step 1: 在全量指标数据中观察到 `node_cpu_usage_rate` 指标出现最剧烈的变化。节点 `aiops-k8s-07` 的 CPU 使用率从基准期的 17.95% 飙升至故障期的 90.7%，变化率（median_change_ratio）高达 1.3392，是所有异常指标中变化最显著、最可能成为根因的信号。",
+            "Step 2: 分析节点与 Pod 的映射关系，发现节点 `aiops-k8s-07` 上运行着多个服务实例，包括 `cartservice-0`, `currencyservice-1`, `adservice-1`。进一步检查这些 Pod 的指标，发现它们均出现了服务层面的异常：`cartservice-0` 的 `error_ratio` P99 值从 0.0 飙升至 28.72，`adservice-1` 的 `error_ratio` P99 值从 0.0 飙升至 6.08，`currencyservice-1` 的 `rrt_max` P99 值从 3614.16 增加到 20382.08。这表明节点资源瓶颈导致了其承载的多个服务同时出现性能劣化。",
+            "Step 3: 通过横向对比进行确认。Log 分析结果显示在故障时间段内没有错误日志，这与因资源（CPU）耗尽导致服务性能下降（如超时、响应慢）而非应用代码错误的故障模式相符。Trace 数据中未发现 `aiops-k8s-07` 节点的调用记录，这可以被合理解释为该节点因 CPU 饱和，服务处理能力严重下降，导致请求无法被正常处理或追踪数据上报失败。综合来看，一个节点级的基础资源指标（CPU）发生严重异常，并伴随其承载的所有关键服务指标恶化，是典型的节点资源瓶颈导致的上层服务级联故障模式。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden spike (e.g., change rate > 0.5) and absolute value approaching or exceeding high threshold (e.g., > 80%).",
+                "instruction": "优先扫描所有节点级的CPU使用率指标，识别是否存在使用率显著飙升的节点。对比故障期与基准期的中位数（median）及P99值，计算变化率（change rate），找出异常最显著的节点。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio, client_error_ratio, rrt, rrt_max",
+                "expected_pattern": "Sudden increase in values for services located on the suspected node.",
+                "instruction": "根据 `node_pod_mapping` 确定嫌疑节点上运行的所有 Pod 及其所属服务。检查这些服务相关的错误率、客户端错误率、响应时间（平均、最大）等指标，确认是否存在多个（或全部）服务同时出现指标恶化的现象，以验证节点级问题的影响范围。"
+            },
+            {
+                "modality": "Trace",
+                "target": "node_name, service_name, parent_pod",
+                "expected_pattern": "Missing or significantly reduced trace data originating from the suspected node during the fault period.",
+                "instruction": "检查 Trace 数据中是否有大量请求源自或流经嫌疑节点上的服务。如果该节点在 Trace 数据中几乎无记录，或相关服务调用链出现断点，这可以作为节点因资源耗尽而无法正常处理请求的间接证据。"
+            }
+        ]
+    }
+}
+```

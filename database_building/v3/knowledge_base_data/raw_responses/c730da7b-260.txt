@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "c730da7b-260",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "high CPU utilization, CPU saturation, CPU overload, CPU usage spike",
+    "expert_knowledge": {
+        "root_cause_desc": "recommendationservice 组件因 pod_processes 异常增加导致 pod_cpu_usage 飙升，引发CPU过载",
+        "reasoning_chain": [
+            "Step 1: 观察到 recommendationservice 所有Pod的 pod_processes 指标从1.0异常增加到12.0（变化率1.6923）",
+            "Step 2: 分析 recommendationservice 组件的 pod_cpu_usage 指标同时从0.0飙升到0.4（变化率2.0），表明CPU使用率激增",
+            "Step 3: 确认 recommendationservice 的 rrt_max 指标从19820.5激增至1394701.5（变化率1.944），响应时间严重恶化，而日志分析未发现错误日志，符合进程泄漏的非错误日志形式问题"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike from baseline (0.0→0.4, change rate 2.0)",
+                "instruction": "检查 recommendationservice 组件的 pod_cpu_usage 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abnormal increase from 1.0 to 12.0 (change rate 1.6923)",
+                "instruction": "检查 recommendationservice 组件的 pod_processes 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Significant degradation (19820.5→1394701.5, change rate 1.944)",
+                "instruction": "检查 recommendationservice 组件的 rrt_max 指标是否严重恶化"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "dac96ecf-483",
+    "fault_type": "resource_memory_exhaustion",
+    "symptom_vector": "Intermittent client-side errors (e.g., 302 redirects from adservice), downstream service call failures, and node-level memory pressure.",
+    "expert_knowledge": {
+        "root_cause_desc": "由于运行所在的节点 (aiops-k8s-08) 内存压力导致 adservice-1 实例失效。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中，观察到节点 `aiops-k8s-08` 的 `node_memory_MemAvailable_bytes` 中位数从正常的 10.74GB 骤降至故障期的 7.97GB，降幅达 29.58%，表明该节点存在显著的内存压力。",
+            "Step 2: 通过 `node_pod_mapping` 数据确认，故障组件 `adservice-1`（及其副本 `adservice-2`）运行在出现内存压力的节点 `aiops-k8s-08` 上。同时，同一个节点的 `adservice-2` 在Metric中检测到 `error_ratio` 与 `client_error_ratio` 的 p99 变化率异常（+205.2%），虽然比率为0，但暗示了该节点上的广告服务存在偶发性错误。",
+            "Step 3: 结合Ground Truth描述的故障特征（与内存相关的关键词）以及Trace数据中缺少来自 `frontend` 到 `adservice` 的异常调用链（意味着adservice可能已无法正常响应或参与追踪），推导出根因为：节点 `aiops-k8s-08` 的内存资源紧张，导致运行于其上的 `adservice-1` 实例性能受损或不可用，进而在应用层面可能表现为重定向（302）等错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Significant and sustained decrease in available memory on specific node(s).",
+                "instruction": "检查所有节点的 node_memory_MemAvailable_bytes 指标，定位可用内存下降最显著（例如跌幅 >25%）的节点。然后，通过 node_pod_mapping 数据查看该节点上运行了哪些Pod。"
+            },
+            {
+                "modality": "Log",
+                "target": "\"http.resp.status\" AND \"302\"",
+                "expected_pattern": "Log entries containing the keyword combination \"http.resp.status\" and status code \"302\", likely from adservice pods.",
+                "instruction": "在故障时间范围内，搜索来自 adservice Pod（特别是 adservice-1 和 adservice-2）的日志，过滤包含关键词 \"http.resp.status\" 和 \"302\" 的条目，以确认应用层面的异常行为。"
+            },
+            {
+                "modality": "Trace",
+                "target": "adservice",
+                "expected_pattern": "Absence or severe degradation of trace spans involving adservice (e.g., frontend -> adservice calls).",
+                "instruction": "分析调用链数据，检查从上游服务（如 frontend）到 adservice 的调用是否出现异常，包括调用缺失、超时或极高的延迟。"
+            }
+        ]
+    }
+}
+```

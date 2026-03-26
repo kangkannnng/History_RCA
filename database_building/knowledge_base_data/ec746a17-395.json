@@ -1,0 +1,76 @@
+{
+  "uuid": "ec746a17-395",
+  "fault_type": "qps grpc_qps region_pending tidb-tikv",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv-0, tidb-tikv] experienced [qps, grpc_qps, region_pending, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv-0, tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data showing latency anomalies and request proportion anomalies (From GT key_observations trace subtype)",
+      "Step 3: Check Observation - Found keyword [failure] in Log data (From GT key_observations log keyword)",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log data (From GT key_observations log keyword)",
+      "Step 5: Check Observation - Found keyword [grpc_qps, qps] in Metric data (From GT key_observations metric keyword)",
+      "Step 6: Check Observation - Found keyword [region_pending] in Metric data (From GT key_observations metric keyword)",
+      "Step 7: Check Observation - Found keyword [store_size] in Metric data (From GT key_observations metric keyword)",
+      "Step 8: Check Observation - Found keyword [cpu_usage] in Metric data (From GT key_observations metric keyword)",
+      "Step 9: Check Observation - Found keyword [memory_usage] in Metric data (From GT key_observations metric keyword)",
+      "Step 10: Derive Root Cause - Based on above features, determined cause is [qps, grpc_qps, region_pending, tidb-tikv] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "productcatalogservice shows latency anomalies from 10-15ms to 39-40 seconds and request proportion anomalies with Error 9005 (HY000): Region is unavailable status codes",
+        "instruction": "Search for service_name 'productcatalogservice' in trace data and check for latency spikes and error status codes"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'failed to query product by id', 'failed to get product', 'failed to complete the order' messages",
+        "instruction": "Search for keyword 'failed' in log messages across all services"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries containing 'Region is unavailable' error messages with Error 9005 (HY000) codes",
+        "instruction": "Search for keyword 'unavailable' in log messages, particularly in productcatalogservice logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "GRPC queries per second metrics showing abnormal patterns for TiDB components",
+        "instruction": "Check metric data for 'grpc_qps' metric name across all services"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Queries per second metrics showing abnormal patterns, particularly failed_query_ops from 0.0 to 45.33",
+        "instruction": "Check metric data for 'qps' related metrics including failed_query_ops"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Region pending metrics indicating database region availability issues",
+        "instruction": "Check metric data for 'region_pending' or related region availability metrics"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Store size metrics showing storage capacity or health issues",
+        "instruction": "Check metric data for 'store_size' related metrics in TiDB components"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU usage metrics showing abnormal patterns, particularly pod_cpu_usage dropping from 0.05 to 0.0 for frontend-2",
+        "instruction": "Check metric data for 'cpu_usage' metrics across all pods"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage metrics showing abnormal patterns, particularly tidb-tidb memory_usage from 860680192.0 to 556939264.0",
+        "instruction": "Check metric data for 'memory_usage' metrics across all services and pods"
+      }
+    ]
+  }
+}

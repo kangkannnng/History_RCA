@@ -1,0 +1,59 @@
+{    "uuid": "b9e3efbd-357",
+    "fault_type": "qps, grpc_qps, io_util, tidb-tikv pod fault",
+    "symptom_vector": "Pod failure symptoms including crash, unexpected termination, container exit, and pod failure.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv] experienced [qps, grpc_qps, io_util, tidb-tikv] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance).",
+            "Step 2: Check Observation - Found keyword [failure] in Log, with error messages like 'failed to query product by id' (From GT key_observations).",
+            "Step 3: Check Observation - Found keyword [unavailable] in Log, with 'Region is unavailable' errors (From GT key_observations).",
+            "Step 4: Check Observation - Found keyword [memory_usage] in Metric, showing abnormal decrease for tidb-tidb from 1271083008.0 to 668977152.0 (From GT key_observations).",
+            "Step 5: Check Observation - Found keyword [cpu_usage] in Metric, with pod_cpu_usage anomalies such as frontend-1 dropping to 0.0 (From GT key_observations).",
+            "Step 6: Derive Root Cause - Based on above features, determined cause is [qps, grpc_qps, io_util, tidb-tikv] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Log entries containing 'failure' keyword, e.g., 'failed to query product by id' appears in productcatalogservice logs.",
+                "instruction": "Search for keyword 'failure' in log data during the fault window (2025-06-18T14:10:27Z to 2025-06-18T14:22:27Z)."
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Log entries with 'Region is unavailable' error message, e.g., 'Error 9005 (HY000): Region is unavailable' appears multiple times.",
+                "instruction": "Search for keyword 'unavailable' in logs, specifically in productcatalogservice and frontend services."
+            },
+            {
+                "modality": "Metric",
+                "target": "grpc_qps",
+                "expected_pattern": "Metric grpc_qps should be checked for abnormal query rates; in provided data, not directly observed, but inferred from related anomalies.",
+                "instruction": "Check metric grpc_qps for anomalies in the fault period; if not available, monitor for derived metrics like error rates or latency."
+            },
+            {
+                "modality": "Metric",
+                "target": "qps",
+                "expected_pattern": "Metric qps indicating query per second anomalies; in provided data, not directly observed, but similar to failed_query_ops or rrt changes.",
+                "instruction": "Check metric qps for significant changes; correlate with other performance metrics like duration_99th."
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Metric io_util showing I/O utilization issues; in provided data, not directly observed, but storage layer faults may imply I/O problems.",
+                "instruction": "Check metric io_util for high utilization or errors, especially for tidb-tikv component."
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "pod_cpu_usage metric with significant deviations, e.g., frontend-1 dropping from 0.02 to 0.0 median.",
+                "instruction": "Check pod_cpu_usage metric for anomalies across pods during the fault window."
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "memory_usage metric abnormal decrease for tidb-tidb from 1271083008.0 to 668977152.0 median.",
+                "instruction": "Check memory_usage metric for tidb services, focusing on tidb-tidb and tidb-tikv components."
+            }
+        ]
+    }
+}

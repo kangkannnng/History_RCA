@@ -1,0 +1,76 @@
+{
+  "uuid": "5c8eb611-200",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, and elevated round-trip duration between frontend and cartservice services",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [cartservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault, with rrt spiking from 1362.2ms to 283515.09ms and rrt_max from 9424.0ms to 1514016.0ms for cartservice-2.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [cartservice] from Ground Truth instance list, as it appears in Full Context with key metric anomalies.",
+      "Step 2: Check Observation - Found keyword [frontend] in Trace data showing latency anomalies (e.g., frontend-0, frontend-1, frontend-2 with high latency in CartService/GetCart operations, with normal_avg_duration ~2.5-5.3 seconds increasing to anomaly_avg_duration ~1378-1419 seconds).",
+      "Step 3: Check Observation - Found keyword [rrt] and [rrt_max] in Metric data with extreme spikes for cartservice-2 (rrt increased from 1362.2ms to 283515.09ms, rrt_max from 9424.0ms to 1514016.0ms, as per anomaly_metrics in Full Context).",
+      "Step 4: Derive Root Cause - Based on trace latency anomalies and metric rrt/rrt_max spikes, determined root cause is network delay metrics including rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets from Ground Truth key_metrics."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Latency anomalies in frontend service calls to cartservice, e.g., GetCart operation delay increased from normal ~2.5-5.3 seconds to anomaly ~1378-1419 seconds, as shown in filtered_traces data.",
+        "instruction": "Search for keyword 'frontend' in trace data and analyze latency anomalies for CartService operations."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "rrt metric spiked from 1362.2ms to 283515.09ms for cartservice-2, with median_change_ratio 1.9809, as per anomaly_metrics in Full Context.",
+        "instruction": "Check rrt metric for cartservice instances, specifically cartservice-2, during the fault period 2025-06-10T19:10:10Z to 2025-06-10T19:26:10Z."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max metric increased from 9424.0ms to 1514016.0ms for cartservice-2, with median_change_ratio 1.9753, as per anomaly_metrics.",
+        "instruction": "Verify rrt_max metric for cartservice-2 in the metric data."
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "Request-related anomalies, such as increased error_ratio from 0.0 to 8.16 for checkoutservice-2, implying request handling issues, though direct 'request' metric not listed in provided anomaly_metrics.",
+        "instruction": "Search for keyword 'request' in metric data or infer from related metrics like error_ratio during fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "Response time anomalies, indicated by rrt spikes and error_ratio changes, though direct 'response' metric not in provided anomaly_metrics.",
+        "instruction": "Check for 'response' metric in data or use rrt and error_ratio as proxies for response issues."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Memory usage anomalies, but not observed in provided anomaly_metrics (only pod_cpu_usage is listed with no significant change for redis-cart-0).",
+        "instruction": "Inspect pod_memory_working_set_bytes metric in raw data if available, as per key_observations."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Network receive byte rate changes, but not listed in provided anomaly_metrics or available_metric_names.",
+        "instruction": "Analyze pod_network_receive_bytes metric in full metric dataset for anomalies during fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Packet receive rate deviations, not found in provided anomaly_metrics.",
+        "instruction": "Check pod_network_receive_packets metric in data as per key_observations."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Network transmit byte anomalies, not present in provided anomaly_metrics.",
+        "instruction": "Verify pod_network_transmit_bytes metric for cartservice and related pods."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Packet transmit rate changes, not observed in provided anomaly_metrics.",
+        "instruction": "Search for pod_network_transmit_packets metric in the raw data."
+      }
+    ]
+  }
+}

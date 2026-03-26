@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "5d022708-414",
+    "fault_type": "metric",
+    "symptom_vector": "HTTP 500 errors from frontend, RPC call failures (GetQuote, PlaceOrder) with connection refused status, and abnormal response time changes.",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice端口配置错误或服务不可达，导致连接被拒绝，引发级联故障。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到shippingservice所有Pod (pod-0, pod-1, pod-2)的error_ratio和client_error_ratio的P99值从正常状态的0.0激增至57.6、47.5和57.0，变化率达2.0，表明该服务发生了严重的服务级错误率激增。",
+            "Step 2: 在Log数据中发现来自所有frontend Pod的错误日志，核心内容为：\"transport: Error while dialing dial tcp 10.233.27.213:50051: connect: connection refused\"。这表明上游服务frontend在尝试调用一个特定目标地址 (10.233.27.213:50051) 时被拒绝连接，且错误模式高度集中。",
+            "Step 3: 结合Trace数据确认了错误传播路径。Trace状态组合显示，frontend->shippingservice的GetQuote调用以及checkoutservice->shippingservice的调用均因 \"connection refused\" 而失败，总计失败次数达数百次。这确认了shippingservice的不可用是上游服务错误的直接原因，形成了清晰的故障传播链。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "shippingservice的error_ratio或client_error_ratio",
+                "expected_pattern": "Sudden spike (P99值从接近0飙升至>40%)",
+                "instruction": "请检查shippingservice服务的错误率指标。若发现其P99值在故障期间较基线有极大幅度的跃升（例如从0%跃升至超过40%），则表明该服务自身或其依赖出现严重问题。"
+            },
+            {
+                "modality": "Log",
+                "target": "\"connection refused\" and \"10.233.27.213:50051\" or \"shippingservice\"",
+                "expected_pattern": "Contains error",
+                "instruction": "请搜索来自frontend或调用链上游服务的错误日志，重点查找包含 \"connection refused\" 关键词且目标地址为shippingservice相关IP/端口的条目。这种模式表明网络层面连接失败，是服务不可达的直接证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "span status for operation 'hipstershop.ShippingService/GetQuote'",
+                "expected_pattern": "高比例的失败状态码 (如Code 14 - Unavailable) 且状态信息包含 \"connection refused\"",
+                "instruction": "请分析调用链数据，聚焦于以shippingservice为调用目标的操作（如GetQuote）。检查这些跨服务调用的状态码和状态信息。如果发现大量失败且失败原因为连接拒绝，则可以锁定shippingservice为故障节点。"
+            }
+        ]
+    }
+}
+```

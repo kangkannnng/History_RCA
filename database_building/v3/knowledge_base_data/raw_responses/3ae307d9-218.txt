@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "3ae307d9-218",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 服务因 Byteman 故障注入导致 java.lang.Error 异常和 adservice-getrandomads-exception 指标激增",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务日志中出现大量 'failed to get ads: rpc error: code = Unknown desc = ' 错误，表明广告获取功能受损，表层症状指向其依赖的 adservice 服务。",
+            "Step 2: 分析 adservice 日志，发现核心异常为 'java.lang.Error: Injected error' 和 'Rule.execute called for AdService-getRandomAds-exception-1749647451'，明确指向由 Byteman 工具触发的故障注入。",
+            "Step 3: 确认 adservice-0 的 error_ratio 和 client_error_ratio 指标的 p99 变化率出现异常 (0.6681)，与日志中观察到的 JVM exception 和故障注入模式相互印证，构成完整的根因证据链。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "AdService-getRandomAds-exception",
+                "expected_pattern": "包含特定规则名称的 Byteman 注入日志，如 'AdService-getRandomAds-exception-1749647451 execute()'",
+                "instruction": "在 adservice 相关 pod 的日志中搜索包含 'AdService-getRandomAds-exception' 关键词的条目，确认是否存在故障注入规则触发记录。"
+            },
+            {
+                "modality": "Log",
+                "target": "Injected error|java.lang.Error",
+                "expected_pattern": "包含 'java.lang.Error: Injected error' 的异常堆栈信息",
+                "instruction": "检查 adservice 的日志中是否有 'java.lang.Error' 或 'Injected error' 等关键词，确认是否存在人为注入的运行时错误。"
+            },
+            {
+                "modality": "Log",
+                "target": "failed to get ads|rpc error.*code = Unknown",
+                "expected_pattern": "大量出现 RPC 调用失败的错误日志，错误码为 'Unknown'，通常指向下游服务内部异常",
+                "instruction": "在 frontend 服务的日志中搜索 'failed to get ads' 或 'rpc error.*code = Unknown'，确认广告获取功能是否因下游异常而失败。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio|client_error_ratio",
+                "expected_pattern": "异常时段内相关指标（p99或中位数）相比基线出现显著变化，特别是从0值开始上升",
+                "instruction": "检查 adservice 实例的 error_ratio 和 client_error_ratio 指标，在故障时段内是否出现异常激增或变化率升高的情况。"
+            }
+        ]
+    }
+}
+```

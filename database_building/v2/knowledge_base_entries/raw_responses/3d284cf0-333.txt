@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "3d284cf0-333",
+    "fault_type": "metric",
+    "symptom_vector": "service latency increase for GetProduct API, high node CPU usage",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06节点CPU使用率异常飙升导致运行其上的服务性能下降",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中，观察到aiops-k8s-06节点的关键指标`node_cpu_usage_rate`从正常中位数39.56%飙升至故障中位数94.08%，变化率达到81.6%，P99值也从42.02%升至96.39%。这表明节点存在严重的CPU资源瓶颈。",
+            "Step 2: 在Trace数据中，观察到位于aiops-k8s-06节点上的服务`productcatalogservice-1`的`GetProduct`接口响应时间显著增加，异常时段平均耗时(11-13秒)相比正常时段(9-10秒)出现明显增长。",
+            "Step 3: 结合Metric专家发现的节点级CPU异常与Trace专家发现的服务级延迟异常，并查询系统`node_pod_mapping`拓扑关系，确认`productcatalogservice-1` Pod运行在`aiops-k8s-06`节点上，从而将节点资源瓶颈与应用性能下降关联起来，形成根因推理链。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden spike in median value, with change ratio exceeding a significant threshold (e.g., >50%)",
+                "instruction": "检查指定节点的CPU使用率指标，对比故障时段与正常时段的中位数及P99值，计算变化率。若出现显著飙升，标记为可疑根因节点。"
+            },
+            {
+                "modality": "Trace",
+                "target": "anomaly_avg_duration for services on the suspicious node",
+                "expected_pattern": "Increased latency for services/pods that are mapped to the node identified with high CPU usage",
+                "instruction": "根据节点-Pod映射关系，筛选出运行在可疑节点上的服务调用链。分析这些调用链在故障时段的平均响应时间，确认是否存在与节点资源异常同步的延迟增加。"
+            }
+        ]
+    }
+}
+```

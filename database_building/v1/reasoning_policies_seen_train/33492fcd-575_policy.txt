@@ -1,0 +1,30 @@
+[Trigger]
+- Trace anomaly pattern: Services interacting with CurrencyService exhibit extreme latency increases, with response times multiplying by 28 to 40 times the normal baseline.
+- Metric anomaly pattern: A sudden and sustained spike in CPU utilization coincides with a tenfold increase in the number of processes running within specific pods.
+- Log anomaly pattern: No definitive error logs are found, yet monitoring systems confirm an active fault period.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: The count of active processes within multiple instances of a single service type surged from 1 to 11 simultaneously. This matters because a sudden, order-of-magnitude increase in processes within a containerized unit typically indicates an abnormal lifecycle event or resource contention within the unit itself, not an external request flood.
+- Evidence 2: CPU utilization for those same instances spiked from near-zero to high levels (0.4) concurrently with the process count change. This matters because it directly links the abnormal process behavior to resource exhaustion, creating a performance bottleneck within the service instance.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Trace data shows massive latency increases for all calls to the affected service. This is a consequence because the internal resource saturation (CPU) directly causes slower request processing, which propagates delays to upstream callers.
+- Evidence 4: Other services show moderate latency increases and error ratio changes. These can be deprioritized as they are likely secondary effects stemming from the primary bottleneck or from shared resource contention, as their severity is significantly lower.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the synchronized, dramatic increase in process count and CPU utilization across all replicas of a specific service, we suspect an internal instability or configuration issue within the service's runtime environment that is causing excessive process creation and resource consumption."
+
+Step 2: Verification or elimination
+"If this were caused primarily by an external surge in user traffic, we would expect a gradual rise in metrics like request rate and a proportional increase in CPU usage, but not necessarily a sudden tenfold jump in internal process count. However, the actual observation shows the process count change is abrupt and extreme, preceding or coinciding with the latency spike. This rules out simple traffic overload as the root cause and points to a failure in the service's own process management."
+
+Step 3: Convergence to conclusion
+"The combination of the aberrant process multiplication and the resulting CPU saturation indicates that the service pods entered an unstable state. This internal state disrupted normal request handling, causing severe processing delays. The latency observed in traces is the direct symptom of this internal resource exhaustion."
+
+[Conclusion]
+"The root cause is an internal instability within the service's runtime environment leading to uncontrolled process proliferation, which saturated CPU resources and severely degraded the service's ability to process requests, causing cascading latency."
+
+[Next Action]
+- Verify whether any recent deployment or configuration change affected the service's resource limits or process management settings.
+- Check for patterns in kernel-level logs or system metrics around the fault start time to identify signals of container runtime issues or resource pressure events.

@@ -1,0 +1,33 @@
+{
+  "uuid": "e7f160ac-422",
+  "fault_type": "latency_anomalies",
+  "symptom_vector": "Significant latency spike and increased error rates observed in productcatalogservice, propagating to frontend and checkoutservice, leading to HTTP 500 errors and order failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB存储层Region不可用（由IO性能问题或Region pending导致）引发的级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据中观察到，所有流向productcatalogservice的调用链（来自frontend、checkoutservice、recommendationservice）的响应时间（rrt）出现极端异常，平均延迟从正常的约7-10ms激增至20-40秒，变化率达1.998以上。同时，这些调用的状态码为2（GRPC错误），错误消息为'Error 9005 (HY000): Region is unavailable'。这表明底层数据库TiDB的Region出现不可用问题，是故障的直接诱因。",
+      "Step 2: 在Log数据中发现，productcatalogservice所有实例（pod-0, pod-1, pod-2）的日志中均出现'failed to query product by id: Error 9005 (HY000): Region is unavailable'的错误。同时，frontend服务的日志中也大量出现'could not retrieve product: rpc error: code = Unknown desc = Error 9005...'的RPC调用失败记录，错误源头一致。这证实了Step 1的推断，并且表明productcatalogservice是整个调用链中最先、最直接受数据库问题影响的服务。",
+      "Step 3: 在Metric数据中发现，作为数据库层的TiDB组件（tidb-tidb）出现了严重的性能指标异常，其中‘failed_query_ops’的P99值从0飙升到73.9，‘duration_99th’从0.01ms飙升到64.85ms。同时，productcatalogservice所有实例的‘rrt’指标也出现同步的、剧烈的异常飙升。这些Metric数据与Trace和Log中的错误现象完全对应，共同指向了故障的根本源头：TiDB存储层（如tikv）的性能问题导致Region不可用，进而导致依赖它的上层服务发生级联故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "service_name = productcatalogservice, operation_name 包含 GetProduct",
+        "expected_pattern": "anomaly_avg_duration异常激增，为normal_avg_duration的千倍以上，且status_message包含 'Error 9005 (HY000): Region is unavailable'",
+        "instruction": "检查调用链数据中，流向productcatalogservice（特别是GetProduct操作）的请求是否出现响应时间极剧增加（例如从毫秒级到数十秒级），并确认其状态码和消息是否为数据库Region不可用错误。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "日志消息中包含此错误短语，尤其在productcatalogservice服务的pod日志中出现频率较高",
+        "instruction": "在故障时间段的日志中，搜索'Error 9005 (HY000): Region is unavailable'关键词。首先确认该错误是否在productcatalogservice的服务日志中大量出现，其次观察上层服务（如frontend）的RPC错误日志中是否包含此错误描述。"
+      },
+      {
+        "modality": "Metric",
+        "target": "failed_query_ops",
+        "expected_pattern": "故障时段P99值相较基线出现极端飙升（例如从0上升到70以上）",
+        "instruction": "检查TiDB相关组件（如tidb-tidb、tidb-tikv）的数据库性能指标'failed_query_ops'。如果其P99值在故障期间出现剧烈、显著的增长，则表明数据库层已出现严重的查询失败问题。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+    "uuid": "26c9ab68-91",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "High CPU utilization, saturation, overload, usage spike, and stress leading to performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "Component emailservice experienced pod_cpu_usage fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is emailservice (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword pod_cpu_usage in Metric data showing increase from 0.0 to 0.4 for emailservice pods (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword pod_processes in Metric data showing spike from 1.0 to 12.0 for emailservice pods (From GT key_observations)",
+            "Step 4: Check Observation - Found keywords rrt and rrt_max in Metric data indicating severe performance degradation for emailservice, e.g., rrt increased from 1737.24 to 21634.03 and rrt_max from 3627.0 to 102709.5 (From GT key_observations)",
+            "Step 5: Derive Root Cause - Based on the above features, determined cause is pod_cpu_usage (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Value increased from 0.0 to 0.4 for emailservice pods, as shown in raw_metric_result table",
+                "instruction": "Search for metric pod_cpu_usage for emailservice pods in the specified time range (2025-06-06T03:03:01Z to 2025-06-06T03:17:01Z)"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value spiked from 1.0 to 12.0 for emailservice pods, as shown in raw_metric_result table",
+                "instruction": "Search for metric pod_processes for emailservice pods in the specified time range"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Value increased significantly, e.g., from 1737.24 to 21634.03 for emailservice-0, indicating performance degradation",
+                "instruction": "Search for metric rrt for emailservice in the metric data"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Value increased dramatically, e.g., from 3627.0 to 102709.5 for emailservice-0, showing severe latency issues",
+                "instruction": "Search for metric rrt_max for emailservice in the metric data"
+            }
+        ]
+    }
+}

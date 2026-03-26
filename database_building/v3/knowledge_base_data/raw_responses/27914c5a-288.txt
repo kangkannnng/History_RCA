@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "27914c5a-288",
+    "fault_type": "client_error pod_failure",
+    "symptom_vector": "pod terminated unexpectedly with client error ratio spike and connection refused errors from upstream services",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice-2 Pod因异常导致失败并终止，引发上游服务出现 client_error 和 connection refused 错误，服务完全不可用。",
+        "reasoning_chain": [
+            "Step 1: 观察到调用链 (Trace) 数据中 checkoutservice->paymentservice 的调用失败，并返回明确的 connection refused 错误状态码，表明 paymentservice 完全不可达。",
+            "Step 2: 分析日志 (Log) 数据，发现相同的连接拒绝错误 'transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused'，该IP端口指向 paymentservice，验证了其不可用性。",
+            "Step 3: 检查指标 (Metric) 数据，确认 paymentservice-2 的响应时间异常（rrt P99大幅上升1.16倍），且其他服务（如 adservice-1）的 client_error_ratio 出现显著飙升，这是下游服务失败导致的典型连锁反应。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Value drops to zero or near zero, indicating pod termination",
+                "instruction": "检查 paymentservice-2 Pod 的 pod_memory_working_set_bytes 指标，在故障时间窗口内是否骤降至零或接近零，这是 Pod 终止或崩溃的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Traffic stops completely (value drops to zero)",
+                "instruction": "检查 paymentservice-2 Pod 的 pod_network_receive_bytes 指标，在故障期间网络接收流量是否完全停止，作为 Pod 不可用的辅助证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "Packet count drops to zero",
+                "instruction": "检查 paymentservice-2 Pod 的 pod_network_receive_packets 指标，确认在故障时段是否没有接收到任何网络包。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "Traffic stops completely (value drops to zero)",
+                "instruction": "检查 paymentservice-2 Pod 的 pod_network_transmit_bytes 指标，在故障期间网络发送流量是否完全停止。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "Packet count drops to zero",
+                "instruction": "检查 paymentservice-2 Pod 的 pod_network_transmit_packets 指标，确认在故障时段是否没有发送任何网络包。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->paymentservice",
+                "expected_pattern": "Calls failing with status codes indicating connection errors (e.g., Unavailable, connection refused)",
+                "instruction": "分析调用链，重点检查从 checkoutservice 到 paymentservice 的调用，寻找状态码为 Unavailable 并包含 'connection refused' 描述的错误。"
+            },
+            {
+                "modality": "Log",
+                "target": "connection refused",
+                "expected_pattern": "Error logs containing 'connection refused' and pointing to paymentservice's IP:Port",
+                "instruction": "在 frontend 或 checkoutservice 的日志中搜索 'connection refused' 关键词，并确认错误信息中指向的目标地址是否为 paymentservice。"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "Sudden increase from baseline (e.g., 0.0 to >0.4) in services calling paymentservice",
+                "instruction": "检查调用 paymentservice 的上游服务（如 checkoutservice, frontend）的 client_error_ratio 指标，是否在故障时间窗口内出现从零开始的异常飙升。"
+            }
+        ]
+    }
+}
+```

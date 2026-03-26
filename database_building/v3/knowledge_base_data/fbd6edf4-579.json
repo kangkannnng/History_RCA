@@ -1,0 +1,57 @@
+{
+  "uuid": "fbd6edf4-579",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault with filesystem call errors, read/write operation errors, and database performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 region_pending 队列激增（164.7%增加）导致数据库IO性能瓶颈",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 的 region_pending 指标从正常中位数11139飙升至故障期1078，变化率164.7%，表明数据库存储层出现严重队列积压",
+      "Step 2: 分析 tidb-tikv 的 cpu_usage 指标在故障期间保持稳定（变化率0%），排除CPU资源瓶颈，指向IO层面的性能问题",
+      "Step 3: 日志分析显示无应用层错误日志，符合底层数据库IO性能瓶颈的典型特征，即无显式错误但性能严重下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden increase from baseline (164.7% change ratio)",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否异常飙升，正常中位数11139到故障期1078的变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "High utilization or abnormal pattern",
+        "instruction": "检查 tidb-tikv 组件的 io_util 指标是否显示异常高利用率或异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "Increased latency or abnormal values",
+        "instruction": "检查 tidb-tikv 组件的 raft_apply_wait 指标是否显示延迟增加或异常值"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Abnormal pattern or degradation",
+        "instruction": "检查 tidb-tikv 组件的 qps 指标是否显示异常模式或性能下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "Abnormal pattern or degradation",
+        "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否显示异常模式或性能下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Abnormal pattern or high utilization",
+        "instruction": "检查 tidb-tikv 组件的 memory_usage 指标是否显示异常模式或高利用率"
+      },
+      {
+        "modality": "Log",
+        "target": "filesystem call error|read operation error|write operation error|permission denied error|file descriptor error",
+        "expected_pattern": "Contains IO-related error keywords",
+        "instruction": "在 tidb-tikv-0 和 tidb-tikv 的日志中搜索 filesystem call error, read operation error, write operation error, permission denied error, file descriptor error 等IO故障关键词"
+      }
+    ]
+  }
+}

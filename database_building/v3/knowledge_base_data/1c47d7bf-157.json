@@ -1,0 +1,21 @@
+{
+  "uuid": "1c47d7bf-157",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full, high disk utilization, disk space exhaustion, disk saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-07 节点因 node_filesystem_usage_rate 指标异常飙升导致磁盘空间耗尽",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-07 节点的 node_filesystem_usage_rate 指标从 49.88% 急剧上升到 77.04%，p99 值达到 98.68%，接近磁盘满状态",
+      "Step 2: 分析 Metric 数据发现这是最显著的节点级异常，变化率为 42.8%，且 p99 变化率为 53.98%",
+      "Step 3: 确认该节点磁盘使用率异常是基础设施级别的严重故障，优先级高于应用层性能问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden increase from baseline, p99接近100%",
+        "instruction": "检查 aiops-k8s-07 节点的 node_filesystem_usage_rate 指标是否异常飙升，特别是p99值是否接近磁盘满状态"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Multiple services began reporting repeated database query failures with a specific error code indicating that a data region was inaccessible.
+- Metric anomaly pattern: Database layer metrics showed a dramatic spike in query latency and an increase in failed operations, while storage health indicators signaled problems.
+- Trace anomaly pattern: Calls from user-facing services to a core catalog service exhibited extreme latency increases and failed with statuses pointing to database errors.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs from catalog service instances consistently show failures with a database error code signifying region unavailability. This matters because it directly indicates a problem at the data storage layer, preventing successful data retrieval.
+- Evidence 2: Database performance metrics reveal a sudden, severe degradation in query latency and the emergence of failed queries. This matters as it confirms impaired performance and reliability at the foundational database level.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Frontend services display elevated error rates and increased latency in distributed traces. This is a consequence, as these services depend on the catalog service, which itself relies on the failing database.
+- Evidence 4: Other services, such as checkout, show latency spikes and errors. This can be deprioritized because these issues are likely cascading effects stemming from the primary database failure.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the uniform database error codes in service logs and the corresponding severe latency spike in database metrics, we suspect that a critical component responsible for data storage and access has become unavailable or unstable."
+
+Step 2: Verification or elimination
+"If this were caused by a problem isolated to the application logic or a single service, we would expect error patterns limited to that service or communication timeouts without specific database error codes; however, actual observations show the same database error appearing across multiple independent services, which rules out an application-layer issue as the root cause."
+
+Step 3: Convergence to conclusion
+"The combination of direct, repeated database error logs and the correlated, severe performance degradation in database metrics indicates that a failure in the underlying data storage layer is the source, which then propagates upward to cause widespread service failures."
+
+[Conclusion]
+"The root cause is the loss of availability of a key data storage region, which made database queries fail and subsequently caused all services depending on that data to experience errors and increased latency."
+
+[Next Action]
+- "Verify whether any logs or metrics indicate a triggering event for the storage region becoming unavailable."
+- "Check for correlated fluctuations in storage node health metrics immediately before the fault onset to identify potential precursors."

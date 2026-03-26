@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "9d5bc038-419",
+    "fault_type": "store_unhealth_count",
+    "symptom_vector": "pod failure with database region unavailable errors and extreme latency spikes",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv 存储节点故障导致 store_unhealth_count 增加，进而引发数据库 Region 不可用错误和极端延迟",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-pd 的 store_unhealth_count 指标从 0 增加到 1，表明有存储节点不可用",
+            "Step 2: 分析 productcatalogservice 日志中出现大量 'Error 9005 (HY000): Region is unavailable' 错误，总计 495 次，确认数据库 Region 不可用",
+            "Step 3: 确认 productcatalogservice 的 GetProduct 操作延迟从正常约 10 秒激增至 3900 万秒，延迟倍数超过 3900 倍，且错误类型为数据库 Region 不可用"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Extreme latency spike from baseline (e.g., 10s to 39 million seconds)",
+                "instruction": "检查 productcatalogservice 的 GetProduct 操作延迟是否出现极端飙升"
+            },
+            {
+                "modality": "Trace",
+                "target": "error_ratio",
+                "expected_pattern": "High error rate with 'Error 9005 (HY000): Region is unavailable' messages",
+                "instruction": "分析调用链中的错误比例，特别是数据库 Region 不可用错误"
+            },
+            {
+                "modality": "Log",
+                "target": "Error 9005 (HY000)",
+                "expected_pattern": "Contains 'Error 9005 (HY000): Region is unavailable' in productcatalogservice logs",
+                "instruction": "在 productcatalogservice 日志中搜索 'Error 9005 (HY000): Region is unavailable' 关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "Region is unavailable",
+                "expected_pattern": "Multiple occurrences of 'Region is unavailable' error messages",
+                "instruction": "检查 productcatalogservice 日志中 'Region is unavailable' 错误的出现频率和分布"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_unhealth_count",
+                "expected_pattern": "Increase from 0 to 1 indicating storage node failure",
+                "instruction": "检查 tidb-pd 组件的 store_unhealth_count 指标是否从 0 增加到 1"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Dramatic increase in response time (e.g., from 7.18ms to 19.13s)",
+                "instruction": "分析 productcatalogservice 的 rrt 指标是否出现急剧恶化"
+            },
+            {
+                "modality": "Metric",
+                "target": "duration_99th",
+                "expected_pattern": "Significant spike in 99th percentile duration (e.g., from 0.01s to 64.88s)",
+                "instruction": "检查 tidb-tidb 组件的 duration_99th 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Abnormal drop in CPU usage (e.g., from 0.04 to 0.0) indicating pod restart or failure",
+                "instruction": "检查 productcatalogservice-0 和 frontend-2 的 pod_cpu_usage 指标是否异常下降"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,56 @@
+```json
+{
+    "uuid": "14c1047f-366",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Service method error, code error, and runtime panic leading to service unavailability and cascading failures in dependent services.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [currencyservice] experienced [pod_processes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [currencyservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [context canceled] in [Log] (From GT key_observations). Evidence: Multiple log entries from frontend services show 'failed to convert currency: rpc error: code = Canceled desc = context canceled'.",
+            "Step 3: Check Observation - Found keyword [Maximum call stack size exceeded] in [Log] (Implied by GT fault_description 'runtime panic' and observed in raw data). Evidence: Logs from currencyservice pods show 'conversion request failed: RangeError: Maximum call stack size exceeded'.",
+            "Step 4: Check Observation - Found keyword [transport Error while dialing] in [Log] (From GT key_observations). Evidence: Trace status combinations show 'connection error: desc = \"transport: Error while dialing dial tcp 10.233.39.78:7000: connect: connection refused\"'.",
+            "Step 5: Check Observation - Found keyword [latency_anomalies] and [checkoutservice, frontend] in [Trace] (From GT key_observations). Evidence: Trace data shows extreme latency spikes for frontend->CurrencyService/Convert (e.g., from 2.3s to 15.5s) and checkoutservice->CurrencyService calls.",
+            "Step 6: Derive Root Cause - Based on the above features (code error causing runtime panic and process unavailability), determined cause is [pod_processes] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "Error logs containing 'context canceled' from frontend services, indicating upstream calls were terminated due to downstream failure.",
+                "instruction": "Search for keyword 'context canceled' in logs from frontend services (frontend-0, frontend-1, frontend-2)."
+            },
+            {
+                "modality": "Log",
+                "target": "Maximum call stack size exceeded",
+                "expected_pattern": "Error logs from currencyservice pods containing 'RangeError: Maximum call stack size exceeded', indicating a code error causing runtime panic.",
+                "instruction": "Search for keyword 'Maximum call stack size exceeded' in logs from currencyservice pods (currencyservice-0, currencyservice-1, currencyservice-2)."
+            },
+            {
+                "modality": "Log",
+                "target": "transport Error while dialing",
+                "expected_pattern": "Error logs or trace status messages containing 'transport: Error while dialing', indicating connection failures to the currencyservice.",
+                "instruction": "Search for keyword 'Error while dialing' in logs or trace status combinations."
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Trace data showing significant increase in duration for operations involving 'currencyservice', especially from 'frontend' and 'checkoutservice'.",
+                "instruction": "Analyze trace data for operations 'hipstershop.CurrencyService/Convert' and 'hipstershop.CurrencyService/GetSupportedCurrencies', check the 'anomaly_avg_duration' compared to 'normal_avg_duration'."
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice",
+                "expected_pattern": "Trace entries where 'service_name' is 'checkoutservice' and 'child_pod' or operation involves 'currencyservice', showing failures or high latency.",
+                "instruction": "Filter trace data where service_name is 'checkoutservice' and examine status codes and durations."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abnormal process count or behavior in currencyservice pods, correlating with service unavailability.",
+                "instruction": "Check metric 'pod_processes' for currencyservice pods during the fault timeframe."
+            }
+        ]
+    }
+}
+```

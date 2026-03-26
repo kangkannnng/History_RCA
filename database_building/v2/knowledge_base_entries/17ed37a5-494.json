@@ -1,0 +1,33 @@
+{
+  "uuid": "17ed37a5-494",
+  "fault_type": "performance_degradation",
+  "symptom_vector": "Significant latency increase in Redis operations (HMSET 7.5x, HGET 4.4x) leading to cascading response time spikes in dependent services (e.g., cartservice, frontend).",
+  "expert_knowledge": {
+    "root_cause_desc": "Redis-cart服务操作延迟激增，导致依赖其的上游服务（如CartService）出现链式性能反应。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据中观察到，从cartservice-0和cartservice-2发起的Redis操作（HMSET, HGET）平均耗时在异常期间激增（HMSET从1.57ms增至11.73ms，增长7.5倍；HGET从1.74ms增至7.69ms，增长4.4倍）。",
+      "Step 2: Metric数据显示，直接调用Redis的CartService实例（如cartservice-1）的rrt_max指标p99变化率高达156.81%，表明其响应时间出现严重劣化，这与Trace数据中观察到的下游依赖（Redis）延迟现象一致，形成了清晰的依赖链式反应。",
+      "Step 3: Log数据在异常时间段内未检测到任何错误日志，这排除了由代码错误或系统崩溃导致故障的可能性，进一步将问题范围缩小至无报错信息的性能瓶颈，与观察到的Redis及上游服务延迟现象相符。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "service_name=redis, operation_name=HMSET, HGET",
+        "expected_pattern": "Sudden and significant increase in anomaly_avg_duration compared to normal_avg_duration (e.g., > 5x).",
+        "instruction": "检查Trace数据中，所有涉及Redis服务（service_name=redis）的调用记录，特别是HMSET和HGET操作。对比异常期间与正常期间的平均耗时（anomaly_avg_duration vs normal_avg_duration），确认是否存在数倍以上的延迟激增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "service_name=cartservice, metric_name=rrt_max",
+        "expected_pattern": "High p99_change_ratio (e.g., > 100%) in multiple cartservice pods, indicating severe latency degradation.",
+        "instruction": "在Metric数据中，筛选服务名为cartservice、指标名为rrt_max的记录。重点关注p99变化率（p99_change_ratio）显著高于其他服务的Pod实例，这可能是由下游依赖（如Redis）延迟引发的链式反应证据。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error or Warning level logs",
+        "expected_pattern": "Absence of error logs during the anomaly period.",
+        "instruction": "在异常时间范围内搜索所有错误（Error）或警告（Warning）级别的日志。如果未发现相关错误日志，则支持故障原因为性能问题（如资源瓶颈、依赖延迟）而非应用错误。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "uuid": "0a373d08-149",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown in adservice, indicating application runtime errors and exception stack traces.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [adservice-getrandomads-exception] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Based on Ground Truth key_observations, keyword [pod_network_receive_bytes] should be observed in Metric data as an abnormal feature during fault time range 2025-06-08T15:10:57Z to 2025-06-08T15:22:57Z.",
+      "Step 3: Check Observation - Similarly, check for keywords [pod_network_receive_packets], [pod_network_transmit_bytes], [pod_network_transmit_packets] in Metric data for anomalies.",
+      "Step 4: Derive Root Cause - Based on the presence of these network metric anomalies in adservice component, determine root cause is [adservice-getrandomads-exception] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Abnormal values or spikes in the metric indicating network activity changes",
+        "instruction": "Search for metric [pod_network_receive_bytes] in the collected metric data during fault time range 2025-06-08T15:10:57Z to 2025-06-08T15:22:57Z."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Abnormal values or spikes in the metric indicating network packet reception issues",
+        "instruction": "Search for metric [pod_network_receive_packets] in the collected metric data during fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal values or spikes in the metric indicating network transmission changes",
+        "instruction": "Search for metric [pod_network_transmit_bytes] in the collected metric data during fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Abnormal values or spikes in the metric indicating network packet transmission issues",
+        "instruction": "Search for metric [pod_network_transmit_packets] in the collected metric data during fault time range."
+      }
+    ]
+  }
+}

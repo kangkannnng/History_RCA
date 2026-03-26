@@ -1,0 +1,33 @@
+{
+  "uuid": "8e7a3965-336",
+  "fault_type": "tidb/io",
+  "symptom_vector": "Extreme latency in upstream services (productcatalogservice, checkoutservice), severe database performance metrics anomaly.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiKV数据库组件因IO性能瓶颈（io_util激增）导致请求堆积（region_pending剧变），进而引起上游应用服务延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到tidb-tikv组件的`region_pending`和`io_util`指标出现剧烈变化，变化率分别高达172.94%和164.65%。`region_pending`从10460.5下降至759.0，`io_util`从0.0上升至0.21。这表明数据库层存在严重的IO瓶颈和请求处理堆积问题。",
+      "Step 2: 在Log数据中未发现任何错误日志，这表明故障表现为静默的性能退化（silent performance degradation），而非应用程序层的功能性错误，问题可能存在于基础设施层（数据库）。",
+      "Step 3: 在Trace数据中观察到大量对`productcatalogservice`的调用出现极端延迟（例如frontend->productcatalogservice延迟增长9.7倍），但其自身的`rrt_max`变化率仅为0.14%。结合Step 1的发现，推测该服务的延迟是由其依赖的下游数据库（tidb-tikv）的性能问题所导致，属于受害者效应。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending, io_util",
+        "expected_pattern": "Sudden spike in change rate (>100%), specifically region_pending decreasing dramatically and io_util increasing significantly.",
+        "instruction": "针对数据库组件（如tidb-tikv）查询region_pending和io_util指标在故障时间段内的变化率。若两者变化率均异常高，且io_util同时增长，则强烈暗示数据库IO瓶颈导致请求堆积。"
+      },
+      {
+        "modality": "Log",
+        "target": "*",
+        "expected_pattern": "No error logs found (null or empty result).",
+        "instruction": "在故障时间段内搜索数据库组件及相关应用的错误日志。如果返回结果为空，则说明没有应用层报错，符合静默性能问题的特征，有助于将根因定位指向基础设施或数据库性能。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Extreme latency anomalies observed in calls to the service (e.g., frontend->productcatalogservice, checkoutservice->productcatalogservice), while the service's own performance metric (rrt_max) may not show a high change rate.",
+        "instruction": "检查调用链数据，识别哪些服务作为被调用方（下游）出现延迟。若这些服务本身没有过高的rrt_max变化率，但其调用链延迟严重，需结合Metric检查其依赖的底层组件（如数据库）的指标是否异常。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "uuid": "df11e2f0-229",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization and stress on service instance leading to downstream latency degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-2 Pod 因 pod_cpu_usage 异常飙升导致 CPU 压力，并引发下游服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-2 的 pod_processes 从 1.0 异常激增至 9.0 (变化率 1.6)，同时 pod_cpu_usage 从 0.0 上升至 0.6 (变化率 2.0)，表明该 Pod 发生进程数与 CPU 使用率的显著异常增长。",
+      "Step 2: 分析 adservice-2 所在的节点 aiops-k8s-08，其 node_cpu_usage_rate 从 16.69% 上升至 22.46%，证实该节点 CPU 资源使用率整体升高，与 pod_cpu_usage 异常吻合。",
+      "Step 3: 确认下游服务（如 cartservice, paymentservice）的 rrt 与 rrt_max 指标出现 p99 值数倍的显著恶化，尤其是通过 trace 分析发现 redis HMSET 延迟激增 16.1 倍，这符合 CPU 资源争用导致的性能瓶颈传播模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "进程数量出现异常激增（例如从1激增至9）",
+        "instruction": "检查 adservice-2 Pod 的 pod_processes 指标，确认其进程数量在故障窗口内是否出现异常且大幅度的增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "CPU 使用率从基线（接近0）飙升至异常高水平（例如增至0.6）",
+        "instruction": "检查 adservice-2 Pod 的 pod_cpu_usage 指标，确认其 CPU 使用率在故障窗口内是否出现突然且显著的飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "P99 响应时间（rrt）出现数倍增长",
+        "instruction": "检查 adservice 服务的 rrt 指标，特别是 P99 分位数，是否在故障期间出现大幅劣化，变化率超过 1.0。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "最大响应时间（rrt_max）及 P99 值出现数倍增长",
+        "instruction": "检查 adservice 服务的 rrt_max 指标，确认其 P99 分位数是否在故障期间出现超过 1.4 倍的异常增长。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "uuid": "88b7daff-343",
+  "fault_type": "rrt",
+  "symptom_vector": "Severe network latency and RTT spike observed, leading to service degradation and cascading failures in dependent services.",
+  "expert_knowledge": {
+    "root_cause_desc": "redis-cart-0 组件因 rrt 和 rrt_max 指标异常激增导致严重网络延迟，进而引发调用链上的级联故障。",
+    "reasoning_chain": [
+      "Step 1: 观察到 redis-cart-0 的 rrt 指标从正常的 219.54ms 激增至故障期间的 371448.18ms (变化率 199.76%)，rrt_max 从 4494ms 激增至 3040367ms (变化率 199.41%)，表明该服务响应时间严重恶化。",
+      "Step 2: 分析 Trace 数据，发现 redis-cart-0 上的 Redis 操作（如 HGET, HMSET）延迟从正常的 1.5-1.7ms 激增至 2.8-2.9ms (约 1600-1800 倍)，且延迟异常位于调用链的最下游，是根因的强有力证据。",
+      "Step 3: 确认依赖 redis-cart-0 的 cartservice 实例（cartservice-0, cartservice-1, cartservice-2）的 rrt 和 rrt_max 指标均出现近 200% 的恶化，并出现高错误率，验证了故障的级联传播路径。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "关键下游服务（如redis）的调用延迟出现数百至数千倍的激增。",
+        "instruction": "扫描调用链数据，寻找根因位于下游的、延迟激增倍数最高的服务调用，重点关注涉及 redis 的操作（如HGET, HMSET）。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "前端服务调用出现高延迟，且调用链最终指向下游的延迟根因。",
+        "instruction": "检查所有以 frontend 服务为起点的调用链，分析其下游依赖服务的延迟情况，确认级联影响。"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "日志中可能出现 HTTP 状态码相关的记录。",
+        "instruction": "在日志数据中搜索包含 'http.resp.status' 或状态码（如 '302'）的关键词，确认服务端是否产生了错误响应。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "目标服务的 rrt 和 rrt_max 指标值相较基线出现剧烈、大幅度的增长（例如增长超过 100%）。",
+        "instruction": "检查故障时间段内，redis-cart-0 以及依赖它的 cartservice 等服务的 rrt 和 rrt_max 指标，确认是否存在异常峰值。"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "请求与响应相关的吞吐量或成功率可能出现下降或异常。",
+        "instruction": "检查相关服务（如 cartservice, frontend）的请求数、响应数或错误率指标，确认性能恶化对业务流量的影响。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "目标 Pod 的内存使用量可能出现异常升高，但并非本次故障的必然现象。",
+        "instruction": "检查 redis-cart-0 Pod 的内存使用指标，判断是否存在内存资源瓶颈。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "目标 Pod 的网络收发字节数或数据包数可能出现异常波动。",
+        "instruction": "检查 redis-cart-0 Pod 的网络 I/O 相关指标，判断是否存在网络拥塞或异常流量。"
+      }
+    ]
+  }
+}

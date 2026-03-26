@@ -1,0 +1,33 @@
+{
+  "uuid": "7e7b6ea4-228",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "Significant latency spikes in checkoutservice and frontend services, leading to poor user experience and potential transaction failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点(aiops-k8s-04)磁盘文件系统使用率急剧上升，导致运行于该节点上的关键服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据分析中，观察到节点`aiops-k8s-04`的`node_filesystem_usage_rate`指标出现剧烈异常，其中位数值从25.2%飙升至67.73%，变化率达91.52%，p99值达到98.97%，表明节点文件系统使用率接近饱和。",
+      "Step 2: 结合Trace数据分析，发现节点`aiops-k8s-04`上运行的关键服务`checkoutservice-0`和`frontend-2`均出现严重延迟，延迟倍数高达3.8-5.4倍（如ShipOrder从13.9s增至75.8s），其影响与节点资源瓶颈的症状相符。",
+      "Step 3: 通过节点到Pod的映射关系(`node_pod_mapping`)确认，故障节点`aiops-k8s-04`上运行着`frontend-2`、`checkoutservice-0`和`currencyservice-1`等直接影响用户体验和核心业务流程的服务，其影响范围与故障表现一致。综合所有证据，节点级磁盘资源耗尽是导致本次系统性能故障的根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden and significant increase in median and p99 values (e.g., >50% change rate).",
+        "instruction": "立即检查所有节点的`node_filesystem_usage_rate`指标，筛选出变化率最大的节点。重点关注中位数和p99值同时激增的节点，这通常预示着磁盘空间即将耗尽。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max for services located on the suspect node",
+        "expected_pattern": "Latency spikes (e.g., >2x increase) in services whose pods are mapped to the suspect node.",
+        "instruction": "根据`node_pod_mapping`定位到嫌疑节点后，在Trace数据中过滤出所有来源或目标位于该节点的调用链。分析这些调用链的`rrt_max`等延迟指标，确认服务延迟异常是否与节点故障存在明确的拓扑关联。"
+      },
+      {
+        "modality": "Log",
+        "target": "IO-related error keywords (e.g., 'disk full', 'no space', 'I/O error')",
+        "expected_pattern": "May be absent or limited; disk exhaustion might not immediately generate application-level errors.",
+        "instruction": "在嫌疑节点及其上运行服务的应用日志中，搜索磁盘或文件系统相关的错误关键词。注意：在磁盘使用率快速上升但未完全写满的阶段，应用日志可能没有直接错误，因此此检查结果阴性（NEUTRAL）不能排除磁盘问题的假设。"
+      }
+    ]
+  }
+}

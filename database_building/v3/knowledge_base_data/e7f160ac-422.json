@@ -1,0 +1,51 @@
+{
+  "uuid": "e7f160ac-422",
+  "fault_type": "io_util_region_pending_spike",
+  "symptom_vector": "pod crash with region unavailability errors and severe latency increase in dependent services",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 pod因io_util与region_pending指标异常飙升，导致数据库Region不可用并引发Pod故障",
+    "reasoning_chain": [
+      "Step 1: 在日志中观察到大量'Error 9005 (HY000): Region is unavailable'错误，表明数据库Region不可用，这与故障原因指标region_pending激增的描述一致。",
+      "Step 2: 分析调用链数据，发现productcatalogservice服务的延迟从正常约10秒激增至38-40秒，且错误状态为数据库Region不可用，证明底层存储层tidb-tikv存在严重性能问题。",
+      "Step 3: 确认Pod级别故障，依赖tidb-tikv的上游服务（如frontend, checkoutservice）因无法获取数据而出现高错误率和延迟，最终故障现象为pod crash或terminated。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error 9005|Region is unavailable",
+        "expected_pattern": "Contains 'Error 9005 (HY000): Region is unavailable' error message",
+        "instruction": "搜索所有服务的日志，查找包含'Error 9005'或'Region is unavailable'关键词的错误条目，确认数据库Region不可用的发生范围和源头。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Significant latency spike (e.g., from seconds to tens of seconds) and status codes/messages indicating region unavailability",
+        "instruction": "分析流向或源自productcatalogservice的调用链，检查其平均响应时间(rrt)是否出现数量级的激增，并检查其返回的状态码和消息是否包含Region不可用错误。"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Sudden spike from baseline to high utilization",
+        "instruction": "检查tidb-tikv及其相关Pod的io_util指标在故障时段是否出现异常飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden increase indicating queued region operations",
+        "instruction": "检查tidb-tikv的region_pending指标是否突然增加，表明有大量Region操作被挂起。"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps|grpc_qps",
+        "expected_pattern": "Abnormal drop or fluctuation",
+        "instruction": "检查tidb-tikv或依赖它的服务的qps和grpc_qps指标，观察是否因底层故障而出现异常下降或波动。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage|memory_usage",
+        "expected_pattern": "Abnormal values or trends during the fault window",
+        "instruction": "检查故障Pod tidb-tikv-0及其所在节点的cpu_usage和memory_usage指标，寻找可能导致Pod异常的资源使用模式。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "5934fe6f-561",
+    "fault_type": "pod_processes，timeout",
+    "symptom_vector": "Increased HTTP error rates (especially 404) on frontend services, latency spikes in frontend-to-downstream service calls, and a sudden surge in requests to certain services.",
+    "expert_knowledge": {
+        "root_cause_desc": "前端服务进程异常，导致请求处理失败（返回大量404错误）并引发下游调用超时。",
+        "reasoning_chain": [
+            "Step 1: 观察到指标数据中，所有 frontend pod 的 error_ratio 和 client_error_ratio 在故障期间从0%激增至5%-7%以上，P99错误率最高达到34.18%，表明前端服务本身出现了严重的请求处理失败。",
+            "Step 2: 在追踪数据中，发现 frontend 服务产生了大量 HTTP 404 错误状态码（frontend-2: 1151次，frontend-1: 655次，frontend-0: 52次），这直接印证了前端服务在处理用户请求时无法找到正确资源或路由，是错误率激增的直接表现。",
+            "Step 3: 同时，追踪数据显示 frontend 调用 cartservice, productcatalogservice 等下游服务的延迟普遍增加（如 GetCart 延迟从2535ms增至8105ms）。结合前端自身已存在的高错误率，这指向前端服务因自身进程异常（如崩溃、重启、配置错误导致的处理逻辑故障），既无法正确响应部分客户端请求（返回404），也影响了其对下游服务的正常调用，形成超时和级联延迟。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "frontend error_ratio, client_error_ratio",
+                "expected_pattern": "Sudden and sustained increase from baseline (e.g., 0% to >5%)",
+                "instruction": "检查所有 frontend pod 的 error_ratio 和 client_error_ratio 指标。确认在故障时间窗口内，这些指标是否出现显著上升，这指示前端服务自身产生了大量错误响应。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend pod 的 HTTP 状态码 (status_code)",
+                "expected_pattern": "大量集中的 404 (Not Found) 状态码",
+                "instruction": "分析 frontend 服务的追踪数据，特别是 status_combinations。重点关注 status_code 为 404 (或5，对应HTTP 404) 的记录。高频率的404错误是前端路由或资源处理失败的关键信号。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend -> cartservice, frontend -> productcatalogservice 等调用链的延迟",
+                "expected_pattern": "Latency spike compared to normal average duration",
+                "instruction": "检查从 frontend 发起的，指向 cartservice, productcatalogservice 等服务的调用链延迟(anomaly_avg_duration)。确认其是否显著高于正常基准，这可能是前端进程不稳定导致处理能力下降或超时的表现。"
+            }
+        ]
+    }
+}
+```

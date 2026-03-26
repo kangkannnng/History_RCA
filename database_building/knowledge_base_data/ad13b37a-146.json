@@ -1,0 +1,21 @@
+{
+  "uuid": "ad13b37a-146",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "High memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [recommendationservice] experienced [pod_memory_working_set_bytes] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations).",
+      "Step 3: Derive Root Cause - Based on the feature of pod_processes anomaly, determined the underlying cause is [pod_memory_working_set_bytes] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "The metric value for pod_processes increased from a normal median of 1.0 to a fault median of 1.5 for all recommendationservice pods (recommendationservice-0, recommendationservice-1, recommendationservice-2), indicating a process restart or anomaly.",
+        "instruction": "Search for metric [pod_processes] for the component [recommendationservice] and check for an abnormal increase in its value during the fault window."
+      }
+    ]
+  }
+}

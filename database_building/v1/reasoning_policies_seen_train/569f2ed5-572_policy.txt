@@ -1,0 +1,30 @@
+[Trigger]
+- Metric anomaly pattern: Multiple nodes show significant increase in memory usage and decrease in available memory, with node aiops-k8s-05 experiencing a 47.4% increase in memory usage rate (39.04% → 57.63%) and a 31.4% decrease in available memory (9.97GB → 6.83GB).
+- Trace anomaly pattern: Services running on node aiops-k8s-05 exhibit severe latency increases, including a 13.4x increase for a key-value store's write operation (1361ms → 18310ms) and a 7.9x increase for a service's item addition operation (3583ms → 28491ms).
+- Log anomaly pattern: No error logs are detected during the fault window across the system.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Node-level memory exhaustion on aiops-k8s-05 - The memory usage rate increased sharply while available memory decreased substantially. This matters as it indicates a system-level resource constraint that can degrade all processes on the node.
+- Evidence 2: Topological colocation - The severely degraded key-value store instance (redis-cart-0) is deployed on the affected node (aiops-k8s-05). This matters because it establishes a direct physical dependency; a node-level resource issue would inevitably affect workloads running on it.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Latency increases in services on other nodes (e.g., aiops-k8s-03) - These show similar but less severe memory pressure patterns and service impacts. This is a concurrent issue or a secondary consequence of the primary bottleneck, not the root cause.
+- Evidence 4: Increased pending requests in a separate database component (region_pending up 15.5%) - This can be deprioritized as its magnitude of change is lower than the primary node memory metrics and it runs on independent infrastructure.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the observation of a 13.4x latency increase in a critical storage service's write operation, we suspect a severe performance degradation in a foundational data layer component, potentially due to resource contention or internal failure."
+
+Step 2: Verification or elimination
+"If this were caused solely by an internal failure of the storage service, we would expect its degradation to be isolated; however, actual observation shows multiple other services on the same physical node (aiops-k8s-05) also experienced significant latency increases. Furthermore, metric data reveals a concurrent, severe depletion of available memory on that exact node. This rules out an isolated application-level failure and points to a shared, node-level resource constraint."
+
+Step 3: Convergence to conclusion
+"The combination of the node-wide memory exhaustion and the colocation of the affected high-latency services on that node indicates that a host-level resource scarcity is the underlying condition. The storage service's extreme latency is a symptom, not the cause; it is the most sensitive workload impacted by the insufficient memory on its host."
+
+[Conclusion]
+"The root cause is a host-level resource exhaustion, where a critical decrease in available memory on a specific node created systemic performance degradation for all dependent services, most severely impacting a memory-sensitive storage component."
+
+[Next Action]
+- Verify whether other resource metrics (CPU, disk I/O) on the affected node show correlated stress patterns.
+- Check for patterns of memory consumption by individual containers/pods on the node to identify potential resource hogs.

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "046aefa7-170",
+    "fault_type": "metric",
+    "symptom_vector": "high service latency (rrt_max spike), degraded performance",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice进程泄漏导致Pod CPU使用率飙升，进而引发服务响应时间严重恶化。",
+        "reasoning_chain": [
+            "Step 1: 观察到服务 `shippingservice` 的三个实例（Pod: shippingservice-0, -1, -2）在异常时间段内的 `pod_cpu_usage` 指标均从正常基线（0.0）显著飙升至0.4，变化率高达200%，这是CPU负载过高的直接证据。",
+            "Step 2: 进一步分析发现，伴随着CPU使用率激增，同一服务的 `rrt_max`（最大请求响应时间）也从数千毫秒水平（如3920.0）急剧上升至近十万毫秒（如95670.0），表明CPU资源饱和已导致服务处理能力严重下降。",
+            "Step 3: 在排除了节点级CPU瓶颈（涉事Pod所在节点未报告CPU metric异常）后，结合 `pod_processes` 指标同样从1.0异常增至12.0，确认了进程泄漏是引发CPU使用率突增、最终导致服务性能问题的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike from a near-zero baseline (e.g., from 0.0 to >0.3) observed across multiple pods of the same service.",
+                "instruction": "检查异常服务（如shippingservice）下所有Pod的`pod_cpu_usage`指标，确认是否存在突发性、一致性的飙升，这是CPU资源紧张的核心信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abnormal increase in process count within a pod (e.g., from 1 to 12), coinciding with the CPU usage spike.",
+                "instruction": "核对CPU使用率激增的Pod的`pod_processes`指标。如果进程数异常增多，强烈暗示存在进程泄漏或失控的fork行为，是导致CPU问题的潜在原因。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Dramatic increase in maximum response time, often by an order of magnitude or more, affecting the service whose pods show CPU anomalies.",
+                "instruction": "定位显示CPU异常的服务，检查其`rrt_max`或`rrt`指标。CPU饱和通常直接导致请求处理延迟暴增，这是确认性能影响的关键证据。"
+            }
+        ]
+    }
+}
+```

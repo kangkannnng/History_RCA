@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "4e221a94-277",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice-1 组件因 pod_memory_working_set_bytes 指标异常导致内存压力测试故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 paymentservice-1 的 pod_processes 指标 p99 值从 1.0 变为 2.0（变化率 66.67%），表明 Pod 可能发生重启或进程异常",
+            "Step 2: 分析 paymentservice-1 的 rrt 指标从 2207.5ms 增加到 3082.0ms（变化率 33.07%），响应时间显著恶化",
+            "Step 3: 日志中发现 paymentservice-1 存在插件加载失败记录，同时下游服务出现 connection refused 错误，确认服务不可用"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "could not load",
+                "expected_pattern": "Contains plugin loading failure messages",
+                "instruction": "在 paymentservice-1 的日志中搜索 'could not load' 关键词，检查插件加载失败记录"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Process count change from baseline",
+                "instruction": "检查 paymentservice-1 的 pod_processes 指标是否发生异常变化，特别是 p99 值"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "High memory usage or saturation pattern",
+                "instruction": "检查 paymentservice-1 的 pod_memory_working_set_bytes 指标是否显示内存使用率异常升高或饱和"
+            }
+        ]
+    }
+}
+```

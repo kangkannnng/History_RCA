@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: No error logs detected during the fault period, indicating a silent issue not captured by logging systems.
+- Metric anomaly pattern: Process count per pod increased from 1.0 to 8.0, accompanied by CPU usage spikes from near zero to 0.4, and response time metrics showed severe degradation.
+- Trace anomaly pattern: Currency conversion operations exhibited extreme latency increases, with response times rising from approximately 2.3 seconds to 50 seconds, indicating performance bottlenecks.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Process count per pod surged from 1.0 to 8.0 across all instances of a specific service – this suggests an abnormal process lifecycle event, such as unintended process forking or leaks, which directly impacts resource allocation.
+- Evidence 2: CPU usage per pod spiked from negligible levels to 0.4 – this indicates high computational resource consumption, correlating with the increased process count and pointing to resource exhaustion.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Response time metrics for the same service degraded dramatically, with maximum response times increasing by over 20 times – this is a consequence of the process and CPU issues, as resource contention leads to slower request processing.
+- Evidence 4: Downstream services began showing increased error ratios and latency – these are cascading effects caused by the primary service's degradation, not independent root causes, and can be deprioritized in initial analysis.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the simultaneous explosion in process count and CPU usage within a specific service component, we suspect an internal resource management failure leading to process proliferation and computational overload."
+
+Step 2: Verification or elimination
+"If this were caused by external factors like network congestion or dependency failures, we would expect to see latency spikes across multiple unrelated services or specific error patterns in logs; however, actual observation shows isolated process and CPU anomalies in one service with no error logs, ruling out external dependencies or network-level issues."
+
+Step 3: Convergence to conclusion
+"The combination of process count surge and CPU usage spike, occurring together and isolated to a single service, indicates a root cause related to improper process lifecycle management within that component, causing resource saturation and performance degradation."
+
+[Conclusion]
+"The root cause is an uncontrolled increase in process count within a service component, leading to CPU resource exhaustion and severely degraded response times, which subsequently propagated latency to dependent services."
+
+[Next Action]
+- "Verify whether recent deployment or configuration changes could have triggered abnormal process creation in the affected component."
+- "Check for memory usage patterns and system call logs to identify potential resource leaks or fork mechanisms."

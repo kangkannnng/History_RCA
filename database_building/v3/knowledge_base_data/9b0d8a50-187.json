@@ -1,0 +1,75 @@
+{
+  "uuid": "9b0d8a50-187",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 Byteman agent 注入异常导致 adservice-getrandomads-exception 故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice 日志中出现大量异常记录，包含 'Injected error'、'AdService-getRandomAds-exception-1749535841'、'java.lang.Error' 等关键词",
+      "Step 2: 分析 adservice 组件的调用链，发现 frontend->adservice 调用失败，返回 rpc error: code = Unknown desc =",
+      "Step 3: 确认 metric 数据中 adservice 的 rrt_max 指标出现异常，P99值从 46,676.91 增至 79,667.6，增加 52.22%"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "包含 AdService-getRandomAds-exception-1749535841 相关异常日志",
+        "instruction": "在 adservice 的日志中搜索 'AdService-getRandomAds-exception-1749535841' 关键词，检查是否有异常注入记录"
+      },
+      {
+        "modality": "Log",
+        "target": "Caught|throwexception",
+        "expected_pattern": "包含 caught ThrowException 或异常抛出记录",
+        "instruction": "检查 adservice 日志中是否有 'caught ThrowException' 或异常抛出记录"
+      },
+      {
+        "modality": "Log",
+        "target": "grpc-default-executor",
+        "expected_pattern": "grpc-default-executor 线程中出现异常",
+        "instruction": "搜索 adservice 日志中 'grpc-default-executor' 线程相关的异常信息"
+      },
+      {
+        "modality": "Log",
+        "target": "injected|error",
+        "expected_pattern": "包含 Injected error 关键词",
+        "instruction": "在 adservice 日志中搜索 'Injected error' 关键词，确认是否有异常注入"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "包含 InvocationTargetException 异常",
+        "instruction": "检查 adservice 日志中是否有 java.lang.reflect.InvocationTargetException 异常"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "包含 Transformer 或 TransformListener 相关记录",
+        "instruction": "搜索 adservice 日志中与 Byteman agent Transformer 相关的记录"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "网络接收字节数异常变化",
+        "instruction": "检查 adservice 的 pod_network_receive_bytes 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "网络接收包数异常变化",
+        "instruction": "检查 adservice 的 pod_network_receive_packets 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "网络发送字节数异常变化",
+        "instruction": "检查 adservice 的 pod_network_transmit_bytes 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "网络发送包数异常变化",
+        "instruction": "检查 adservice 的 pod_network_transmit_packets 指标是否异常"
+      }
+    ]
+  }
+}

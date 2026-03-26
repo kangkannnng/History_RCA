@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "c3377c5c-337",
+    "fault_type": "latency_spike",
+    "symptom_vector": "Severe latency spike in frontend->adservice calls, massive RPC timeout (DeadlineExceeded) errors, and sudden drop in adservice request/response volume.",
+    "expert_knowledge": {
+        "root_cause_desc": "网络层数据包损坏导致adservice RPC调用严重超时，服务性能退化。",
+        "reasoning_chain": [
+            "Step 1: 在Trace数据中观察到，所有frontend实例（frontend-0, frontend-1, frontend-2）对`hipstershop.AdService/GetAds`的调用，其平均延迟从正常的约5.5秒激增至500秒左右（约90倍增长），并且状态码为4（context deadline exceeded）的错误次数高达1359次。这直接表明adservice的调用链路出现了灾难性的延迟和超时。",
+            "Step 2: 在Log数据中，发现了大量来自frontend服务的错误信息，核心关键词为`DeadlineExceeded`和`failed to retrieve ads`，错误内容明确指向与`ads`服务的RPC调用因上下文截止时间过期而失败。这证实了故障的用户侧表现是adservice无响应。",
+            "Step 3: 在Metric数据中，`adservice-1`的`request`指标中位数从298.5骤降至107，`response`指标中位数从300骤降至98，降幅均超过60%。这与其上游frontend报告的大量超时错误吻合，表明adservice自身处理能力或可访问性出现严重问题，导致流入的请求和产生的响应均大幅减少。结合Ground Truth的描述，网络层面的数据包损坏（packet corruption）是导致这种RPC层超时和性能退化的合理根因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend->adservice (hipstershop.AdService/GetAds)",
+                "expected_pattern": "Sudden and extreme increase in latency (e.g., 90x growth) and a high count of status code 4 (context deadline exceeded) errors.",
+                "instruction": "检查所有frontend实例到adservice的调用链，特别是GetAds操作。关注平均持续时间（anomaly_avg_duration）与正常基线的对比，以及状态组合（status_combinations）中'context deadline exceeded'的出现次数。"
+            },
+            {
+                "modality": "Log",
+                "target": "DeadlineExceeded, failed to retrieve ads",
+                "expected_pattern": "Log messages containing 'rpc error: code = DeadlineExceeded desc = context deadline exceeded' and 'failed to retrieve ads', originating from frontend services.",
+                "instruction": "在故障时间范围内，搜索来自frontend服务的日志，过滤包含'DeadlineExceeded'和'failed to retrieve ads'关键词的错误条目，确认其规模和分布。"
+            },
+            {
+                "modality": "Metric",
+                "target": "adservice request, adservice response",
+                "expected_pattern": "Sharp decline (e.g., >50% drop) in both request and response volume metrics for adservice instances.",
+                "instruction": "对比故障时段与正常时段的adservice的'request'和'response'指标中位数或平均值，寻找异常下降的迹象，这通常与服务不可用或严重性能瓶颈相关。"
+            }
+        ]
+    }
+}
+```

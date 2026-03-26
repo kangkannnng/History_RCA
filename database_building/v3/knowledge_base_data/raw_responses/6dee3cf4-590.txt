@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "6dee3cf4-590",
+    "fault_type": "dns",
+    "symptom_vector": "DNS lookup failure and resolution timeout causing service errors",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-1 组件因 dns 解析故障导致 emailservice 调用失败，表现为 http.resp.status 302 异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-1 相关的调用链中 emailservice 调用出现异常延迟，emailservice-0 的 /hipstershop.EmailService/SendOrderConfirmation 操作延迟从 669.11ms 增加到 1438.0ms",
+            "Step 2: 分析故障模式符合 DNS 解析问题特征，即 emailservice 域名解析失败或超时，导致 checkoutservice-1 无法正常连接到 emailservice",
+            "Step 3: 确认故障影响范围集中在 emailservice.* 模式的服务调用，且缺乏直接的错误日志记录，符合 DNS 故障的隐蔽性特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->emailservice",
+                "expected_pattern": "Call latency increase or timeout patterns",
+                "instruction": "检查 checkoutservice-1 到 emailservice 的调用链延迟是否异常增加，特别是 SendOrderConfirmation 操作"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "Contains status code 302 or DNS related error messages",
+                "instruction": "在 checkoutservice-1 和 emailservice 的日志中搜索 http.resp.status 302 或 DNS 相关的错误关键词"
+            },
+            {
+                "modality": "Metric",
+                "target": "dns",
+                "expected_pattern": "DNS resolution timeout or failure metrics",
+                "instruction": "检查 dns 相关指标是否显示解析超时、失败率增加或响应时间异常"
+            }
+        ]
+    }
+}
+```

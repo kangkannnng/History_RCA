@@ -1,0 +1,55 @@
+{
+  "uuid": "97d37c35-186",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [adservice-getrandomads-exception] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [Caught] and [throwexception] in Log (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [grpc-default-executor] in Log (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [injected] and [error] in Log (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+      "Step 7: Derive Root Cause - Based on above features, determined cause is [adservice-getrandomads-exception] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "Log entries containing 'AdService-getRandomAds-exception-1749532239' appear 3001 times in adservice-0 logs",
+        "instruction": "Search for keyword 'AdService-getRandomAds-exception' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "Caught, throwexception",
+        "expected_pattern": "Log entry 'caught ThrowException' appears 3001 times in adservice-0 logs",
+        "instruction": "Search for keywords 'caught' and 'ThrowException' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "grpc-default-executor",
+        "expected_pattern": "Log entry 'Exception in thread \"grpc-default-executor-12349\" java.lang.Error: Injected error' appears 3001 times in adservice-0 logs",
+        "instruction": "Search for keyword 'grpc-default-executor' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "injected, error",
+        "expected_pattern": "Log entry 'Exception in thread \"grpc-default-executor-12349\" java.lang.Error: Injected error' appears 3001 times in adservice-0 logs",
+        "instruction": "Search for keywords 'injected' and 'error' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Log entry 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' appears in adservice-0, adservice-1, and adservice-2 logs",
+        "instruction": "Search for keyword 'InvocationTargetException' in adservice logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network metrics should be monitored for adservice pods during fault period",
+        "instruction": "Check network metrics for adservice pods to detect any network-related anomalies"
+      }
+    ]
+  }
+}

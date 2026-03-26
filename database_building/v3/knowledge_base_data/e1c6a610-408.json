@@ -1,0 +1,21 @@
+{
+  "uuid": "e1c6a610-408",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full, high disk utilization, disk space exhaustion, disk saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-03 节点因 node_filesystem_usage_rate 指标异常飙升导致磁盘空间耗尽",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-03 节点的 node_filesystem_usage_rate 指标从正常中位数 25.73% 异常飙升至故障中位数 65.14%，变化率达 86.74%，p99 值从 36.22% 升至 94.27%",
+      "Step 2: 分析 aiops-k8s-03 节点上运行的 Pod（如 recommendationservice-1, adservice-0, shippingservice-2），其服务响应时间（rrt_max）在 Trace 数据中出现异常，表明节点资源瓶颈已影响上层服务",
+      "Step 3: 确认日志（Log）数据中未发现应用层错误日志，符合基础设施层（节点磁盘）资源耗尽导致性能下降但无应用报错的故障特征"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden and sustained increase from baseline, exceeding high thresholds (e.g., >80%)",
+        "instruction": "检查所有节点的 node_filesystem_usage_rate 指标，识别是否存在从正常水平（如 ~25%）突然并持续飙升至高位（如 >65%）的异常模式，重点关注变化率最高的节点。"
+      }
+    ]
+  }
+}

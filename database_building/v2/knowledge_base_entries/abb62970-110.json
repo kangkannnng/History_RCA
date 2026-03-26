@@ -1,0 +1,33 @@
+{
+  "uuid": "abb62970-110",
+  "fault_type": "Resource Stress",
+  "symptom_vector": "AdService CPU usage spike, increased response latency (rrt & rrt_max), leading to elevated latency in frontend service calls.",
+  "expert_knowledge": {
+    "root_cause_desc": "AdService服务因Byteman混沌测试注入压力规则(AdService--stress)，导致其所有Pod实例CPU使用率从接近0飙升到0.6，进而引发服务性能严重下降及上下游连锁反应。",
+    "reasoning_chain": [
+      "Step 1: 观察指标数据，发现故障窗口内adservice三个Pod实例（adservice-0, adservice-1, adservice-2）的pod_cpu_usage均发生剧烈飙升，从正常值0.0/0.01激增至0.6，变化率达193%-200%，同时其响应时间指标（rrt, rrt_max）也显著恶化。这直接指向adservice自身发生严重的CPU资源过载。",
+      "Step 2: 分析日志数据，发现adservice所有实例的日志中高频出现（累计超过200次）包含'AdService--stress-1749255024 execute()'、'Rule.execute called for AdService--stress'、'StressHelper'、'chaos_mesh'等关键词的条目。这些日志明确表明，一个名为'AdService--stress'的Byteman规则被注入并执行，属于混沌测试（Chaos Engineering）行为。",
+      "Step 3: 结合追踪数据，确认上游frontend服务调用adservice的GetAds操作延迟大幅增加（从~5.5ms增至30-38ms），出现次数高达38次。该性能劣化在时序和逻辑上与adservice的CPU飙升及压力测试日志完全吻合，是根因导致的核心症状。最终确认故障根因为针对adservice的有意压力测试注入。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden spike (e.g., from near 0 to >0.5) across all pods of a specific service.",
+        "instruction": "检查指定服务（如adservice）下所有Pod的CPU使用率指标。寻找在故障时间窗口内是否发生突然的、大幅度的增长，通常是从一个较低的基础值（如0.0）飙升到高位（如0.6）。这种模式是资源压力的直接证据。"
+      },
+      {
+        "modality": "Log",
+        "target": "AdService--stress, chaos_mesh, StressHelper",
+        "expected_pattern": "Contains keywords related to chaos testing, rule execution, or stress injection, appearing with high frequency.",
+        "instruction": "在疑似根因服务（如adservice）的日志中搜索混沌测试相关的关键词，例如特定规则名（如'AdService--stress'）、工具名（如'Byteman', 'chaos_mesh'）或辅助类（如'StressHelper'）。高频出现的执行日志是人为注入故障的强有力证据。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->adservice latency (e.g., operation: hipstershop.AdService/GetAds)",
+        "expected_pattern": "Significant increase in duration (e.g., 5x-10x) and high occurrence count for calls to the suspect service.",
+        "instruction": "分析调用链数据，重点关注上游服务（如frontend）调用疑似根因服务（如adservice）的关键操作。检查这些调用的平均耗时是否在故障窗口内急剧上升，并且该异常是否频繁出现。这可以验证根因服务性能下降对系统的影响范围和程度。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "b9e3efbd-357",
+  "fault_type": "Region_Unavailable",
+  "symptom_vector": "Database query failures, response time (rrt) spike, increased error rates in dependent services",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB存储层Region不可用导致数据库查询失败，引发应用服务级联故障",
+    "reasoning_chain": [
+      "Step 1: 通过Metric数据观察到tidb-pd组件的store_unhealth_count从0增加到1，表明存储层节点健康状态异常，Region不可用",
+      "Step 2: 分析Log数据发现productcatalogservice出现151次'Error 9005 (HY000): Region is unavailable'错误，frontend服务因数据库查询失败报错，核心错误模式一致",
+      "Step 3: 结合Metric数据确认productcatalogservice-2的响应时间rrt从7337.79激增至20171482.25，且tidb-tidb的查询延迟duration_99th从0.01增至64.88，验证存储层故障导致应用性能恶化"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "store_unhealth_count",
+        "expected_pattern": "Sudden increase from 0 to 1",
+        "instruction": "检查tidb-pd组件的store_unhealth_count指标，确认存储层节点是否不健康"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "Contains error and appears frequently in productcatalogservice and frontend logs",
+        "instruction": "搜索productcatalogservice和frontend服务的日志，查找'Region is unavailable'错误及其发生频率"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Sudden spike in response time",
+        "instruction": "监控productcatalogservice的响应时间rrt指标，确认是否有异常延迟激增"
+      }
+    ]
+  }
+}

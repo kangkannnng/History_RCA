@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Repeated log entries showing execution of a specific stress test rule across all instances of a service, with associated thread creation and agent initialization errors
+- Metric anomaly pattern: Sudden and extreme increase in computational resource consumption for all instances of a single service, coinciding with significant degradation in response time metrics for that same service
+- Trace anomaly pattern: Severe latency increase in requests targeting the affected service, propagating delays to upstream calling services
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs show a specific, named stress-testing rule being actively executed hundreds of times across all replicas of the service during the anomaly window - this directly points to an active, targeted computational workload injection.
+- Evidence 2: Resource consumption metrics show a near-zero to high utilization spike isolated to the pods of the service mentioned in the logs, perfectly correlated in time with the log activity - this confirms the injected workload is consuming resources.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Trace data shows markedly increased latency for calls to the affected service - this is a predictable consequence of its pods being saturated by the injected computational load.
+- Evidence 4: Minor metric fluctuations in other services and node-level resources - these are secondary effects or unrelated noise, as the primary, extreme anomaly is concentrated and explained by the first two evidences.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the repeated log entries documenting the execution of a stress-test rule and the concurrent, drastic spike in resource usage for the same service, we suspect an externally induced computational overload targeted specifically at that service component."
+
+Step 2: Verification or elimination
+"If this were caused by an inherent bug or misconfiguration within the service, we would expect to see error patterns related to application logic or resource leaks, not logs explicitly describing a test rule execution. The actual observation shows logs that are diagnostic of a testing framework being activated, which rules out an intrinsic service failure as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of the diagnostic logs identifying a stress-test agent and the correlated resource exhaustion metrics indicates the root cause is a deliberate, external injection of a heavy computational workload into the service, designed to simulate failure conditions."
+
+[Conclusion]
+"The root cause is the targeted activation of a stress-testing mechanism on the service, which deliberately consumed its computational resources to near saturation, thereby inducing severe performance degradation for all its instances."
+
+[Next Action]
+- Verify whether configuration management or orchestration logs show an intent to activate such a testing scenario during the incident window.
+- Check for similar named rule patterns in logs from other time periods to establish if this is a recurring testing activity.

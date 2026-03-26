@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Error logs from a specific service instance indicate exceptions during agent initialization and code transformation processes.
+- Metric anomaly pattern: Significant increases in response time metrics across multiple services, with particular spikes in maximum response durations.
+- Trace anomaly pattern: Extreme prolongation of data access operation durations, with some operations taking over ten times longer than normal.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Trace data reveals that data storage operation durations increased from approximately 1.5 seconds to over 19 seconds for write operations and from 1.7 seconds to nearly 27 seconds for read operations. – This matters because it points to a fundamental slowdown at the data layer, which can directly impair services relying on these operations.
+- Evidence 2: Metric data shows that a service responsible for cart functionality experienced increased average and maximum response times, aligning temporally with the trace anomalies. – This suggests a causal link where data layer delays propagate to affect this service's performance.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Error logs from an advertisement service instance reporting agent startup failures and method injection issues. – This can be deprioritized because these logs do not correlate strongly with the widespread latency patterns and may represent a concurrent or minor issue.
+- Evidence 4: Elevated error ratios in a checkout service. – This is likely a consequence of the latency issues, as slow responses can lead to client-side errors, rather than being the originating cause.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the dramatic increase in data operation latencies observed in traces, we suspect a performance bottleneck in the data storage subsystem that is impacting dependent services."
+
+Step 2: Verification or elimination
+"If this were caused by application-level issues in the advertisement service, we would expect latency anomalies to be most pronounced in that service's metrics and isolated to its operations; however, actual observation shows that latency spikes originate from data operations and affect multiple upstream services like the cart service. This rules out the advertisement service logs as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of trace evidence showing severe delays in data access and metric evidence confirming correlated performance degradation in the cart service indicates that the root cause is a performance impairment in data storage, which cascades through the service dependency chain."
+
+[Conclusion]
+"The root cause is a substantial slowdown in data retrieval and storage operations, causing increased response times in services that depend on this data layer and leading to broader system latency."
+
+[Next Action]
+- "Verify whether the data storage component has sufficient resources or if there are configuration anomalies."
+- "Check for similar latency increases in other traces involving data operations to confirm the scope."

@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "eaf978d7-208",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [currencyservice-2] experienced [pod_processes] fault, accompanied by [client_error, client_error_ratio, error, error_ratio, request, response] anomalies.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [currencyservice-2] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations keyword field)",
+            "Step 3: Check Observation - Found keyword [frontend] and [shippingservice] in Trace data (From GT key_observations keyword field)",
+            "Step 4: Derive Root Cause - Based on above features, determined cause is [pod_processes] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "pod_processes metric shows 200% change ratio (from 1.0 to 0.0) indicating process termination",
+                "instruction": "Check if metric [pod_processes] shows abnormal drop to 0.0 with 200% change ratio for pod currencyservice-2"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "frontend appears in trace data with abnormal request patterns",
+                "instruction": "Search for keyword 'frontend' in trace data to identify request proportion anomalies"
+            },
+            {
+                "modality": "Trace",
+                "target": "shippingservice",
+                "expected_pattern": "shippingservice appears in trace data with abnormal request patterns",
+                "instruction": "Search for keyword 'shippingservice' in trace data to identify request proportion anomalies"
+            }
+        ]
+    }
+}
+```

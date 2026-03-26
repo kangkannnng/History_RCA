@@ -1,0 +1,41 @@
+{
+  "uuid": "50f000ee-148",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "Pod restart, connection refused errors, OpenTelemetry plugin loading failures, response time degradation, node memory pressure",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice-0因内存使用过高导致Pod重启，进而引发服务连接拒绝和性能下降",
+    "reasoning_chain": [
+      "Step 1: 通过Metric数据分析发现paymentservice-0的pod_processes指标从1.0增加到2.0（p99变化率66.67%），这表明该Pod在异常期间发生了重启",
+      "Step 2: 进一步分析发现paymentservice-0所在节点aiops-k8s-08的node_memory_MemAvailable_bytes从11.25GB下降至8.95GB（中位数变化率22.7%），表明节点存在内存压力",
+      "Step 3: 结合Log数据分析，观察到frontend服务调用paymentservice时出现'connection refused'错误（目标地址10.233.55.4:50051），这正好发生在Pod重启期间，导致服务暂时不可用",
+      "Step 4: 同时发现paymentservice-0自身存在OpenTelemetry插件加载失败问题（ModuleNotFoundError for @opentelemetry/plugin-http），这可能是Pod重启后出现的依赖问题",
+      "Step 5: 综合指标异常（Pod重启、节点内存下降）和日志异常（连接拒绝、插件加载失败），确认paymentservice-0的内存问题是故障的根本原因"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Value increases from 1.0 to 2.0 (p99 change rate > 50%)",
+        "instruction": "检查paymentservice-0的pod_processes指标在异常时间窗口内是否发生显著变化，特别是从1.0增加到2.0，这通常表示Pod重启事件"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Sudden drop in available memory (median change rate > 20%) on the node hosting paymentservice-0",
+        "instruction": "分析aiops-k8s-08节点的node_memory_MemAvailable_bytes指标，确认在异常期间是否存在可用内存显著下降的趋势"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused",
+        "expected_pattern": "Contains 'connect: connection refused' error targeting paymentservice (10.233.55.4:50051)",
+        "instruction": "搜索异常时间窗口内包含'connection refused'关键词的日志，特别关注目标地址为paymentservice（10.233.55.4:50051）的错误"
+      },
+      {
+        "modality": "Log",
+        "target": "ModuleNotFoundError",
+        "expected_pattern": "Contains 'ModuleNotFoundError' for OpenTelemetry plugins (@opentelemetry/plugin-http)",
+        "instruction": "检查paymentservice-0的日志中是否存在OpenTelemetry插件加载失败的ModuleNotFoundError错误"
+      }
+    ]
+  }
+}

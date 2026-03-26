@@ -1,0 +1,57 @@
+```json
+{
+    "uuid": "4fd42adb-327",
+    "fault_type": "Memory stress leading to service degradation",
+    "symptom_vector": "Service exhibiting high memory usage, memory saturation, exhaustion, leak, and stress as described in fault_description.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice] experienced a memory stress fault, as indicated by pod restart events (pod_processes change) and error logs consistent with resource exhaustion.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth instance field).",
+            "Step 2: Check Observation - Found keyword [deadlineexceeded] in Log data from frontend pods (e.g., 'code = DeadlineExceeded desc = context deadline exceeded').",
+            "Step 3: Check Observation - Found keyword combination [transport, Error, while, dialing] in Log data, forming the error 'transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused'.",
+            "Step 4: Check Observation - Found keyword [rpc] and [error] together in Log data (e.g., 'rpc error: code = Unavailable').",
+            "Step 5: Check Observation - Found keyword [unavailable] in Log data (e.g., 'code = Unavailable desc = connection error').",
+            "Step 6: Check Observation - Found keyword [pod_processes] in Metric data, showing change from 1.0 to 2.0 (p99 change rate 0.6667) for all adservice pods, indicating process restarts.",
+            "Step 7: Derive Root Cause - Based on the combined features of connection errors, timeouts (deadlineexceeded), and pod process restarts (pod_processes), the fault is consistent with memory stress causing service instability and restart cycles."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "Log entries containing 'DeadlineExceeded' or 'deadline exceeded', such as 'code = DeadlineExceeded desc = context deadline exceeded' in frontend service logs.",
+                "instruction": "Search for the keyword 'deadlineexceeded' (case-insensitive) in log messages from the time range."
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "While not directly found in the provided logs, memory stress could cause request failures or redirections. Correlate with high error rates (error_ratio) and connection issues.",
+                "instruction": "Search for HTTP response status codes, particularly 302, in application or access logs during the fault window."
+            },
+            {
+                "modality": "Log",
+                "target": "rpc, error",
+                "expected_pattern": "Log entries containing the string 'rpc error', such as 'failed to get ads: rpc error: code = Unavailable'.",
+                "instruction": "Search for the co-occurrence of keywords 'rpc' and 'error' in log messages."
+            },
+            {
+                "modality": "Log",
+                "target": "transport, Error, while, dialing",
+                "expected_pattern": "Log entries containing the exact phrase 'transport: Error while dialing', followed by connection details (e.g., 'dial tcp 10.233.8.174:9555: connect: connection refused').",
+                "instruction": "Search for log messages containing all keywords: 'transport', 'Error', 'while', 'dialing' in close proximity."
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Log entries containing 'Unavailable', such as 'code = Unavailable desc = connection error' or 'code = Unavailable desc = connection closed'.",
+                "instruction": "Search for the keyword 'unavailable' (case-insensitive) in log messages."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Metric data showing the value of `pod_processes` for adservice pods (adservice-0, adservice-1, adservice-2) changing from a baseline of 1.0 to 2.0, indicating a pod/process restart.",
+                "instruction": "Query the `pod_processes` metric for pods belonging to the 'adservice' service and compare the p99 value during the fault window against the normal baseline."
+            }
+        ]
+    }
+}
+```

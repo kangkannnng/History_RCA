@@ -1,0 +1,56 @@
+{
+  "uuid": "abb62970-110",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "JVM CPU spike, JVM CPU overload, JVM high CPU usage, JVM CPU saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [pod_cpu_usage] fault, accompanied by [adservice--stress] anomaly.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [adservice--stress] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [frontend] in Trace latency_anomalies (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+      "Step 7: Check Observation - Found keyword [rrt_max] in Metric (From GT key_observations)",
+      "Step 8: Derive Root Cause - Based on above features, determined cause is [pod_cpu_usage] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice--stress",
+        "expected_pattern": "AdService--stress-1749255024 execute() and Rule.execute called for AdService--stress-1749255024 appear 229 times in adservice logs",
+        "instruction": "Search for keyword 'AdService--stress' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException appears in adservice logs",
+        "instruction": "Search for keyword 'InvocationTargetException' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "org.jboss.byteman.agent.Transformer : inserted trigger for AdService--stress-1749255024 appears in adservice logs",
+        "instruction": "Search for keyword 'Transformer' in adservice logs"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "frontend->adservice GetAds operation latency increased from 5.5ms to 30-38ms (5.5-6.9x)",
+        "instruction": "Check trace latency anomalies for frontend->adservice calls"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "adservice-0: 0.01→0.6 (193.44%), adservice-1/2: 0.0→0.6 (200%)",
+        "instruction": "Check pod_cpu_usage metric for adservice instances"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "adservice-0: 43028→97818 (78%), adservice-1: 43046→86549 (67%), adservice-2: 42729→88707 (70%)",
+        "instruction": "Check rrt_max metric for adservice instances"
+      }
+    ]
+  }
+}

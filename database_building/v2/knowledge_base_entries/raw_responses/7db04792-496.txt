@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "7db04792-496",
+    "fault_type": "metric",
+    "symptom_vector": "Performance degradation, elevated response times (rrt_max), potential pod failures indicated in ground truth.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiKV组件因region pending问题导致pod崩溃与性能故障。",
+        "reasoning_chain": [
+            "Step 1: 全量数据的Metric分析部分指出，在故障时间段内，`tidb-tidb`组件的`memory_usage`和`cpu_usage`指标有轻微变化，但这仅是数据库层的次要现象。Ground Truth指出的核心故障组件是`tidb-tikv`，但其关键指标`region_pending`并未在全量Metric数据中被明确列为异常或收集到（如`anomaly_metrics`表和`available_metric_names`中均未列出此指标）。",
+            "Step 2: 全量数据的Log分析结论为`没有检测到错误日志`，这与Ground Truth中描述的`pod crash`、`pod terminated unexpectedly`等故障现象存在直接矛盾。这表明本次复盘提供的日志数据可能不完整，或故障事件未在给定日志源中体现。",
+            "Step 3: 综合来看，由于Trace数据主要指向Redis和购物车链路，Metric数据中缺乏TiKV的关键证据（region_pending），Log数据又为空，因此在当前提供的`Full Context`数据范围内，**无法找到支持Ground Truth所述故障的直接证据**。这表明，历史分析（指向redis-cart）可能是基于不完整或有偏的数据集得出的错误结论。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden spike or sustained high value",
+                "instruction": "在TiKV组件（特别是pod `tidb-tikv-0`）的指标数据中，查找并分析`region_pending`指标。检查故障期间该指标是否出现突增或持续高位，这是TiKV存储层出现问题的关键信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains error",
+                "instruction": "在`tidb-tikv`相关Pod的日志中，搜索包含‘failure’， ‘crash’， ‘terminated’， ‘exit’等关键词的条目，以验证Ground Truth中描述的Pod崩溃事件。"
+            }
+        ]
+    }
+}
+```

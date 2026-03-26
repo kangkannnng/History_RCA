@@ -1,0 +1,48 @@
+{
+  "uuid": "cd049902-400",
+  "fault_type": "pod_processes, timeout",
+  "symptom_vector": "Client URL misconfiguration, code error, runtime panic in frontend service",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [frontend] experienced [pod_processes] fault, accompanied by [timeout] anomaly.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [frontend] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [request, response, timeout] in Metric (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+      "Step 6: Derive Root Cause - Based on above features, determined cause is [pod_processes, timeout] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend, productcatalogservice, shippingservice",
+        "expected_pattern": "Trace data shows frontend service with latency anomalies and request proportion anomalies involving productcatalogservice and shippingservice",
+        "instruction": "Search for trace anomalies involving frontend, productcatalogservice, and shippingservice services"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entries containing HTTP response status 302",
+        "instruction": "Search for keyword 'http.resp.status' with value '302' in logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response, timeout",
+        "expected_pattern": "Metric anomalies showing request/response issues and timeout occurrences",
+        "instruction": "Check metrics for request, response, and timeout anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Pod CPU usage metric showing abnormal patterns",
+        "instruction": "Monitor pod_cpu_usage metric for frontend pods"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Pod processes metric indicating process-related issues",
+        "instruction": "Check pod_processes metric for abnormal values"
+      }
+    ]
+  }
+}

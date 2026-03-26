@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "17ed37a5-494",
+    "fault_type": "pod_failure",
+    "symptom_vector": "pod crash and termination with qps and grpc_qps anomalies",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 pod failure 导致 qps 和 grpc_qps 指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 服务的 qps 和 grpc_qps 指标在异常时间段内出现显著变化",
+            "Step 2: 分析 tidb-tikv-0 pod 的 region_pending 和 io_util 指标显示异常模式",
+            "Step 3: 确认故障特征符合 pod crash 和 pod terminated unexpectedly 的描述"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "qps",
+                "expected_pattern": "Significant deviation from normal baseline",
+                "instruction": "检查 tidb-tikv 服务的 qps 指标是否在故障时间段内出现异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "grpc_qps",
+                "expected_pattern": "Abnormal change in gRPC query rate",
+                "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Increase in pending region count",
+                "instruction": "检查 tidb-tikv-0 的 region_pending 指标是否异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Abnormal I/O utilization pattern",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标是否显示异常模式"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains pod failure or crash keywords",
+                "instruction": "在 tidb-tikv-0 和 tidb-tikv 的日志中搜索 failure 关键词"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,33 @@
+{
+  "uuid": "7e03b07d-188",
+  "fault_type": "服务错误类 (Client/Error Ratio)",
+  "symptom_vector": "Client error ratio spike, upstream service reporting connection refused errors, and overall service error rate increase.",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice-1 实例发生严重错误或不可用，导致上游服务（frontend, checkoutservice）调用失败，引发客户端错误率飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 shippingservice-1 的 client_error_ratio 和 error_ratio 指标从正常值 0.0 急剧飙升至 31.66%，且 p99 变化率达到 2.0。这表明该 Pod 在处理请求时出现了严重的、持续的错误。",
+      "Step 2: 分析日志数据，发现所有错误日志均来自前端服务（frontend），错误信息一致为尝试连接 IP 地址 10.233.27.213 的 50051 端口时遭到拒绝（connection refused）。该错误在故障期间于多个 frontend 实例上反复出现。",
+      "Step 3: 结合追踪数据分析，发现 checkoutservice 调用 shippingservice 时，状态码组合明确显示为状态码 14 或 13，对应的状态信息正是 'connection refused' 错误。这证实了上游服务调用失败的直接原因是 shippingservice 端点的网络连接问题。综合三者证据，定位故障根因为 shippingservice-1 实例不可用。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio & error_ratio (for shippingservice)",
+        "expected_pattern": "Sudden spike (e.g., from 0.0 to a high value > 20%) with p99 change rate reaching 2.0.",
+        "instruction": "查询 shippingservice 服务及其实例（特别是 shippingservice-1）在故障时间窗口内的 client_error_ratio 和 error_ratio 指标，检查是否存在从基准值（如 0.0）到异常值（如 30%+）的突变。"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused, dial tcp [IP]:50051",
+        "expected_pattern": "Error logs containing 'connection refused' or 'dial tcp ... connect: connection refused' keywords, originating from services that depend on shippingservice (e.g., frontend, checkoutservice).",
+        "instruction": "在全量日志中搜索包含 'connection refused' 或针对特定 IP:Port (如 10.233.27.213:50051) 连接失败的错误信息，并统计来源服务。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Status codes 13/14 in calls to shippingservice",
+        "expected_pattern": "Trace records showing calls to shippingservice operations (e.g., GetQuote, ShipOrder) returning status codes 13 (INTERNAL) or 14 (UNAVAILABLE), with error messages indicating connection failure.",
+        "instruction": "分析调用链数据，过滤出目标服务为 shippingservice 的调用，重点检查其响应状态码和消息，寻找因连接问题导致的失败记录。"
+      }
+    ]
+  }
+}

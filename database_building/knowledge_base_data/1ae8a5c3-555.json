@@ -1,0 +1,71 @@
+{
+  "uuid": "1ae8a5c3-555",
+  "fault_type": "connection_count uptime qps block_cache_size tidb-tidb",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tidb-0, tidb-tidb] experienced [connection_count, uptime, qps, block_cache_size, tidb-tidb] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tidb-0, tidb-tidb] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data (From GT key_observations trace subtype)",
+      "Step 3: Check Observation - Found keyword [failure] in Log data (From GT key_observations log keyword)",
+      "Step 4: Check Observation - Found keywords [block_cache_size, connection_count, qps, slow_query, uptime, cpu_usage, memory_usage] in Metric data (From GT key_observations metric keywords)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [connection_count, uptime, qps, block_cache_size, tidb-tidb] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Trace data shows latency anomalies and request proportion anomalies involving productcatalogservice",
+        "instruction": "Search for traces containing 'productcatalogservice' and check for latency spikes or abnormal request patterns"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'failure' keyword related to pod/container termination",
+        "instruction": "Search for keyword 'failure' in logs to identify pod crash or termination events"
+      },
+      {
+        "modality": "Metric",
+        "target": "block_cache_size",
+        "expected_pattern": "Abnormal block_cache_size metric values for tidb-tidb component",
+        "instruction": "Check metric [block_cache_size] for tidb-tidb pods to identify anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "connection_count",
+        "expected_pattern": "Abnormal connection_count metric values for tidb-tidb component",
+        "instruction": "Check metric [connection_count] for tidb-tidb pods to identify connection anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Abnormal qps metric values for tidb-tidb component",
+        "instruction": "Check metric [qps] for tidb-tidb pods to identify query performance issues"
+      },
+      {
+        "modality": "Metric",
+        "target": "slow_query",
+        "expected_pattern": "Presence of slow_query metric anomalies for tidb-tidb component",
+        "instruction": "Check metric [slow_query] for tidb-tidb pods to identify query performance degradation"
+      },
+      {
+        "modality": "Metric",
+        "target": "uptime",
+        "expected_pattern": "Abnormal uptime metric values indicating pod restart or termination",
+        "instruction": "Check metric [uptime] for tidb-tidb pods to identify pod lifecycle issues"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Abnormal cpu_usage metric values for tidb-tidb component",
+        "instruction": "Check metric [cpu_usage] for tidb-tidb pods to identify resource exhaustion"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Abnormal memory_usage metric values for tidb-tidb component",
+        "instruction": "Check metric [memory_usage] for tidb-tidb pods to identify memory pressure"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "97d37c35-186",
+    "fault_type": "application_exception",
+    "symptom_vector": "Service client error ratio spike, RPC call failures with 'Unknown desc', application logs indicating injected Java exceptions, increased latency in upstream callers.",
+    "expert_knowledge": {
+        "root_cause_desc": "AdService服务因错误注入规则触发JVM异常，导致服务调用失败并向上游传播。",
+        "reasoning_chain": [
+            "Step 1: 在Log数据中观察到adservice-0 Pod产生了大量与'AdService-getRandomAds-exception'、'java.lang.Error: Injected error'、'caught ThrowException'以及'grpc-default-executor'线程相关的异常日志，表明adservice内部有被注入的、确定的异常发生，并导致GRPC执行线程中断。",
+            "Step 2: 在Metric数据中验证了adservice-0的`error_ratio`和`client_error_ratio`指标的p99值从0.0激增至0.56（变化率200%），这直接证实了Step 1中发现的异常已转化为服务级的客户端错误。",
+            "Step 3: 结合Trace和Log数据，发现前端服务（frontend-0, frontend-1, frontend-2）在调用`hipstershop.AdService/GetAds`时，产生了大量'failed to get ads: rpc error: code = Unknown desc'的日志，且对应的Trace调用状态码为'2'（成功），但平均延迟有增加。这表明下游adservice的异常导致了上游RPC调用失败，错误通过GRPC向上传播。最终确认根因组件为adservice，故障模式是应用程序级的异常注入。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice 日志中的关键词: AdService-getRandomAds-exception, java.lang.Error: Injected error, caught ThrowException, grpc-default-executor",
+                "expected_pattern": "包含上述多个关键词的重复性错误日志条目，表明有规则的错误注入活动。",
+                "instruction": "搜索所有adservice Pod的日志，检查是否存在连续的、包含'AdService-getRandomAds-exception'、'Injected error'及'caught ThrowException'等关键词的Java异常堆栈。这些是应用程序被故意注入故障的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "adservice 的 error_ratio 和 client_error_ratio 指标",
+                "expected_pattern": "p99或avg值从正常基线（接近0）出现显著突增（例如增长超过100%）。",
+                "instruction": "检查故障时间窗口内，adservice服务的error_ratio和client_error_ratio指标。关注p99分位数的变化，一个从0到非零值的显著跃升是服务开始产生错误的强信号。"
+            },
+            {
+                "modality": "Trace",
+                "target": "前端服务 (frontend) 调用 `hipstershop.AdService/GetAds` 的调用链",
+                "expected_pattern": "调用状态码为成功（如'2'），但平均响应时间（rrt/rrt_max）相比基线可能出现增长，且上游frontend日志中有相关RPC失败记录。",
+                "instruction": "分析所有由frontend发起到adservice的`GetAds`调用。查看其状态码和耗时。即使状态码显示成功，也需结合上游frontend的日志（'failed to get ads: rpc error'）来判断是否为业务逻辑失败。这种Trace成功但业务失败的现象是下游服务内部异常的典型表现。"
+            }
+        ]
+    }
+}
+```

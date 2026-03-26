@@ -1,0 +1,63 @@
+{
+  "uuid": "74bd0298-209",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "high JVM latency with elevated request latency and JVM response delay",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-0 组件因adservice-getRandomAds-latency指标异常导致的JVM延迟故障，表现为rrt_max指标90倍激增和java.lang.Exception异常",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的 rrt_max 指标从正常5.5秒激增至499秒，增幅达90倍，表明严重性能退化",
+      "Step 2: 分析 adservice-0 的日志发现 java.lang.Exception 和 Agent failed to start! 错误，指示JVM层存在异常",
+      "Step 3: 确认 trace 数据中 frontend->adservice 调用出现大量 deadline_exceeded 错误并向上游传播，形成级联影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "AdService-getRandomAds-latency相关规则执行记录频繁出现",
+        "instruction": "检查 adservice-0 日志中是否包含 AdService-getRandomAds-latency 关键词的规则执行记录"
+      },
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "包含 DeadlineExceeded 和 context deadline exceeded 错误信息",
+        "instruction": "在 frontend 和 adservice 日志中搜索 DeadlineExceeded 关键词，确认RPC调用超时情况"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "出现 java.lang.reflect.InvocationTargetException 异常堆栈",
+        "instruction": "检查 adservice-0 日志中是否包含 InvocationTargetException 异常信息"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "包含 Transformer 或 TransformListener 相关日志",
+        "instruction": "搜索 adservice-0 日志中与字节码转换或代理注入相关的日志记录"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "frontend->adservice 调用延迟异常且出现大量context deadline exceeded错误",
+        "instruction": "分析 trace 数据中 frontend 到 adservice 的调用链，检查延迟和错误状态码"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "rrt和rrt_max指标显著异常增加",
+        "instruction": "检查 adservice-0 和 frontend 实例的 rrt、rrt_max 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "响应时间显著增加",
+        "instruction": "监控 adservice-0 的 rrt 指标，确认是否出现响应延迟"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "最大响应时间异常飙升",
+        "instruction": "检查 adservice-0 的 rrt_max 指标是否出现极端峰值"
+      }
+    ]
+  }
+}

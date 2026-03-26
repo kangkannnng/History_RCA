@@ -1,0 +1,42 @@
+{
+  "uuid": "c54cf2d2-581",
+  "fault_type": "region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io",
+  "symptom_vector": "IO fault manifesting as filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth, instance field).",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data, indicating latency anomalies (From Ground Truth key_observations, type trace).",
+      "Step 3: Check Observation - Found keyword [region_pending] in Metric data, with 170.74% increase in median (From Full Context metric_analysis_findings).",
+      "Step 4: Check Observation - Found keyword [io_util] in Metric data, showing abnormal P99 change rate of 18.18% (From Full Context metric_analysis_findings).",
+      "Step 5: Check Observation - Found keyword [cpu_usage] in Metric data, with P99 change rate of 93% (From Full Context metric_analysis_findings).",
+      "Step 6: Derive Root Cause - Based on the above features, determined cause is [region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io] as per Ground Truth key_metrics."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Latency anomalies in trace data, e.g., increased duration in GetProduct operations for productcatalogservice, as seen in Full Context trace_analysis_findings.",
+        "instruction": "Search for keyword 'productcatalogservice' in trace data to identify latency anomalies during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Significant spike in region_pending metric, e.g., 170.74% increase from normal median 9415.5 to fault median 743, as recorded in Full Context metric_analysis_findings.",
+        "instruction": "Monitor 'region_pending' metric for large increases or deviations during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Abnormal io_util metric values, such as P99 change rate of 18.18%, with normal median 0.0 and fault median 0.0, from Full Context metric_analysis_findings.",
+        "instruction": "Check the 'io_util' metric for anomalies or change rates during the fault timeframe."
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Elevated cpu_usage metric, with P99 change rate of 93%, normal median 0.09 and fault median 0.09, as per Full Context metric_analysis_findings.",
+        "instruction": "Inspect 'cpu_usage' metric for abnormal values or trends in the specified time range."
+      }
+    ]
+  }
+}

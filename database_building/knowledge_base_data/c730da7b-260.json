@@ -1,0 +1,41 @@
+{
+  "uuid": "c730da7b-260",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, CPU overload, CPU usage spike",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [recommendationservice] experienced [pod_cpu_usage] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [rrt] and [rrt_max] in Metric (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [pod_cpu_usage] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "pod_cpu_usage values spiked from 0.0 to 0.4 (change rate 2.0) for recommendationservice-0, recommendationservice-1, and from 0.03 to 0.4 (change rate 1.7209) for recommendationservice-2",
+        "instruction": "Search for metric [pod_cpu_usage] in anomaly_metrics data and check for significant increases during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "pod_processes increased from 1.0 to 12.0 (change rate 1.6923) for all three recommendationservice pods",
+        "instruction": "Search for metric [pod_processes] in anomaly_metrics data and verify abnormal process count increase"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max for recommendationservice-2 increased from 19820.5 to 1394701.5 (change rate 1.944)",
+        "instruction": "Search for metric [rrt_max] in anomaly_metrics data and check for response time degradation"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "frontend->recommendationservice rrt_max increased 37.5x from normal 3.8 seconds to 142 seconds",
+        "instruction": "Search for trace data showing [rrt_max] degradation in recommendationservice calls"
+      }
+    ]
+  }
+}

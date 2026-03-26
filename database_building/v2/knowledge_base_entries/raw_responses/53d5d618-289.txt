@@ -1,0 +1,33 @@
+{
+    "uuid": "53d5d618-289",
+    "fault_type": "latency_anomalies",
+    "symptom_vector": "Severe latency spikes observed in checkoutservice and cartservice, with round-trip time (RRT) metrics (rrt, rrt_max) showing >1900% increase. PlaceOrder operation latency increased 51x, and Cart operations increased 202x. No error logs were found, indicating a silent performance degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice和cartservice的网络延迟激增导致性能崩溃，表现为RTT和最大RTT指标异常飙升，但无错误日志",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据中checkoutservice和cartservice的rrt和rrt_max指标出现灾难性增长。例如，checkoutservice-2的rrt_max从103,221ms飙升至7,626,032ms（增长19466%），cartservice-0的rrt_max从7,615ms飙升至1,341,060ms（增长19774%）。",
+            "Step 2: 分析Trace数据发现，checkoutservice内部操作（如CartService/EmptyCart和CartService/GetCart）延迟激增200倍以上，且frontend调用checkoutservice的PlaceOrder操作延迟增加51倍。同时，checkoutservice调用cartservice的GetCart操作延迟也增加了4.8倍。",
+            "Step 3: 确认Log数据中未发现任何错误日志，排除了程序崩溃或硬性故障，结合Metric和Trace的延迟激增证据，推断为网络延迟或应用层性能瓶颈导致的级联故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Sudden spike in values, increase by over 1900% (or 20x) compared to baseline",
+                "instruction": "检查checkoutservice和cartservice的rrt和rrt_max指标是否出现突然的、大幅度的飙升，正常值通常在几千到几十万毫秒，而异常值可能达到几百万毫秒。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.CheckoutService/PlaceOrder, hipstershop.CartService/EmptyCart, hipstershop.CartService/GetCart",
+                "expected_pattern": "Latency increase by 50x to 200x compared to normal operation duration",
+                "instruction": "检查checkoutservice服务的PlaceOrder操作以及其内部调用的CartService操作（EmptyCart, GetCart）的调用链延迟是否激增，正常延迟在几万毫秒，异常延迟可能达到几百万毫秒。"
+            },
+            {
+                "modality": "Log",
+                "target": "error, exception, timeout, fail",
+                "expected_pattern": "Absence of error logs (clean log)",
+                "instruction": "检查checkoutservice和cartservice在异常时间段内是否有错误、异常、超时或失败相关的日志记录。若无此类日志，则表明故障可能属于无错误日志的静默性能退化。"
+            }
+        ]
+    }
+}

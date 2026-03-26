@@ -1,0 +1,33 @@
+{
+  "uuid": "934844b2-156",
+  "fault_type": "metric",
+  "symptom_vector": "Severe latency spike (RTT/RRT_max) observed in multiple services, particularly checkoutservice and emailservice, with checkoutservice internal operations showing 409x slowdown. Corresponding increases in pod network transmission and receive metrics indicate high network latency. No error logs found.",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice服务中SendOrderConfirmation操作的rrt_max指标出现409倍的异常峰值，同时emailservice的网络延迟指标也严重恶化，导致用户请求响应时间急剧增加。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到checkoutservice-2和emailservice的多个Pod的`rrt`与`rrt_max`指标均出现极端异常增长。例如，emailservice-0的`rrt_max`从2918.0激增至2887647.0（变化率1.996）；checkoutservice-2的`rrt_max`从185275.5激增至8661935.0（变化率1.9162）。",
+      "Step 2: 结合Trace数据，发现在异常时段内，`checkoutservice`内部操作`hipstershop.EmailService/SendOrderConfirmation`的平均耗时从正常的约20.2毫秒飙升至约8.27秒，延迟倍数高达409倍。这直接证明了`checkoutservice`是性能瓶颈的核心。",
+      "Step 3: 进一步分析Metric数据，发现故障特征中的网络传输指标（`pod_network_receive_bytes`, `pod_network_transmit_bytes`等）与`rrt_max`异常的服务高度相关，特别是`emailservice`的指标恶化程度甚至高于`checkoutservice`，表明可能存在底层网络延迟问题，其影响在`checkoutservice`与`emailservice`的交互中被放大。Log分析确认该时段无错误日志，属于静默性能退化。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice internal operation: hipstershop.EmailService/SendOrderConfirmation",
+        "expected_pattern": "Sudden and severe spike in duration; e.g., from tens of milliseconds to several seconds (order of magnitude increase).",
+        "instruction": "检查`checkoutservice`服务的调用链（Trace），重点关注其内部调用（如操作名包含SendOrderConfirmation）的平均耗时是否在故障时段出现急剧飙升，特别是查看从毫秒级到秒级的变化。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme value increase across multiple pods of checkoutservice and emailservice, typically showing change ratio > 1.9 (indicating near 200% or more increase).",
+        "instruction": "对比异常时段与正常时段的`rrt_max`指标，首先筛选变化率排名最前的服务，确认`emailservice`和`checkoutservice`的多个Pod实例该指标是否均出现剧烈增长。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error-level logs or keywords related to performance degradation (timeout, delay, etc.)",
+        "expected_pattern": "No error logs or warning messages found in the anomaly time window.",
+        "instruction": "在故障时段内，对`checkoutservice`和`emailservice`等关键服务进行日志搜索。由于本次故障为静默性能下降，重点确认是否没有匹配的ERROR级别日志，这本身是一个重要的诊断线索。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+```json
+{
+    "uuid": "7f595b45-181",
+    "fault_type": "network_packet_corruption",
+    "symptom_vector": "Severe gRPC connection failures with StatusCode.UNAVAILABLE errors, extreme latency spikes in recommendationservice and productcatalogservice, high error rates in frontend services, context canceled errors in user requests",
+    "expert_knowledge": {
+        "root_cause_desc": "网络数据包损坏导致recommendationservice与productcatalogservice之间的gRPC连接超时和失败，引发级联故障",
+        "reasoning_chain": [
+            "Step 1: 观察到recommendationservice-1的rrt_max指标从12,499.0激增至39,660,312.36，rrt从3,902.74增至6,725,340.28，表明该服务响应时间出现极端异常",
+            "Step 2: 在日志中发现recommendationservice出现大量'failed to connect to all addresses'、'Connection timed out'和'StatusCode.UNAVAILABLE'错误，表明gRPC连接存在严重问题",
+            "Step 3: Trace数据显示frontend->recommendationservice调用延迟从124ms激增至58,666ms（472倍增长），同时recommendationservice->productcatalogservice调用延迟从2.9ms激增至519,148ms（177,800倍增长），表明故障在服务依赖链中传播",
+            "Step 4: 结合故障描述中的'packet corruption'、'data corruption'、'bit errors on network'等关键词，推断根本原因是网络层面的数据包损坏导致服务间通信失败"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Sudden extreme spike from normal baseline (12,499.0 to 39,660,312.36)",
+                "instruction": "检查recommendationservice的rrt_max指标是否出现极端异常增长，正常值约12,499，故障期间是否达到数千万级别"
+            },
+            {
+                "modality": "Log",
+                "target": "failed to connect to all addresses",
+                "expected_pattern": "Contains gRPC connection failure errors with StatusCode.UNAVAILABLE",
+                "instruction": "在recommendationservice日志中搜索'failed to connect to all addresses'、'Connection timed out'和'StatusCode.UNAVAILABLE'关键词，确认是否存在gRPC连接失败"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->recommendationservice latency",
+                "expected_pattern": "Extreme latency increase from normal average (124ms to 58,666ms)",
+                "instruction": "分析frontend调用recommendationservice的ListRecommendations操作的延迟数据，正常平均延迟约124ms，故障期间是否激增至数万毫秒级别"
+            },
+            {
+                "modality": "Trace",
+                "target": "recommendationservice->productcatalogservice latency",
+                "expected_pattern": "Severe latency spike from normal average (2.9ms to 519,148ms)",
+                "instruction": "检查recommendationservice调用productcatalogservice的ListProducts操作的延迟，正常平均延迟约2.9ms，故障期间是否出现数十万毫秒的极端延迟"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Significant increase in error rates across multiple services",
+                "instruction": "检查frontend和shippingservice的error_ratio指标，正常应为0%，故障期间是否出现显著增长（frontend 8-15%，shippingservice 42-60%）"
+            }
+        ]
+    }
+}
+```

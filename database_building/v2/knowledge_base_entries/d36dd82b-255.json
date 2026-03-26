@@ -1,0 +1,27 @@
+{
+  "uuid": "d36dd82b-255",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "High node CPU usage and increased service latency (specifically cartservice and redis-cart service response time).",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-08 CPU使用率飙升，导致该节点上运行的redis-cart-0服务延迟增加，进而影响依赖它的cartservice等上游服务。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到`aiops-k8s-08`节点的`node_cpu_usage_rate`从32.52%急剧上升到90.93%（变化率94.63%），同时`node_memory_MemAvailable_bytes`减少19.89%，表明该节点存在严重的CPU资源瓶颈与内存压力。",
+      "Step 2: 分析Trace数据，发现运行在`aiops-k8s-08`节点上的`redis-cart-0`服务调用延迟显著恶化。具体证据为`cartservice-2`调用`redis-cart-0`（HMSET操作）的平均耗时从1361.25ms激增至8943.27ms（延迟倍数6.57倍），确认节点资源瓶颈已导致关键下游服务性能下降。",
+      "Step 3: 通过节点-Pod映射关系确认`redis-cart-0`与`cartservice-2`均运行在故障节点`aiops-k8s-08`上。结合观察到`cartservice`服务的`rrt_max`等指标也出现恶化（如`cartservice-0`的`rrt_max` p99从25397.6ms升至80575.36ms），构建出完整的故障影响链：节点CPU过载 → `redis-cart-0`延迟暴增 → `cartservice`性能下降 → 上游服务（如checkoutservice）受影响。Log数据在此时间段内未发现错误记录，与资源型故障而非逻辑错误的特征相符。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike (e.g., >50% absolute increase or >80% relative change rate)",
+        "instruction": "检查故障时间段内，所有节点的`node_cpu_usage_rate`指标，重点关注中位数（median）和P99分位数的变化率。识别变化率最高的节点作为首要怀疑对象。"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis",
+        "expected_pattern": "Significant latency increase (e.g., >3x normal duration) for calls targeting redis pods, especially those located on the suspected high-CPU node.",
+        "instruction": "分析调用链数据，筛选出调用方为cartservice、被调用方为redis的Span。计算故障时段与正常时段的平均耗时对比。结合`node_pod_mapping`，确认高延迟的redis pod是否运行在之前识别出的高CPU节点上。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "52c080d4-556",
+    "fault_type": "database_storage_performance",
+    "symptom_vector": "Severe latency spike (10-19x) observed in upstream services (e.g., productcatalogservice) dependent on TiDB, accompanied by significant anomalies in TiKV storage layer metrics including plummeting region_pending and spiking cpu_usage.",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv存储层因IO性能问题，导致region处理堆积（region_pending指标异常下降）和CPU使用率飙升，进而引发依赖其的上游服务严重延迟。",
+        "reasoning_chain": [
+            "Step 1: 在指标数据中观察到TiKV组件（tidb-tikv）的关键存储指标`region_pending`中位数从10086暴跌至710（变化率1.74），同时其`cpu_usage`的P99分位数上升93%，这强烈暗示存储层存在严重的处理拥塞或性能瓶颈。",
+            "Step 2: 在调用链数据中发现，依赖TiDB的`productcatalogservice`服务响应时间（rrt_max）激增10-19倍（例如，从平均10秒增至101-194秒），这符合数据库底层性能问题导致上游应用延迟的故障传播模式。",
+            "Step 3: 日志分析未发现相关错误日志，排除了应用层代码错误或显性异常的可能性，进一步将怀疑范围聚焦于底层的、无日志的硬件或资源性能问题（如IO故障），这与指标和调用链证据指向的TiKV存储层问题吻合。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Significant and rapid drop from high baseline values (indicating pending region requests cannot be processed).",
+                "instruction": "检查tidb-tikv组件的region_pending指标，关注其中位数或P99值在故障期间是否发生剧烈下降。"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "Significant spike, especially at P99 or other high percentiles, concurrent with the region_pending drop.",
+                "instruction": "检查tidb-tikv组件的cpu_usage指标，特别是P99分位数，是否在region_pending异常的同时或稍后出现显著上升。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice latency (rrt_max)",
+                "expected_pattern": "Dramatic increase in response time (e.g., 10x+) for calls from services like frontend to productcatalogservice, whose root cause can be traced back to database dependencies.",
+                "instruction": "分析调用链数据，查找对tidb-tikv有直接或间接依赖的服务（如productcatalogservice）的响应时间是否出现异常大幅增长。"
+            }
+        ]
+    }
+}
+```

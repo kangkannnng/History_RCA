@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "eb0c4ea8-182",
+    "fault_type": "latency_anomaly",
+    "symptom_vector": "Severe latency spike in productcatalogservice causing cascading delays in dependent services (checkoutservice, frontend), without error logs.",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice响应时间(rrt_max)激增，导致下游checkoutservice和frontend连锁延迟。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到，所有productcatalogservice实例的rrt_max指标均出现异常激增，变化率均超过180%（例如productcatalogservice-1从12755.5增加到637294.0），表明该服务处理性能严重下降。",
+            "Step 2: 在Trace数据中进一步确认，最显著的异常调用链来自checkoutservice到productcatalogservice的GetProduct操作，其平均延迟从正常的19.5ms激增至1247.8ms，增幅达63.9倍，且出现42次异常，这是系统中延迟最严重的瓶颈点。",
+            "Step 3: 结合Log数据中未发现相关错误日志，且调用链分析显示故障传播路径为Frontend->CheckoutService->ProductCatalogService，确认productcatalogservice为最下游的异常源头，其性能瓶颈是导致上游服务连锁延迟的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->productcatalogservice:GetProduct",
+                "expected_pattern": "Sudden spike in average duration (e.g., from tens of ms to over 1000ms) and high anomaly count.",
+                "instruction": "分析调用链数据，查找从checkoutservice到productcatalogservice的GetProduct操作的延迟异常。重点关注平均响应时间(avg_duration)的激增倍数(如数十倍增长)和异常计数(anomaly_count)。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "All instances of productcatalogservice show a significant increase (e.g., >100% change ratio) in rrt_max values during the fault window.",
+                "instruction": "查询productcatalogservice所有实例（如pod: productcatalogservice-0, -1, -2）的rrt_max指标。比较故障时段与正常时段的数值，确认是否存在普遍的、显著的激增。"
+            },
+            {
+                "modality": "Log",
+                "target": "productcatalogservice",
+                "expected_pattern": "No error logs (or only performance-related warnings) during the fault time window.",
+                "instruction": "搜索productcatalogservice在故障时间范围内的日志。重点检查是否存在明确的错误（如exception, error, fatal）或超时（timeout）日志，以区分性能瓶颈与功能错误。"
+            }
+        ]
+    }
+}
+```

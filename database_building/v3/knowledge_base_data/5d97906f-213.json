@@ -1,0 +1,27 @@
+{
+  "uuid": "5d97906f-213",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "high memory usage, memory saturation and exhaustion, leading to pod lifecycle anomalies and upstream service latency spikes",
+  "expert_knowledge": {
+    "root_cause_desc": "组件 checkoutservice-1 因 pod_memory_working_set_bytes 异常导致 Pod 内存压力，进而引发进程重启，并向上游 cartservice 传播高延迟",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice-1 的 pod_processes 指标从常态的 1.0 增至故障期的 2.0，变化率达 66.67%，这是 Pod 发生重启或异常进程变化的明确信号",
+      "Step 2: 分析 checkoutservice-1 的 pod_memory_working_set_bytes（关键指标）以确认其内存使用情况，检查其所在的节点 aiops-k8s-01 是否存在内存压力",
+      "Step 3: 确认上游服务 cartservice-0 的 rrt_max 指标 P99 值在故障期飙升 4.8 倍，这符合由下游 checkoutservice-1 不稳定导致的故障传播模式"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "从稳定值（如1.0）跳变为2.0，变化率超过阈值（如50%）",
+        "instruction": "检查故障组件的 pod_processes 指标，确认其值是否出现跳变，这通常指示 Pod 发生了重启或进程崩溃"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "持续高值、接近或超过 Pod 内存限制，或呈现异常增长趋势",
+        "instruction": "检查 checkoutservice-1 的 pod_memory_working_set_bytes 指标，确认其是否存在内存使用饱和、泄漏或异常飙升的情况"
+      }
+    ]
+  }
+}

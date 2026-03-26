@@ -1,0 +1,108 @@
+```json
+{
+    "uuid": "80cdc066-374",
+    "fault_type": "network_corrupt",
+    "symptom_vector": "network packet corruption causing connection timeouts and service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 和 shippingservice 之间的网络连接因数据包损坏导致连接超时和服务不可用，表现为 rrt 和 rrt_max 指标显著异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice 和 shippingservice 之间的调用出现大量连接超时错误，包括 'transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout' 和 'timed out waiting for server handshake'",
+            "Step 2: 分析 shippingservice-0 的 rrt 指标从 1097.03 增加到 1305.38，rrt_max 从 2142.0 增加到 1986.0，响应时间显著异常",
+            "Step 3: 确认 checkoutservice 调用 shippingservice/GetQuote 的延迟从正常的 9.3ms 激增至 26.9 秒，延迟倍数高达 2877 倍，表明网络通信存在严重问题",
+            "Step 4: 日志中显示 frontend 服务因下游 shippingservice 不可用而出现大量 HTTP 500 错误和 context canceled 错误，形成级联故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->shippingservice",
+                "expected_pattern": "Latency anomalies with timeout errors",
+                "instruction": "检查 checkoutservice 到 shippingservice 的调用链是否存在延迟异常和超时错误"
+            },
+            {
+                "modality": "Log",
+                "target": "transport|Error while dialing|i/o timeout|timed out waiting for server handshake",
+                "expected_pattern": "Network connection timeout errors",
+                "instruction": "在 checkoutservice 和 shippingservice 的日志中搜索网络连接超时相关的关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "context|canceled",
+                "expected_pattern": "Request cancellation due to timeout",
+                "instruction": "检查日志中是否存在因超时而导致的请求取消记录"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Service failure messages",
+                "instruction": "搜索包含 failure 关键词的日志条目"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status|302",
+                "expected_pattern": "HTTP 302 status code",
+                "instruction": "检查 HTTP 响应状态码中是否包含 302"
+            },
+            {
+                "modality": "Log",
+                "target": "Internal",
+                "expected_pattern": "Internal server errors",
+                "instruction": "搜索包含 Internal 关键词的内部错误日志"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "Request processing errors",
+                "instruction": "查找 request error 相关的错误日志"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc|error",
+                "expected_pattern": "RPC communication errors",
+                "instruction": "检查 RPC 调用相关的错误日志"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Timeout-related errors",
+                "instruction": "搜索包含 timeout 关键词的超时错误"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Service unavailable errors",
+                "instruction": "查找服务不可用相关的错误日志"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt|rrt_max",
+                "expected_pattern": "Significant increase in response time",
+                "instruction": "检查 checkoutservice 和 shippingservice 的 rrt 和 rrt_max 指标是否显著增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "request|response",
+                "expected_pattern": "Abnormal request/response patterns",
+                "instruction": "分析请求和响应相关的指标是否存在异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio|client_error|error_ratio|error",
+                "expected_pattern": "High error ratio",
+                "instruction": "检查 checkoutservice 和 shippingservice 的错误率指标是否异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Memory usage anomalies",
+                "instruction": "检查相关服务的 pod 内存使用情况"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "Abnormal network traffic patterns",
+                "instruction": "分析网络接收和发送的字节数及数据包数量是否存在异常"
+            }
+        ]
+    }
+}
+```

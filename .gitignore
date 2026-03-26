@@ -9,6 +9,10 @@ wheels/
 # Virtual environments
 .venv
 
+#adk
+.adk
+history_rca/.adk
+
 # env file
 history_rca/.env
 

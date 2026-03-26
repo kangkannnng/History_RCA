@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "0fccdcad-125",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "high CPU utilization and response time degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "recommendationservice 服务因进程数异常增加导致 pod_cpu_usage 飙升，进而引起服务响应时间严重恶化。",
+        "reasoning_chain": [
+            "Step 1: 观察到 pod_processes 指标从正常状态的 1.0 激增至 9.0 (变化率 1.6)，同时伴随 pod_cpu_usage 从接近 0.0 飙升至 0.4 (变化率约 2.0)。",
+            "Step 2: 分析故障组件 recommendationservice 的 rrt 与 rrt_max 指标，发现响应时间从约 2.5-2.8 秒激增至 4.3-5.9 万秒，rrt_max 从 10-12k 升至 250-300k。",
+            "Step 3: 从 Trace 数据确认 frontend->recommendationservice 的调用链延迟显著增加，平均响应时间从约 3.8 秒激增至 64 秒，延迟倍数达 16.7 倍。",
+            "Step 4: 检查 Log 数据，未发现 error 或 crash 等显性错误，表明故障表现为隐性的性能瓶颈而非代码逻辑错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden increase from baseline (e.g., from 1.0 to 9.0)",
+                "instruction": "检查 recommendationservice 相关 Pod 的 pod_processes 指标，确认是否存在远超基线水平的异常激增。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Spike in CPU utilization, significant change ratio",
+                "instruction": "检查 recommendationservice 相关 Pod 的 pod_cpu_usage 指标，确认是否存在与进程数增加同步的 CPU 使用率飙升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Significant increase in service response time",
+                "instruction": "检查 recommendationservice 服务的 rrt 及 rrt_max 指标，确认是否存在严重的响应时间劣化，并与 CPU/进程异常进行关联分析。"
+            }
+        ]
+    }
+}
+```

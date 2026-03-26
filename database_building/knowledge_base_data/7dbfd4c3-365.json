@@ -1,0 +1,71 @@
+{
+  "uuid": "7dbfd4c3-365",
+  "fault_type": "region_pending, io_util",
+  "symptom_vector": "IO fault with filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util] fault, accompanied by [raft_apply_wait, snapshot_apply_count, store_size, memory_usage, cpu_usage] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [region_pending] in Metric data with 163.78% change rate (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [io_util] in Metric data with 129.14% change rate (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [productcatalogservice] in Trace data with 33x latency increase (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [region_pending, io_util] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "region_pending changed 163.78% (10657 to 1061) in tidb-tikv metric data",
+        "instruction": "Search for metric [region_pending] in tidb-tikv component and check for abnormal change rate"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "io_util changed 129.14% (0% to 0.28%) in tidb-tikv metric data",
+        "instruction": "Search for metric [io_util] in tidb-tikv component and check for abnormal change rate"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "raft_apply_wait metric should show abnormal values in TiDB storage layer",
+        "instruction": "Check if [raft_apply_wait] metric shows abnormal patterns during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "snapshot_apply_count",
+        "expected_pattern": "snapshot_apply_count metric should show abnormal values in TiDB storage layer",
+        "instruction": "Check if [snapshot_apply_count] metric shows abnormal patterns during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "store_size metric should show abnormal values in TiDB storage layer",
+        "instruction": "Check if [store_size] metric shows abnormal patterns during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "memory_usage metric should show abnormal values in TiDB storage layer",
+        "instruction": "Check if [memory_usage] metric shows abnormal patterns during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "cpu_usage metric should show abnormal values in TiDB storage layer",
+        "instruction": "Check if [cpu_usage] metric shows abnormal patterns during fault window"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "productcatalogservice latency increased 33x from 10s to 330k ms in trace data",
+        "instruction": "Search for trace calls involving [productcatalogservice] and check for latency anomalies"
+      },
+      {
+        "modality": "Log",
+        "target": "filesystem call error, read operation error, write operation error, permission denied error, file descriptor error",
+        "expected_pattern": "IO-related error logs should appear in tidb-tikv logs during fault window",
+        "instruction": "Search for IO fault keywords in tidb-tikv logs: filesystem call error, read operation error, write operation error, permission denied error, file descriptor error"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "de4a919c-126",
+    "fault_type": "内存异常",
+    "symptom_vector": "Latency spike in PaymentService and downstream services (e.g., cartservice), increased error rates for some services, signs of Pod process restarts.",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice 组件因内存使用过高（pod_memory_working_set_bytes 异常）导致进程异常或重启，进而引发插件加载失败和下游服务延迟。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中，首先观察到多个与内存和进程生命周期相关的指标异常，特别是 `paymentservice-0/1/2` 和 `redis-cart-0` 的 `pod_processes` 指标从1.0变为2.0（p99_change_ratio=0.6667），这强烈暗示这些Pod经历了进程异常或重启。此现象与故障特征中的 `metric` 类型 `pod_processes` 相匹配。",
+            "Step 2: 结合Log数据分析，发现故障期间所有错误日志均来自paymentservice的PluginLoader，报错关键词为 'could not load' 和 'Cannot find module'。这些日志特征与故障特征中的 `log` 类型关键词完全吻合。该错误可能是Paymentservice进程因内存问题发生异常或重启后，在重新初始化时出现的副作用。",
+            "Step 3: 检查Trace数据，确认checkoutservice调用paymentservice的操作（hipstershop.PaymentService/Charge）出现显著延迟（从12831ms升至50537ms），这直接反映了paymentservice的性能问题。同时，cartservice调用redis的延迟虽然严重，但从Metrics看cartservice的rrt_max变化相对温和（如cartservice-0的p99变化0.7555），且没有redis相关的错误日志，因此redis的延迟更有可能是受上游paymentservice问题影响的连锁反应，而非问题的根源。所有证据最终指向 `paymentservice` 组件的 `pod_memory_working_set_bytes` 异常。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Sudden spike or sustained high value, especially with an increasing trend leading to the fault period.",
+                "instruction": "查询paymentservice所有Pod实例的 `pod_memory_working_set_bytes` 指标，对比故障前后时间段，检查是否存在突增或持续逼近内存限制的高值。该指标是根因的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value changes from 1.0 to 2.0 (or other non-1 values), indicating process restart or crash.",
+                "instruction": "检查所有服务的Pod实例的 `pod_processes` 指标，特别关注paymentservice。识别在故障时间点附近，该指标值是否发生了从1到2（或其他异常值）的跳变。这种变化是Pod内进程重启或异常的信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "PluginLoader#load, could not load, Cannot find module",
+                "expected_pattern": "Contains error messages about failing to load modules like '@opentelemetry/plugin-http'.",
+                "instruction": "搜索来自paymentservice服务的日志，过滤包含 'PluginLoader#load', 'could not load', 'Cannot find module' 等关键词的错误条目。这些日志指明了进程启动时的依赖加载失败，是故障的表现之一。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.PaymentService/Charge",
+                "expected_pattern": "Average duration significantly longer than normal.",
+                "instruction": "分析调用链数据，定位所有从 `checkoutservice` 调用 `paymentservice` 的 `hipstershop.PaymentService/Charge` 操作，对比故障期间与正常期间的平均耗时，确认是否存在显著的延迟增加。"
+            }
+        ]
+    }
+}
+```

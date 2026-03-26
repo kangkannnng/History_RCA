@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "f475f2fe-594",
+    "fault_type": "region_pending",
+    "symptom_vector": "io fault with filesystem call errors and read/write operation errors causing upstream service performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 组件因 region_pending 指标异常变化率174.63%和cpu_usage增加25%导致存储层IO性能瓶颈",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 的 region_pending 指标从正常中位数10603.5下降到故障中位数718.0，变化率高达174.63%",
+            "Step 2: 分析 tidb-tikv 组件的 cpu_usage 指标从0.07增加到0.09，增长25%，表明存储层存在计算资源瓶颈",
+            "Step 3: 确认上游 productcatalogservice-1 的 request/response 指标异常（request从84.0增加到90.0，response从72.0增加到77.0），显示依赖存储层的服务受到影响"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Significant decrease from normal median (10603.5) to fault median (718.0) with 174.63% change rate",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否出现异常下降，变化率是否超过阈值"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "Increase from 0.07 to 0.09 with 25% growth",
+                "instruction": "检查 tidb-tikv 组件的 cpu_usage 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "P99 value decrease from 0.41 to 0.21 with 0.6511 change ratio",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标是否异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "Abnormal increase indicating storage layer write latency",
+                "instruction": "检查 tidb-tikv 组件的 raft_apply_wait 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Abnormal memory usage pattern",
+                "instruction": "检查 tidb-tikv 组件的 memory_usage 指标是否异常"
+            }
+        ]
+    }
+}
+```

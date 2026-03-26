@@ -1,0 +1,30 @@
+[Trigger]
+- Metric anomaly pattern: node_cpu_usage_rate on aiops-k8s-03 increased from 26.58% to 92.81% (110.95% increase)
+- Metric anomaly pattern: node_memory_usage_rate on same node increased from 32.2% to 48.21% (39.82% increase)
+- Trace anomaly pattern: Multiple services show increased response times, with operations like HMSET and EmptyCart experiencing 17-25x latency increases
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Node-level CPU usage on aiops-k8s-03 increased dramatically from normal operating levels to near-saturation levels - this indicates fundamental resource constraints at the infrastructure level
+- Evidence 2: Memory usage on the same node showed significant concurrent increase - this confirms a pattern of system-wide resource pressure rather than isolated component issues
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Multiple services running on aiops-k8s-03 (shippingservice, recommendationservice, adservice, paymentservice, cartservice, frontend) showed increased response times - these are consequences of the underlying resource constraints affecting all workloads on the node
+- Evidence 4: No error logs were detected during the anomaly period - this supports that the issue was resource saturation rather than application-level failures
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the dramatic increase in both CPU and memory utilization on aiops-k8s-03, we suspect a fundamental resource exhaustion scenario where the node cannot adequately support its assigned workloads."
+
+Step 2: Verification or elimination
+"If this were caused by a specific application bug or misconfiguration, we would expect to see error logs or patterns affecting only specific services; However, actual observation shows broad performance degradation across all services on the node with no error logs; This rules out application-level failures as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of node-level resource metrics showing saturation and the correlated performance degradation of all services on that node indicates that infrastructure resource limitations created a bottleneck affecting all dependent components."
+
+[Conclusion]
+"The root cause is system-wide resource exhaustion on aiops-k8s-03, where simultaneous high demand for both computational and memory resources created a performance bottleneck that cascaded to all services running on that infrastructure component."
+
+[Next Action]
+- Verify whether any pod or process on the node shows abnormal resource consumption patterns
+- Check for scheduling patterns that might have concentrated workloads on this specific node

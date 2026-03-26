@@ -1,0 +1,20 @@
+{    "uuid": "d4cf6596-245",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory stress symptoms including exhaustion, saturation, high usage, leak, or stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-06] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-06] (From Ground Truth, instance field)",
+            "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric for node aiops-k8s-06, showing increase from 21.02% to 33.77% with median change ratio 0.4656 (From GT key_observations and Full Context raw_metric_result)",
+            "Step 3: Derive Root Cause - Based on above features, determined cause is [node_memory_usage_rate] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Metric value increased significantly on node aiops-k8s-06 during fault period, as shown in raw_metric_result with median change ratio 0.4656",
+                "instruction": "Search for metric node_memory_usage_rate on node aiops-k8s-06 in metric data and check for anomalies like increase from normal to fault median"
+            }
+        ]
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "a482d876-315",
+  "fault_type": "Resource Saturation (CPU)",
+  "symptom_vector": "Severe latency spike (rrt_max up to 93s) and abnormal process count surge",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice 所有 Pod 因进程数量激增导致 CPU 使用率饱和，进而引发服务响应时间严重恶化。",
+    "reasoning_chain": [
+      "Step 1: 在 Metric 数据中观察到 shippingservice-0, shippingservice-1, shippingservice-2 三个 Pod 的 `pod_processes` 指标在故障期间从正常中位值 1.0 激增至 9.0，变化率高达 1.6，表明进程数异常增加。",
+      "Step 2: 同时，上述三个 Pod 的 `pod_cpu_usage` 指标从正常中位值 0.0 上升至 0.4，变化率达 2.0，表明 CPU 使用率出现显著增长，与进程数激增现象吻合，指向 CPU 资源饱和。",
+      "Step 3: 进一步分析发现，同一服务（shippingservice）的 `rrt_max`（最大响应时间）指标严重恶化，例如 shippingservice-1 从 3030.5ms 恶化至 93939.0ms（约93秒），变化率1.875。这直接证明了由 CPU 饱和引发的性能瓶颈已导致服务端到端响应时间出现灾难性劣化。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden spike (e.g., from 1.0 to 9.0) across all pods of a specific service.",
+        "instruction": "检查目标服务所有 Pod 的 `pod_processes` 指标。如果该指标值相较于正常基线（如 1.0）出现数倍的激增，则表明该 Pod 内进程数量异常，可能是资源泄漏或异常任务调度的信号。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Concurrent increase from near-zero baseline (e.g., 0.0 to 0.4) following or coinciding with process count surge.",
+        "instruction": "在发现 `pod_processes` 激增的 Pod 上，立即检查其 `pod_cpu_usage` 指标。如果 CPU 使用率同步出现从低基线（如接近0）的显著上升，则强烈表明进程数激增正在消耗大量 CPU 资源，导致 CPU 饱和。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Severe degradation (order of magnitude increase, e.g., from seconds to tens of seconds) in the maximum response time of the affected service.",
+        "instruction": "对于出现上述资源异常（进程数、CPU）的服务，检查其 `rrt_max` 或 `rrt` 指标。如果最大或平均响应时间出现极端劣化（如从几秒增加到几十秒），则确认资源饱和已转化为可感知的性能故障。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+```json
+{
+    "uuid": "bb585575-589",
+    "fault_type": "metric",
+    "symptom_vector": "service latency degradation (e.g., rrt_max decreased), potential fast-fail behavior from upstream services.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点aiops-k8s-08的CPU使用率异常飙升，导致节点性能恶化，进而影响其上运行的服务。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到，节点 `aiops-k8s-08` 的 `node_cpu_usage_rate` 中位数从正常时期的33%异常飙升至故障时期的89.16%，变化率高达91.94%，这是所有指标中最显著的异常。",
+            "Step 2: 进一步分析 `aiops-k8s-08` 节点上Pod的CPU使用率指标，发现该节点上运行的 `redis-cart-0`、`frontend-2`、`checkoutservice-0` 等Pod的 `pod_cpu_usage` 在故障期间均未出现显著增长，甚至有所下降。这表明节点的CPU压力并非由其上的工作负载（Pod）直接造成，符合节点自身问题的特征。",
+            "Step 3: 结合Trace数据分析，发现运行在 `aiops-k8s-08` 节点上的关键服务 `checkoutservice-0` 和 `frontend-2` 的最大响应时间（rrt_max）在故障期间分别下降了57.52%和50.95%。这种响应时间下降的模式，与节点资源紧张时服务可能触发的快速失败（fast-fail）或降级机制相符，是节点CPU过载导致服务性能异常的间接证据。",
+            "Step 4: 检查Log数据，在故障时间范围内未发现任何错误日志。这排除了应用层代码错误导致问题的可能性，间接支持了问题根源在于底层硬件/资源层（即节点自身）的判断。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden and significant increase in median value (e.g., change ratio > 50%).",
+                "instruction": "在所有节点的 `node_cpu_usage_rate` 指标中，找出中位数值（median）在故障期相较于正常期变化率最大的节点。这是最可能发生硬件层资源问题的候选目标。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "The `pod_cpu_usage` of pods running on the suspected faulty node remains stable or even decreases, while the `node_cpu_usage_rate` spikes.",
+                "instruction": "检查疑似故障节点上运行的所有Pod的 `pod_cpu_usage` 指标。如果这些Pod的CPU使用率在故障期间保持平稳或下降，而节点整体CPU使用率飙升，则强烈暗示是节点自身问题，而非Pod导致。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max / avg_duration of services",
+                "expected_pattern": "Services running on the suspected faulty node show a decrease in response times (rrt_max), indicating potential fast-fail or circuit-breaking behavior triggered by resource stress.",
+                "instruction": "筛选调用链（Trace）数据，聚焦在疑似故障节点上运行的服务的响应时间（如rrt_max或平均耗时）。观察其模式：响应时间显著下降可能意味着服务因底层资源不足（如CPU竞争）而快速失败，这是节点问题的一个关键间接信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "Any error keyword (e.g., OOM, timeout, connection refused)",
+                "expected_pattern": "No error logs detected during the anomaly period from services on the suspected node.",
+                "instruction": "检查故障时间段内，来自疑似故障节点及其上运行服务的日志。如果没有发现应用层错误日志（如OOM、超时、连接拒绝），则有助于排除应用代码缺陷，将调查方向导向基础设施层。"
+            }
+        ]
+    }
+}
+```

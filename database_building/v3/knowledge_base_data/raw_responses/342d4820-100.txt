@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "342d4820-100",
+    "fault_type": "rrt_max",
+    "symptom_vector": "packet corruption and data corruption causing network connection timeouts and extreme latency spikes",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 与 productcatalogservice 之间的网络连接因数据包损坏导致 rrt_max 指标飙升和连接超时",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice 调用 productcatalogservice 的 GetProduct 操作 rrt_max 从正常 19.5ms 飙升至 25,343ms，延迟增加 1296 倍",
+            "Step 2: 分析 checkoutservice 与 productcatalogservice 之间的网络连接出现大量超时错误，包括 'dial tcp timeout' 和 'timed out waiting for server handshake'，共 275 次连接错误",
+            "Step 3: 确认故障影响 checkoutservice 和 productcatalogservice 两个组件，网络数据包损坏导致服务间通信失败"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->productcatalogservice",
+                "expected_pattern": "Extreme latency increase in GetProduct calls",
+                "instruction": "检查 checkoutservice 调用 productcatalogservice 的 GetProduct 操作的延迟是否异常飙升"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Significant latency anomalies in service calls",
+                "instruction": "分析调用链中的延迟异常，特别是 checkoutservice 与 productcatalogservice 之间的调用"
+            },
+            {
+                "modality": "Log",
+                "target": "Rpc|error|code|canceled|desc|context canceled",
+                "expected_pattern": "RPC errors with context canceled and timeout messages",
+                "instruction": "在 checkoutservice 和 productcatalogservice 的日志中搜索 RPC 错误、超时和上下文取消的关键词"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Response time degradation",
+                "instruction": "检查 checkoutservice 和 productcatalogservice 的 rrt 指标是否显著恶化"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Maximum response time spike",
+                "instruction": "检查 checkoutservice 和 productcatalogservice 的 rrt_max 指标是否出现极端峰值"
+            },
+            {
+                "modality": "Metric",
+                "target": "request|response",
+                "expected_pattern": "Request/response pattern anomalies",
+                "instruction": "分析请求和响应指标的异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "Network packet anomalies",
+                "instruction": "检查 checkoutservice 和 productcatalogservice 的网络接收/发送字节数和包数的异常"
+            }
+        ]
+    }
+}
+```

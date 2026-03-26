@@ -1,0 +1,27 @@
+{
+  "uuid": "6f84e51d-140",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-07 节点因 node_memory_usage_rate 指标异常导致内存压力故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-07 节点的 node_cpu_usage_rate 指标 p99 值从 23.86% 上升至 33.76%（变化率 0.3438），表明节点 CPU 使用率出现异常峰值",
+      "Step 2: 分析节点内存相关指标，发现 node_memory_usage_rate 和 node_memory_MemAvailable_bytes 是关键监控指标，需要检查这些指标在故障时间段内的异常模式",
+      "Step 3: 确认故障传播路径，虽然 trace 数据显示 redis HGET 延迟增加，但 redis-cart-0 运行在 aiops-k8s-08 节点且该节点指标正常，排除 redis 作为根因"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "持续高值或异常上升趋势",
+        "instruction": "检查 aiops-k8s-07 节点的 node_memory_usage_rate 指标在故障时间段内是否持续高位或异常上升"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "持续低值或异常下降趋势",
+        "instruction": "检查 aiops-k8s-07 节点的 node_memory_MemAvailable_bytes 指标在故障时间段内是否持续低位或异常下降"
+      }
+    ]
+  }
+}

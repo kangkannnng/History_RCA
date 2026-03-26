@@ -1,0 +1,51 @@
+{
+  "uuid": "4b225f4a-348",
+  "fault_type": "region_pending_anomaly",
+  "symptom_vector": "Severe latency spikes in database queries with IO-related metric anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv 组件由于 region_pending 指标出现严重异常（变化率 1.64-1.96），导致存储层任务堆积，引发全局性查询延迟飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 的 region_pending 指标在故障时段变化率高达 1.6382-1.9615，P99 值从 133863.57 急剧下降至 1299.72，表明存储层存在严重的任务积压。",
+      "Step 2: 分析 tidb-tidb 的 duration_99th 延迟指标，发现从正常的 0.02 秒飙升至 11.33 秒，变化率达 199.3%，确认了由存储层性能瓶颈引发的计算层查询延迟。",
+      "Step 3: 通过 Trace 数据确认，productcatalogservice 调用 TiDB 的 GetProduct 接口延迟从 10.4 秒激增至 323-398 秒，且该延迟向上游传播，影响了 checkoutservice 和 frontend。日志分析未发现应用层错误，进一步支持了根因是底层存储 IO 性能问题的推断。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Change ratio exceeding 1.5 (drastic drop in median or P99)",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 指标，其 P99 或中位数是否在故障时段出现急剧下降（变化率 >1.5），这指示存储层任务积压。"
+      },
+      {
+        "modality": "Metric",
+        "target": "duration_99th",
+        "expected_pattern": "Spike in P99 latency value",
+        "instruction": "检查 tidb-tidb 组件的 duration_99th 指标，其 P99 值是否出现显著飙升（例如从毫秒级升至秒级），以确认查询延迟恶化。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Elevated P99 usage",
+        "instruction": "检查 tidb-tikv 组件的 cpu_usage 指标，其 P99 值是否在故障时段明显升高，这可能伴随 IO 等待。"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Stable or slight change",
+        "instruction": "检查 tidb-tikv 组件的 memory_usage 指标，确认其是否相对稳定，以辅助排除内存耗尽类故障。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice->TiDB",
+        "expected_pattern": "Severe latency increase (e.g., >30x) in GetProduct operation",
+        "instruction": "分析调用链，检查从 productcatalogservice 到 TiDB（尤其是 GetProduct 操作）的延迟是否出现数十倍以上的异常增加，并观察延迟是否向上游服务（如 checkoutservice, frontend）传播。"
+      },
+      {
+        "modality": "Log",
+        "target": "",
+        "expected_pattern": "Absence of application-level error logs",
+        "instruction": "在故障时段内，检查 tidb-tikv 及相关应用服务（如 productcatalogservice）的日志，确认是否没有 OOM、连接错误等应用层报错，这符合底层存储性能问题的特征。"
+      }
+    ]
+  }
+}

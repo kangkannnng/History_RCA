@@ -1,0 +1,39 @@
+{
+  "uuid": "ef2a4fbb-87",
+  "fault_type": "metric",
+  "symptom_vector": "Significant increase in service latency (e.g., rrt_max for cartservice, checkoutservice) across multiple services, coinciding with a sharp spike in node-level CPU utilization.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点(aiops-k8s-03)CPU使用率飙升，导致节点上部署的多个服务因资源竞争而发生性能下降。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到`aiops-k8s-03`节点的`node_cpu_usage_rate`中位数从29.34%飙升至92.01%，变化率高达103%，P99值也从32.9%升至94.99%，这是最显著的节点级指标异常。",
+      "Step 2: 通过分析`node_pod_mapping`，确认`aiops-k8s-03`节点上部署了多个关键服务实例，包括`recommendationservice-0`、`frontend-0`、`cartservice-2`、`adservice-0`等。",
+      "Step 3: 结合Trace数据，发现位于`aiops-k8s-03`节点上的服务（如`frontend-0`, `cartservice-2`, `recommendationservice-0`）在故障期间均出现了延迟异常或调用模式异常，形成了多服务并发性能降级的模式，这符合节点资源竞争导致服务间相互影响的特征。同时，Log数据显示无错误日志，也符合性能瓶颈而非应用功能错误的特征。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike (>50% median change) for a specific node during the anomaly period.",
+        "instruction": "检查所有节点的`node_cpu_usage_rate`指标，重点关注中位数（median_change_ratio）和P99分位数变化率。识别变化率异常高（例如超过50%）的特定节点，作为首要怀疑对象。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_pod_mapping",
+        "expected_pattern": "The suspected high-CPU node hosts multiple service pods.",
+        "instruction": "获取并验证高CPU使用率节点上部署的Pod列表。确认这些Pod是否属于报告性能问题的服务（如通过Trace数据发现延迟的服务），建立节点问题影响服务的直接关联。"
+      },
+      {
+        "modality": "Trace",
+        "target": "service_name, node_name",
+        "expected_pattern": "Concurrent performance degradation (increased duration or anomaly count) for multiple services sharing the same node.",
+        "instruction": "筛选Trace数据，查看异常调用边（如延迟增高的接口）对应的`node_name`。检查是否大量异常调用都源自或指向同一个高负载节点上的服务，验证节点问题导致的服务间连锁反应模式。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error, Exception, Fatal",
+        "expected_pattern": "Clean log (no errors) during the anomaly period, indicating a performance issue rather than functional failure.",
+        "instruction": "分析故障时间窗口内的应用日志。如果未发现错误或异常日志，则故障更可能由底层资源（如CPU）竞争引起，而非应用代码逻辑错误。这是一个重要的排除性线索。"
+      }
+    ]
+  }
+}

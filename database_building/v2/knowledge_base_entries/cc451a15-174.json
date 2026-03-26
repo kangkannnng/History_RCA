@@ -1,0 +1,21 @@
+{
+  "uuid": "cc451a15-174",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "Latency spike (rrt_max) and error_ratio increase observed across multiple services.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-04节点CPU使用率耗尽，导致节点资源饱和并引发运行于其上的多个服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到`aiops-k8s-04`节点的`node_cpu_usage_rate`指标出现最显著的异常变化，其中位数从19.62%急剧飙升至93.54%，变化率达1.3065，表明该节点CPU资源严重不足。",
+      "Step 2: 通过节点与Pod的映射关系分析，发现`frontend-2`、`currencyservice-1`、`checkoutservice-0`等Pod运行在该异常节点上，并且这些服务或其同类服务（如同样运行在该节点映射逻辑中的`cartservice-1`、`productcatalogservice-2`）均普遍出现了`rrt_max`（最大响应时间）增加或`error_ratio`（错误率）升高的现象。",
+      "Step 3: 综合以上观察，可以合理推断出一个节点级（Node-level）的资源瓶颈（CPU耗尽）是导致部署在该节点上的多个服务同时出现性能劣化（延迟增加、错误率升高）的共同根因，这是一种典型的节点资源竞争引发的级联影响故障模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike in median and/or P99 values, with significant change ratio.",
+        "instruction": "计算并比对异常时段与基准时段的节点CPU使用率（node_cpu_usage_rate）中位数与P99值，找出变化率（例如变化率 > 0.5）最大的节点。"
+      }
+    ]
+  }
+}

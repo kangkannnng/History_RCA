@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "555d145f-99",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, saturation, high memory usage, potential memory leak, or memory stress.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-04] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-04] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric (From GT key_observations).",
+            "Step 3: Derive Root Cause - Based on the presence of the key metric, determined cause is [node_memory_usage_rate] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Metric value for node 'aiops-k8s-04' shows abnormal increase or high value during the fault window (2025-06-06T11:03:16Z to 2025-06-06T11:21:16Z).",
+                "instruction": "Search for metric 'node_memory_usage_rate' where node_name is 'aiops-k8s-04' and check its values (normal_median, fault_median, change_ratio) during the fault time range."
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Disk read throughput metric for node 'aiops-k8s-04' may show correlated activity.",
+                "instruction": "Search for metric 'node_disk_read_bytes_total' where node_name is 'aiops-k8s-04' during the fault time range."
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Disk read latency metric for node 'aiops-k8s-04' may show correlated activity.",
+                "instruction": "Search for metric 'node_disk_read_time_seconds_total' where node_name is 'aiops-k8s-04' during the fault time range."
+            }
+        ]
+    }
+}
+```

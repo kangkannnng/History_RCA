@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "6375ea10-98",
+    "fault_type": "client_error_ratio",
+    "symptom_vector": "Frontend service error_ratio spikes from 0% to over 10%, accompanied by RPC connection refused errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "recommendationservice Pod故障，导致来自frontend的所有调用因连接被拒绝而失败，引发前端服务错误率飙升。",
+        "reasoning_chain": [
+            "Step 1: 通过指标分析，观察到故障期间所有 frontend 实例（frontend-0, frontend-1, frontend-2）的 server_error_ratio 和 error_ratio 均从 0% 急剧上升至 10% 以上，这是最显著的表层故障症状。",
+            "Step 2: 通过日志分析，发现所有 frontend 实例的日志中，均大量报出内容为 'failed to get product recommendations: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing dial tcp 10.233.43.10:8080: connect: connection refused\"' 的错误，表明故障核心是前端无法连接到 IP 为 10.233.43.10:8080 的目标服务。根据错误内容推断，该目标服务为 recommendationservice。",
+            "Step 3: 通过调用链（Trace）分析确认，在故障时间段内，从 frontend 到 recommendationservice 的 'ListRecommendations' 调用，其状态码为 14，对应的状态消息明确为 'connection refused' 和 'Error while dialing'，总出现次数超过 4600 次，是系统中最主要的错误源。结合步骤2的日志证据，最终将根因锁定为 recommendationservice 服务不可用。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "frontend_server_error_ratio, frontend_error_ratio",
+                "expected_pattern": "Sudden spike from near 0% to over 10% across all frontend instances.",
+                "instruction": "检查所有frontend Pod的error_ratio或server_error_ratio指标，是否在故障时间点附近出现突发性、大幅度的飙升。这是触发诊断流程的首要症状。"
+            },
+            {
+                "modality": "Log",
+                "target": "\"connection refused\", \"Error while dialing\", \"failed to get product recommendations\"",
+                "expected_pattern": "Contains connection refused error messages pointing to a specific IP:Port (e.g., 10.233.43.10:8080) from frontend services.",
+                "instruction": "在frontend服务的错误日志中搜索包含'connection refused'、'Error while dialing'或'failed to get product recommendations'等关键词的条目。提取并分析错误消息中目标服务的IP和端口。"
+            },
+            {
+                "modality": "Trace",
+                "target": "Status code 14, status_message containing 'connection refused' or 'Error while dialing'",
+                "expected_pattern": "High frequency of failed service calls (e.g., frontend -> recommendationservice) with status code 14 indicating connection errors.",
+                "instruction": "分析调用链数据，重点关注失败调用的状态码。当看到大量状态码为14（或其他代表连接失败的代码），且状态消息包含'connection refused'、'Error while dialing'等描述，特别是当这些失败调用指向步骤2日志中发现的同一目标服务时，即可确认根因组件。"
+            }
+        ]
+    }
+}
+```

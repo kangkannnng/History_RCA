@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "cd049902-400",
+    "fault_type": "timeout_and_process_failure",
+    "symptom_vector": "Multiple frontend instances experience a surge in timeout exceptions (5k-8k) alongside a drop in pod CPU usage to 0, accompanied by a large number of HTTP 404 errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "前端服务因客户端URL配置错误导致代码异常和运行时恐慌，引发进程崩溃和大量超时，进而产生级联故障。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据中观察到`frontend-0`的`pod_cpu_usage`指标在故障期间中位数从0.02降至0.0，p99分位数也从0.06降至0.05，这表明其进程可能已停止运行或频繁重启。同时，所有frontend实例（`frontend-0`, `frontend-1`, `frontend-2`）的`timeout`指标均出现剧烈增长，从0激增至5413至8329次不等。",
+            "Step 2: 从Trace数据中观察到`frontend`服务在多个节点（aiops-k8s-08, aiops-k8s-06, aiops-k8s-04）上总计产生了5129次HTTP 404状态码的错误，状态消息为‘HTTP status code: 404’。这表明前端服务在处理请求时遇到了资源未找到的问题，与‘Client URL misconfigured’的描述相符。",
+            "Step 3: 结合上述两点，可以推断故障链：错误的客户端URL配置（如调用下游服务的地址错误）导致了前端服务代码逻辑中产生异常（如panic），这解释了`runtime panic`和`code error`。进程的异常终止（`pod_processes`）导致CPU使用率骤降，同时，进程崩溃或异常处理期间积累了大量未处理或重试的请求，从而引发了观察到的海量`timeout`异常。前端作为入口服务的失效，进一步引发了到下游服务（如cartservice, shippingservice）的调用延迟（rrt_max）增加，形成级联影响。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden drop to near-zero values for frontend pods",
+                "instruction": "检查故障期间前端服务Pod的CPU使用率指标。若发现其使用率从正常值骤降至接近0，则强烈表明进程可能崩溃或停止服务。"
+            },
+            {
+                "modality": "Metric",
+                "target": "timeout",
+                "expected_pattern": "Sharp increase from 0 to thousands of occurrences across frontend service instances",
+                "instruction": "检查`frontend`服务的`timeout`异常计数。如果观察到短时间内从0激增至数千次，表明服务在处理请求时出现大规模失败或超时。"
+            },
+            {
+                "modality": "Trace",
+                "target": "status_code",
+                "expected_pattern": "A high volume of HTTP 404 status codes returned by the frontend service",
+                "instruction": "分析前端服务返回的调用链状态码。如果发现大量（如数千次）的‘404’状态码，表明存在路由错误或客户端请求配置问题。"
+            },
+            {
+                "modality": "Log",
+                "target": "panic OR runtime error OR http.resp.status",
+                "expected_pattern": "Contains keywords indicating process panic, runtime errors, or HTTP 302/404 responses",
+                "instruction": "虽然本次日志未捕获到关键错误，但对于此类故障，应着重搜索包含‘panic’、运行时错误或特定HTTP响应状态码（如302、404）的日志条目，这些是定位代码错误和配置问题的直接证据。"
+            }
+        ]
+    }
+}
+```

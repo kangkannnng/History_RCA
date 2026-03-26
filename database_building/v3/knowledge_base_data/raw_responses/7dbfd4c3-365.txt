@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "7dbfd4c3-365",
+    "fault_type": "region_pending_io_util",
+    "symptom_vector": "io fault with filesystem call errors, read/write operation errors, and permission denied errors",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 region_pending 和 io_util 指标异常导致存储层IO故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 的 region_pending 指标中位数从10657下降到1061，变化率163.78%，表明存储层region处理能力严重下降",
+            "Step 2: 分析 tidb-tikv 的 io_util 指标P99值从0.06%上升到0.28%，变化率129.14%，确认存在IO利用率异常",
+            "Step 3: 确认依赖TiDB的productcatalogservice服务延迟增加33倍（从10秒到33万毫秒），符合存储层故障引发的连锁反应"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "productcatalogservice调用链延迟显著增加（33倍以上）",
+                "instruction": "检查productcatalogservice服务的调用链延迟，特别是hipstershop.ProductCatalogService/GetProduct操作，确认是否存在33倍以上的延迟增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "IO利用率P99值异常上升（变化率>100%）",
+                "instruction": "检查tidb-tikv组件的io_util指标，确认P99值是否从正常水平显著上升"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "region_pending中位数大幅下降（变化率>100%）",
+                "instruction": "检查tidb-tikv组件的region_pending指标，确认中位数是否从正常值大幅下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "raft_apply_wait指标异常",
+                "instruction": "检查tidb-tikv组件的raft_apply_wait指标，确认是否存在异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "snapshot_apply_count",
+                "expected_pattern": "snapshot_apply_count指标异常",
+                "instruction": "检查tidb-tikv组件的snapshot_apply_count指标，确认是否存在异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "内存使用率异常",
+                "instruction": "检查tidb-tikv组件的内存使用率指标，确认是否存在异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "CPU使用率异常",
+                "instruction": "检查tidb-tikv组件的CPU使用率指标，确认是否存在异常"
+            }
+        ]
+    }
+}
+```

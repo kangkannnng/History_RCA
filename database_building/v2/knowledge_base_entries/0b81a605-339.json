@@ -1,0 +1,40 @@
+{
+  "uuid": "0b81a605-339",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "paymentservice latency spike, checkoutservice upstream latency increase, pod processes count surge",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice-2 的 CPU 使用率激增和进程数异常增加导致服务响应时间严重劣化",
+    "reasoning_chain": [
+      "Step 1: 通过 Metric 数据分析，发现 paymentservice-2 的 pod_cpu_usage 从中位数 0.0 飙升至 0.4（变化率 2.0），同时 pod_processes 从 1.0 激增至 13.0（变化率 1.7143），表明该 Pod 发生进程级异常",
+      "Step 2: 同一时间，paymentservice-2 的 rrt_max 从 1499.0 毫秒激增至 97993.5 毫秒（增长 65 倍），rrt 中位数从 1306.5 增至 58696.75 毫秒，显示性能严重下降",
+      "Step 3: 通过 Trace 数据验证，发现 checkoutservice 调用 paymentservice 的延迟从正常 13.7 秒激增至 97.1 秒（7.1 倍增长），这是调用链中最严重的延迟异常，且位于依赖链末端，符合根因定位原则",
+      "Step 4: 日志分析未发现错误记录，排除显性错误（如 OOM、连接超时等），结合 Metric 和 Trace 数据，确认为 Pod 生命周期异常导致的性能问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden spike in median value (从 0.0 升至 0.4，变化率 ≥ 2.0)",
+        "instruction": "检查 paymentservice-2 的 pod_cpu_usage 指标在故障时间段内是否有显著突增。重点关注中位数（median）的变化幅度，通常变化率 ≥ 1.5 即为异常信号。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormal increase in process count (从 1.0 升至 13.0，变化率 ≥ 1.5)",
+        "instruction": "检查 paymentservice-2 的 pod_processes 指标。进程数异常增加（例如从 1 突增至 10+）是 Pod 生命周期异常的典型信号，可能伴随 CPU 使用率激增。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->paymentservice",
+        "expected_pattern": "Latency spike in downstream service call (延迟增长倍数 ≥ 5 倍)",
+        "instruction": "分析 checkoutservice 调用 paymentservice 的追踪数据。如果该调用链延迟异常增长（≥5倍），且 paymentservice 位于调用链末端，应优先检查该服务的资源指标。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme latency spike in paymentservice rrt_max (从 <2000ms 激增至 >50000ms)",
+        "instruction": "检查 paymentservice-2 的 rrt_max 指标。如果出现极端延迟（例如从毫秒级升至秒级），且同时伴随 CPU/进程异常，则高度怀疑是资源瓶颈导致。"
+      }
+    ]
+  }
+}

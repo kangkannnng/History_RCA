@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "1ef94bd7-352",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-04 节点因 node_memory_usage_rate 指标异常导致内存压力",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-04 节点的 node_memory_usage_rate 指标中位数从 47.37% 下降到 31.6%（变化率 39.94%），表明内存使用率异常波动",
+            "Step 2: 分析 aiops-k8s-04 节点的 node_memory_MemAvailable_bytes 指标从 8,704,978,944 字节增加到 10,924,437,504 字节（变化率 22.61%），显示可用内存异常增加",
+            "Step 3: 确认 aiops-k8s-04 节点的 node_cpu_usage_rate 指标 p99 从 36.43% 上升到 54.03%（变化率 38.92%），表明 CPU 使用率同时异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "中位数显著下降（变化率 > 30%）或 p99 异常波动",
+                "instruction": "检查 aiops-k8s-04 节点的 node_memory_usage_rate 指标是否出现异常下降或波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "可用内存异常增加（变化率 > 20%）",
+                "instruction": "检查 aiops-k8s-04 节点的 node_memory_MemAvailable_bytes 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "磁盘读取字节数异常增加",
+                "instruction": "检查 aiops-k8s-04 节点的磁盘读取相关指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "磁盘读取时间异常增加",
+                "instruction": "检查 aiops-k8s-04 节点的磁盘读取时间指标是否异常"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP 响应状态码 302 出现频率异常",
+                "instruction": "在相关服务的日志中搜索 HTTP 响应状态码 302 的出现频率是否异常"
+            }
+        ]
+    }
+}
+```

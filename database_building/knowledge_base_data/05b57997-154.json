@@ -1,0 +1,70 @@
+{
+  "uuid": "05b57997-154",
+  "fault_type": "network_rrt_rrt_max_anomaly",
+  "symptom_vector": "Service experiencing packet corruption and network timeouts, leading to connection failures and RPC errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice] experienced [rrt, rrt_max] fault, accompanied by [request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] anomaly.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations).",
+      "Step 3: Check Observation - Found keyword [failure] in Log (From GT key_observations).",
+      "Step 4: Check Observation - Found keyword [Rpc, error, code, canceled, desc, context canceled] in Log (From GT key_observations).",
+      "Step 5: Check Observation - Found keyword [timeout] in Log (From GT key_observations).",
+      "Step 6: Check Observation - Found keyword [unavailable] in Log (From GT key_observations).",
+      "Step 7: Check Observation - Found keyword [rrt, rrt_max] in Metric (From GT key_observations).",
+      "Step 8: Check Observation - Found keyword [request, response] in Metric (From GT key_observations).",
+      "Step 9: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric (From GT key_observations).",
+      "Step 10: Derive Root Cause - Based on above features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error while dialing",
+        "expected_pattern": "Log entries containing 'transport: Error while dialing dial tcp ...: i/o timeout' appear in frontend service logs.",
+        "instruction": "Search for keyword 'Error while dialing' in Log data from the fault time range."
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'cart failure:' appear in frontend service logs.",
+        "instruction": "Search for keyword 'failure' in Log data from the fault time range."
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc error code canceled desc context canceled",
+        "expected_pattern": "Log entries containing 'rpc error: code = Canceled desc = context canceled' appear in frontend service logs.",
+        "instruction": "Search for keyword 'context canceled' in Log data from the fault time range."
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Log entries containing 'i/o timeout' or 'timed out waiting for server handshake' appear in frontend service logs.",
+        "instruction": "Search for keyword 'timeout' in Log data from the fault time range."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries containing 'code = Unavailable' appear in frontend service logs.",
+        "instruction": "Search for keyword 'unavailable' in Log data from the fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt rrt_max",
+        "expected_pattern": "Metric 'rrt' and 'rrt_max' for component 'checkoutservice-2' show extreme increase (e.g., rrt from 6688.42ms to 3877519.8ms).",
+        "instruction": "Check if metric 'rrt' and 'rrt_max' for service 'checkoutservice' show abnormal spikes during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "request response",
+        "expected_pattern": "Metrics related to request and response (implied by rrt, error_ratio) show anomalies for frontend and checkoutservice.",
+        "instruction": "Check request/response related metrics (e.g., error_ratio, server_error_ratio) for services 'frontend' and 'checkoutservice'."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes pod_network_receive_packets pod_network_transmit_bytes pod_network_transmit_packets",
+        "expected_pattern": "Network I/O metrics for pods show abnormal patterns indicative of packet corruption.",
+        "instruction": "Check network receive/transmit byte and packet metrics for pods involved (e.g., checkoutservice, cartservice, frontend)."
+      }
+    ]
+  }
+}

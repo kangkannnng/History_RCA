@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Error logs indicating storage access failures with timeout errors, showing that dependent services cannot retrieve data.
+- Metric anomaly pattern: Significant increase in node CPU usage rate at the 99th percentile, rising from 25% to 76.65%, on a specific node.
+- Trace anomaly pattern: Severe latency spikes in data retrieval operations, with response times increasing by multiples, particularly affecting storage-dependent services.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Node CPU usage rate at the 99th percentile increased dramatically from 25% to 76.65% on node aiops-k8s-08 - this indicates a resource constraint at the node level, which can directly impact all services running on it.
+- Evidence 2: Mapping shows that a critical storage service instance (redis-cart-0) runs on the affected node aiops-k8s-08 - this establishes a direct link between node resource issues and service performance degradation.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Latency spikes in downstream services such as cartservice and frontend, with operations showing increased response times - these are consequences of the storage service slowdown, not the root cause.
+- Evidence 4: Database layer indicators showing pending request increases - this may exacerbate the issue but is likely a secondary effect of node resource constraints.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the sharp increase in node CPU usage at the 99th percentile and the colocation of a critical storage service on that node, we suspect a node-level resource constraint is causing performance degradation in dependent services."
+
+Step 2: Verification or elimination
+"If this were caused by an issue within the storage service itself, we would expect to see corresponding resource usage spikes in the service metrics or specific error patterns isolated to that service; However, actual observation shows stable service-level resource metrics but severe node CPU anomalies, and errors propagate from storage to upstream services; This rules out the storage service as the primary root cause."
+
+Step 3: Convergence to conclusion
+"The combination of node CPU resource anomaly and the service placement evidence indicates that node resource limitations are impairing the performance of a critical dependency, leading to cascading failures across the system."
+
+[Conclusion]
+"The root cause is a node-level resource constraint where elevated CPU usage degraded the performance of a key storage service, causing timeouts and delays that propagated to upstream applications."
+
+[Next Action]
+- "Verify whether additional node-level metrics such as memory or I/O show similar anomalies to confirm resource contention patterns."
+- "Check for correlated performance degradation in other services running on the same node to assess the scope of impact."

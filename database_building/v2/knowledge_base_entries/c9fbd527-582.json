@@ -1,0 +1,33 @@
+{
+  "uuid": "c9fbd527-582",
+  "fault_type": "pod_processes",
+  "symptom_vector": "HTTP 404 errors surge, frontend service latency anomalies, no application-level error logs detected",
+  "expert_knowledge": {
+    "root_cause_desc": "前端服务 Pod 进程异常（推测为运行时崩溃或配置错误）导致服务失效，并引发大量HTTP客户端错误。",
+    "reasoning_chain": [
+      "Step 1: 通过Metric分析，观察到frontend-1的error_ratio和client_error_ratio从0%急剧飙升至7.56%，表明前端服务在故障期间出现了显著的用户请求错误。",
+      "Step 2: 通过Trace分析，发现frontend服务本身存在大量404状态码（frontend-1出现431次，frontend-2出现646次），且trace显示部分前端自身调用（如frontend-1 to frontend-1的AddItem、GetCart）延迟激增超过4倍。这些现象指向前端服务自身处理能力或路由功能出现问题。",
+      "Step 3: 结合Log分析，在故障时间段内未检测到应用层面的错误日志（如Exception、Error、Panic）。这通常排除了由代码逻辑错误直接导致服务失败的情况，而更倾向于进程级别的异常，如配置加载失败、运行时环境问题导致的进程意外重启或异常，这与‘pod_processes’及‘runtime panic’、‘code error’（可能指启动阶段）的根因描述相符。Metric数据中缺少pod_cpu_usage等指标，故无法从资源维度直接验证，但前端错误率高且下游调用链（如到productcatalogservice, shippingservice）延迟虽有波动但未呈现灾难性级联故障，进一步将问题定位在前端服务实例自身。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "error_ratio, client_error_ratio (for frontend pods)",
+        "expected_pattern": "Sudden increase from 0% to >5%",
+        "instruction": "检查frontend服务Pod（尤其是frontend-1，frontend-2）的错误率(client_error_ratio)和总体错误率(error_ratio)指标。观察其在故障时间窗口内是否出现从0%基准值的突然、显著飙升。"
+      },
+      {
+        "modality": "Trace",
+        "target": "status_code, status_message (for frontend service)",
+        "expected_pattern": "High occurrence of HTTP 4xx/5xx status codes (especially 404) on frontend service endpoints (e.g., hipstershop.Frontend/Recv.)",
+        "instruction": "在Trace数据中，筛选服务名为‘frontend’的条目，重点检查‘status_code’和‘status_message’字段。寻找HTTP状态码非200（特别是404）的大量出现，这指示前端路由或请求处理失败。"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "Presence of log entries containing status code 302 or other non-2xx/3xx codes.",
+        "instruction": "在frontend服务的应用日志中，搜索包含‘http.resp.status’关键词的条目。检查在故障时间段内是否频繁出现状态码‘302’或其他异常状态码（如4xx, 5xx），这可以辅助定位HTTP重定向错误或响应异常。注意：当前数据集中日志分析结果为‘未检测到错误日志’，此检查旨在确认该发现，或指示需要检查更原始的日志源。"
+      }
+    ]
+  }
+}

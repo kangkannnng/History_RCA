@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "bc9db995-235",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice-1] experienced [pod_processes] fault, accompanied by [client_error, client_error_ratio, error, error_ratio, request, response] anomalies.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice-1] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric data showing drops to 0 (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [pod_processes] in Metric data showing process termination (From GT key_observations)",
+            "Step 4: Derive Root Cause - Based on network activity cessation and process termination features, determined cause is [pod_processes] fault (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "All network metrics dropped to 0 during fault window (06:16:38-06:16:39Z)",
+                "instruction": "Check if pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, and pod_network_transmit_packets metrics show 0 values for adservice-1 during fault window"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Process count dropped to 0 indicating pod termination",
+                "instruction": "Search for pod_processes metric showing 0 value for adservice-1 during fault window"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage, pod_memory_working_set_bytes",
+                "expected_pattern": "Resource utilization metrics dropped to 0",
+                "instruction": "Verify pod_cpu_usage and pod_memory_working_set_bytes dropped to 0 for adservice-1, as seen in Full Context for adservice-0 (similar pattern expected for adservice-1)"
+            }
+        ]
+    }
+}
+```

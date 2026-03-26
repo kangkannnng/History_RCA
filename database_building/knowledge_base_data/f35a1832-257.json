@@ -1,0 +1,35 @@
+{
+  "uuid": "f35a1832-257",
+  "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+  "symptom_vector": "High JVM latency, JVM response delay, elevated request latency, and JVM slow response in adservice pod",
+  "expert_knowledge": {
+    "root_cause_desc": "Component adservice-0 experienced adservice-getRandomAds-latency, rrt, rrt_max fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is adservice-0 (From Ground Truth, instance field, and present in logs with pod_name adservice-0).",
+      "Step 2: Check Observation - Found keyword adservice-getRandomAds-latency in Log, as seen in log messages about Byteman rule injection for latency (e.g., 'AdService-getRandomAds-latency-1749791449').",
+      "Step 3: Check Observation - Found keyword invocationtargetexception in Log, indicating Java reflection exception (e.g., 'java.lang.reflect.InvocationTargetException').",
+      "Step 4: Check Observation - Found keyword transformlistener in Log, via 'Transformer' mentions related to Byteman agent transformation (e.g., 'org.jboss.byteman.agent.Transformer').",
+      "Step 5: Derive Root Cause - Based on these features (latency rule injection, Java exceptions, agent transformation issues), determined cause is adservice-getRandomAds-latency, rrt, rrt_max fault leading to JVM latency."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Appears in log messages as part of Byteman rule names for latency injection, e.g., 'AdService-getRandomAds-latency-1749791449' in logs of adservice-0.",
+        "instruction": "Search for keyword 'adservice-getRandomAds-latency' in application logs of pod adservice-0 during the fault timeframe."
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Appears in exception stack traces in logs, e.g., 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' in logs of adservice-0.",
+        "instruction": "Search for keyword 'invocationtargetexception' in error logs of pod adservice-0."
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Mentioned as 'Transformer' in logs related to Byteman agent transformation, e.g., 'org.jboss.byteman.agent.Transformer' in logs of adservice-0.",
+        "instruction": "Search for keyword 'transformlistener' or 'Transformer' in logs of pod adservice-0 to identify agent transformation issues."
+      }
+    ]
+  }
+}

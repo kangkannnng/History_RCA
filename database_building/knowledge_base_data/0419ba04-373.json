@@ -1,0 +1,61 @@
+{
+  "uuid": "0419ba04-373",
+  "fault_type": "request response port",
+  "symptom_vector": "Service port mismatch causing connection refused errors and complete service unavailability, with cascading failures in dependent services.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [currencyservice] experienced [request] and [response] fault, accompanied by [port] misconfiguration anomaly.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [currencyservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [transport, Error, while, dialing] and [unavailable] in Log (From GT key_observations). Evidence: Log entries show 'transport: Error while dialing dial tcp 10.233.39.78:7000: connect: connection refused' and 'code = Unavailable desc = transport is closing'.",
+      "Step 3: Check Observation - Found keyword [request error] and [rpc, error] in Log (From GT key_observations). Evidence: Log entries have 'message': 'request error' and 'rpc error: code = Unavailable'.",
+      "Step 4: Check Observation - Found keyword [Internal] in Log (From GT key_observations). Evidence: Log entries contain 'code = Internal desc = failed to prepare order'.",
+      "Step 5: Check Observation - Found keyword [latency_anomalies] and [request_proportion_anomalies] in Trace (From GT key_observations). Evidence: Trace status combinations show high occurrence (2226-1709 times) of status code 14 errors for 'hipstershop.CurrencyService/GetSupportedCurrencies' calls from all frontend pods, indicating request failure proportion anomaly. The operation duration for this call dropped from ~2900ms to ~140ms, indicating a fast-fail latency anomaly.",
+      "Step 6: Check Observation - Found keyword [request, response] in Metric (From GT key_observations). Evidence: Metric data shows significant drop in 'request' and 'response' metrics for productcatalogservice-1 (request: 7389.0 -> 1031.0, response: 6215.5 -> 874.5), which is a downstream effect. The primary fault component 'currencyservice-2' shows pod_cpu_usage dropping to 0.0, indicating no request processing.",
+      "Step 7: Derive Root Cause - Based on the combined features of connection refused errors targeting port 7000, service unavailability, and cascading request/response failures, determined cause is [request, response, port] misconfiguration."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "transport, Error, while, dialing",
+        "expected_pattern": "Error log entries containing the phrase 'transport: Error while dialing dial tcp ...: connect: connection refused'",
+        "instruction": "Search for keyword 'transport: Error while dialing' in Log messages from frontend service."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries with RPC error code 'Unavailable'",
+        "instruction": "Search for keyword 'code = Unavailable' in Log error fields."
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log entries where the 'message' field is exactly 'request error'",
+        "instruction": "Filter logs where message equals 'request error'."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc, error",
+        "expected_pattern": "Log entries containing the phrase 'rpc error:'",
+        "instruction": "Search for keyword 'rpc error:' in Log error fields."
+      },
+      {
+        "modality": "Log",
+        "target": "Internal",
+        "expected_pattern": "Log entries with RPC error code 'Internal'",
+        "instruction": "Search for keyword 'code = Internal' in Log error fields."
+      },
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies, request_proportion_anomalies",
+        "expected_pattern": "For operation 'hipstershop.CurrencyService/GetSupportedCurrencies', a significant drop in average duration (from normal ~2900ms to fault ~140ms) AND a high count of failed status codes (14) across all calling frontend pods.",
+        "instruction": "Analyze trace data for service 'currencyservice', operation 'GetSupportedCurrencies'. Check both duration change and status code distribution (specifically code 14)."
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "A significant decrease in the 'request' and 'response' metric values for services dependent on the faulty component during the fault window.",
+        "instruction": "Compare the median values of 'request' and 'response' metrics during normal vs. fault periods for services like productcatalogservice."
+      }
+    ]
+  }
+}

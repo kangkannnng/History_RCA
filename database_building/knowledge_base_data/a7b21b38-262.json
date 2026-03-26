@@ -1,0 +1,64 @@
+{
+  "uuid": "a7b21b38-262",
+  "fault_type": "client_error, client_error_ratio, error, error_ratiopod_processes, request, response",
+  "symptom_vector": "Pod failure symptoms including crash, unexpected termination, container exit, and general pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [shippingservice] experienced [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [shippingservice] (From Ground Truth), supported by log and trace data in Full Context identifying shippingservice as the source of errors.",
+      "Step 2: Check Observation - Found keyword [error_ratio] in Metric (From GT key_observations), observed in Full Context metric data with error_ratio spiking from 0 to 2.12 for frontend services.",
+      "Step 3: Check Observation - Found keyword [error] in Log (implied from GT key_observations), observed in Full Context log data with error messages indicating 'connection refused' to shippingservice on port 50051.",
+      "Step 4: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] (From Ground Truth key_metrics), as the error propagation and metric anomalies align with these fault indicators."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "Value spiked from 0 to 2.12 in metric data for frontend services, indicating service unavailability",
+        "instruction": "Search for metric [error_ratio] in the specified time range and check for significant increases"
+      },
+      {
+        "modality": "Log",
+        "target": "error",
+        "expected_pattern": "Error logs containing 'connection refused' for shippingservice, e.g., 'failed to get shipping quote: rpc error: code = Unavailable desc = connection error'",
+        "instruction": "Search for keyword 'error' in logs related to shippingservice or dependent services like frontend"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "Not explicitly found in provided metric names; implied by error_ratio spike and log errors indicating client-side failures",
+        "instruction": "If available, check for client-specific error ratio metrics in the monitoring system"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Not available in current metric data set; typical manifestation would be abnormal memory usage values",
+        "instruction": "Monitor pod memory metrics for anomalies if this keyword is relevant in other contexts"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Not available in current metric data set; expected pattern includes unusual network traffic spikes or drops",
+        "instruction": "Check network-related metrics for pod-level anomalies if data is collected"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Similar to other network metrics, not observed here",
+        "instruction": "Include in comprehensive network monitoring for pod faults"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Not observed in provided data",
+        "instruction": "Verify network transmit metrics during fault periods"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Not observed in provided data",
+        "instruction": "Search for packet-level network metrics if available"
+      }
+    ]
+  }
+}

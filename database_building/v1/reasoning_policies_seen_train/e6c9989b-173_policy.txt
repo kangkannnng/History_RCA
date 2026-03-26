@@ -1,0 +1,28 @@
+[Trigger]
+- Metric anomaly pattern: Significant increase in response time metrics across multiple services, with the most severe changes observed in rrt and rrt_max values.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: All three instances of a specific service show rrt_max increases of approximately 200% (e.g., from ~1700-1900 to over 1,000,000) - this indicates a severe and consistent performance degradation isolated to one service component.
+- Evidence 2: The same three instances show similar dramatic increases in rrt values, confirming the response time degradation affects both typical and worst-case scenarios uniformly.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Frontend services show rrt_max increases of approximately 180% - this pattern suggests a downstream effect where dependent services experience degraded performance.
+- Evidence 4: One checkout service instance shows increased error ratios alongside response time degradation - this appears to be a consequence of the primary service failure rather than an independent issue.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given that all instances of a single service exhibit extreme response time degradation while other services show milder or no changes, we suspect this service is experiencing an internal performance issue."
+
+Step 2: Verification or elimination
+"If this were caused by infrastructure-level problems like node failures or network congestion, we would expect to see correlated anomalies across multiple services sharing the same infrastructure; however, the affected service instances are distributed across different nodes without node-level correlation in other metrics. This rules out infrastructure-wide issues."
+
+Step 3: Convergence to conclusion
+"The combination of extreme response time degradation isolated to one service's instances, the downstream impact on dependent services, and the absence of correlated infrastructure anomalies indicates a service-specific performance bottleneck or internal failure."
+
+[Conclusion]
+"The root cause is a severe performance degradation within a specific service component, where all instances became significantly slower in processing requests, creating a bottleneck that propagated to dependent services."
+
+[Next Action]
+- Verify whether application logs from the affected service instances show resource exhaustion or processing errors
+- Check for patterns of increasing request queues or connection pool exhaustion in the affected service

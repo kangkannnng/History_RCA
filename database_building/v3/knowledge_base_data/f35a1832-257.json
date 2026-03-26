@@ -1,0 +1,33 @@
+{
+  "uuid": "f35a1832-257",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "high JVM latency with elevated request latency and JVM response delay",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-0 组件因 adservice-getRandomAds-latency 指标异常导致 JVM 延迟问题",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的日志中出现 AdService-getRandomAds-latency-1749791449 规则注入相关异常",
+      "Step 2: 分析 adservice-0 的日志显示 Byteman agent 加载失败和 InvocationTargetException 异常",
+      "Step 3: 确认 adservice-0 存在 JVM 层面的延迟注入问题，导致 getRandomAds 方法性能下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "包含 AdService-getRandomAds-latency 规则注入相关日志",
+        "instruction": "在 adservice-0 的日志中搜索 AdService-getRandomAds-latency 关键词，检查 Byteman 规则注入情况"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "包含 InvocationTargetException 异常堆栈",
+        "instruction": "检查 adservice-0 日志中是否有 InvocationTargetException 异常记录"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "包含 Transformer 或 TransformListener 相关日志",
+        "instruction": "在 adservice-0 日志中搜索 Transformer 或 TransformListener 关键词，检查字节码转换问题"
+      }
+    ]
+  }
+}

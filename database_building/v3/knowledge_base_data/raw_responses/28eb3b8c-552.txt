@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "28eb3b8c-552",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-03 节点由于 node_memory_usage_rate 指标显著上升，导致运行于其上的关键服务出现高延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-03 节点的 node_memory_usage_rate 指标从正常中位数31.03%上升到故障中位数39.12%（变化率23.05%），是故障期间最显著的节点级资源异常。",
+            "Step 2: 分析 Trace 数据发现，位于 aiops-k8s-03 节点的关键服务 checkoutservice-2 对 shippingservice 的调用延迟（rrt_max）从9.35ms激增至57.11ms（约6.1倍）。",
+            "Step 3: 通过 node_pod_mapping 确认，出现延迟异常的服务（checkoutservice-2、cartservice-1）均运行在 aiops-k8s-03 节点上，结合其内存使用率上升的证据，确认为节点级资源压力引发的服务性能劣化。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Median value increases significantly (e.g., >20%) compared to baseline period.",
+                "instruction": "检查各节点的 node_memory_usage_rate 指标，对比故障时段与基准时段的中位数，识别出使用率显著异常上升的节点。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max, checkoutservice->shippingservice, checkoutservice->cartservice",
+                "expected_pattern": "Latency (rrt_max) between services, especially those traced to the suspect node, exhibits a sharp increase (multiples of baseline).",
+                "instruction": "在 Trace 数据中，重点关注出现高延迟的调用链，并结合 node_pod_mapping 分析这些延迟是否集中在特定节点（如 aiops-k8s-03）上运行的服务之间。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Value decreases significantly, correlating with the increase in node_memory_usage_rate.",
+                "instruction": "作为辅助验证，检查嫌疑节点（如 aiops-k8s-03）的 node_memory_MemAvailable_bytes 指标是否出现相应下降，以确认内存压力的存在。"
+            }
+        ]
+    }
+}
+```

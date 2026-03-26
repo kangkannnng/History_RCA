@@ -1,0 +1,83 @@
+```json
+{
+    "uuid": "14c1047f-366",
+    "fault_type": "pod_processes",
+    "symptom_vector": "code error causing runtime panic and service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice 组件因代码错误导致 Maximum call stack size exceeded 运行时异常，引发服务不可用和级联故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 currencyservice 日志中出现大量 'Maximum call stack size exceeded' 和 'RangeError' 错误，表明存在递归调用或无限循环的代码错误",
+            "Step 2: 分析 currencyservice 的 timeout 指标异常，p99超时时间从0飙升到10719，同时 error_ratio 指标显示服务故障",
+            "Step 3: 追踪数据显示 frontend->currencyservice 和 checkoutservice->currencyservice 调用失败，出现 'connection refused' 和 'transport is closing' 错误，确认 currencyservice 不可用导致级联故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "CurrencyService/Convert 操作延迟异常激增，正常平均2.3秒，异常时段达到15.5秒",
+                "instruction": "检查 frontend 到 currencyservice 的调用链，特别是 CurrencyService/Convert 操作的延迟是否异常增加"
+            },
+            {
+                "modality": "Log",
+                "target": "context|canceled",
+                "expected_pattern": "包含 'context canceled' 关键词的 RPC 调用失败日志",
+                "instruction": "在 frontend 和 checkoutservice 日志中搜索 'context canceled' 错误，确认是否因下游服务超时而取消调用"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status|302",
+                "expected_pattern": "HTTP 响应状态码 302 重定向记录",
+                "instruction": "检查前端服务的 HTTP 响应状态码，确认是否存在异常的重定向或错误响应"
+            },
+            {
+                "modality": "Log",
+                "target": "Internal",
+                "expected_pattern": "包含 'Internal' 关键词的内部服务器错误",
+                "instruction": "搜索包含 'Internal' 错误描述的日志，识别内部服务故障"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "包含 'request error' 关键词的请求失败记录",
+                "instruction": "查找所有服务中标记为 'request error' 的日志条目"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc|error",
+                "expected_pattern": "RPC 调用失败的错误信息",
+                "instruction": "搜索包含 'rpc' 和 'error' 关键词的远程调用失败日志"
+            },
+            {
+                "modality": "Log",
+                "target": "transport|Error|while|dialing",
+                "expected_pattern": "传输层连接错误，如 'transport: Error while dialing'",
+                "instruction": "检查网络连接错误，特别是传输层拨号失败的日志"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "服务不可用状态描述",
+                "instruction": "搜索包含 'unavailable' 关键词的服务状态日志"
+            },
+            {
+                "modality": "Metric",
+                "target": "request|response",
+                "expected_pattern": "请求响应相关指标异常变化",
+                "instruction": "检查各服务的请求响应指标，包括响应时间、错误率等"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Pod CPU 使用率异常模式",
+                "instruction": "检查 currencyservice 相关 Pod 的 CPU 使用率指标"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "进程相关指标异常",
+                "instruction": "检查 currencyservice 的进程相关指标，确认是否存在进程异常"
+            }
+        ]
+    }
+}
+```

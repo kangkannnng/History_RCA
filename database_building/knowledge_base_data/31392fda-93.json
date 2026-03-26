@@ -1,0 +1,27 @@
+{
+  "uuid": "31392fda-93",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "High memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [shippingservice-0] experienced [pod_memory_working_set_bytes] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [shippingservice-0] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric data (From GT key_observations and key_metrics)",
+      "Step 3: Derive Root Cause - Based on memory-related keywords and fault description, determined cause is [pod_memory_working_set_bytes] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "High memory usage metric value for shippingservice-0 pod",
+        "instruction": "Check if metric [pod_memory_working_set_bytes] for pod [shippingservice-0] shows abnormally high values indicating memory stress"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "pod_processes changed from 1.0 to 2.0 (p99_change_ratio=0.6667) indicating Pod restart",
+        "instruction": "Search for metric [pod_processes] changes for shippingservice-0 pod, which may indicate restart due to memory issues"
+      }
+    ]
+  }
+}

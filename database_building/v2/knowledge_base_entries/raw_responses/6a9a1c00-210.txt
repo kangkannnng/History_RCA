@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "6a9a1c00-210",
+    "fault_type": "service_latency_anomaly",
+    "symptom_vector": "End-user requests to the frontend service experience extremely high latency and frequent \"context deadline exceeded\" errors when fetching advertisements.",
+    "expert_knowledge": {
+        "root_cause_desc": "AdService的JVM运行时故障（Byteman代理重复加载异常）导致服务完全不可用，引发调用链上游的Frontend服务大面积超时和延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察到Trace数据显示，所有三个Frontend实例对AdService的调用（hipstershop.AdService/GetAds）延迟从正常的平均约5.5秒激增至约500秒，增长高达90倍，并伴随总计2359次状态为'context deadline exceeded'的失败调用。这表明AdService处于极度异常或不可用状态。",
+            "Step 2: 分析Log数据，发现大量来自Frontend的日志记录了\"failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded\"，直接印证了Trace的发现。同时，在AdService自身的日志中，发现了关键错误：'Agent failed to start!'、'java.lang.reflect.InvocationTargetException'以及'Caused by: java.lang.Exception: Main : attempting to load Byteman agent more than once'。这些是JVM字节码代理（Byteman）初始化失败的典型报错，表明AdService的运行时环境在启动时即发生故障。",
+            "Step 3: 确认Metric数据，虽然直接显示AdService的rrt和rrt_max指标变化不大（甚至下降），但这可能是由于故障期间服务已无正常请求处理，指标采集失真。而更重要的是，所有三个Frontend实例的rrt和rrt_max指标均出现2-3倍的飙升（如frontend-0的rrt从12084.98升至36509.29），这是下游AdService完全不可用导致上游调用方资源阻塞和请求积压的直接后果。综合三者证据，故障传播链清晰：AdService JVM启动失败 -> AdService服务无响应 -> Frontend调用AdService全部超时 -> Frontend自身响应时间飙升。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "hipstershop.AdService/GetAds",
+                "expected_pattern": "Sudden spike in average duration (e.g., from seconds to hundreds of seconds) and a high count of calls with status code 4 ('context deadline exceeded').",
+                "instruction": "扫描调用链数据，查找所有涉及AdService（服务名可能为'adservice'）的调用（如hipstershop.AdService/GetAds），重点关注其'anomaly_avg_duration'与'normal_avg_duration'的对比，以及'status_combinations'中该调用对应的错误状态（如'context deadline exceeded'）的数量。"
+            },
+            {
+                "modality": "Log",
+                "target": "Agent failed to start! AND Byteman agent",
+                "expected_pattern": "Log messages containing both 'Agent failed to start!' and references to 'Byteman' or 'attempting to load Byteman agent more than once', occurring in pods belonging to the suspect service (adservice).",
+                "instruction": "在故障时间段的日志中，搜索同时包含关键词'Agent failed to start!'和'Byteman'或'agent'的条目，并确认这些日志的service_name或pod_name是否属于adservice组件。同时，搜索'InvocationTargetException'以确认存在Java运行时异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "frontend rrt, frontend rrt_max",
+                "expected_pattern": "Significant increase (e.g., doubling or more) in the median or p99 values for 'rrt' and 'rrt_max' metrics across all frontend service instances.",
+                "instruction": "检查故障时间段内，所有frontend服务实例（如frontend-0, frontend-1, frontend-2）的'rrt'和'rrt_max'指标的'median_change_ratio'或'p99_change_ratio'。寻找一致性的显著上升趋势，这通常是下游关键依赖服务失效的连锁反应指标。"
+            }
+        ]
+    }
+}
+```

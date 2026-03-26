@@ -1,0 +1,39 @@
+{
+  "uuid": "5c4502b0-551",
+  "fault_type": "region_pending_io_bottleneck",
+  "symptom_vector": "Severe latency spike observed in productcatalogservice (10s to 38-118s, 3.8-12x increase), error ratio spike in downstream cartservice, and increased latency in redis operations.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiKV存储层因region_pending指标异常激增（变化率1.37-1.44倍），伴随io_util与cpu_usage上升，导致的存储性能瓶颈引发上游级联延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据中观察到productcatalogservice服务的‘GetProduct’操作出现严重的延迟激增，从正常约10秒的平均耗时飙升至异常时段的38至118秒。这表明存在一个核心性能瓶颈。",
+      "Step 2: 分析Metric数据，发现TiDB的TiKV组件的‘region_pending’指标出现显著异常，其中位数从8977.5升至1666.0（变化率1.37倍），P99值从11819.25升至1936.56（变化率1.44倍）。同时，同一组件的‘io_util’与‘cpu_usage’的P99值也出现上升。这表明存储层存在严重的性能堆积问题。",
+      "Step 3: 检查Log数据，在故障窗口内未发现任何应用层错误日志，这与静默的性能瓶颈特征相符。结合故障链条——最下游的存储层（tidb-tikv）出现核心指标（region_pending）激增，导致了直接依赖它的服务（如productcatalogservice）出现巨大延迟，进而引发更上游服务的连锁反应（如cartservice错误率上升），可确认根因组件为tidb-tikv。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden surge in median and P99 values (change rate > 1.3x)",
+        "instruction": "Check the TiDB component (especially tidb-tikv) for the 'region_pending' metric. Compare its median and P99 values between normal and fault periods. A significant increase indicates storage layer performance bottleneck."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Elevated P99 values during fault period",
+        "instruction": "Check the 'io_util' metric for TiKV components alongside region_pending. A concurrent rise supports the diagnosis of I/O related performance degradation."
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice -> hipstershop.ProductCatalogService/GetProduct",
+        "expected_pattern": "Dramatic increase in rrt_max or average duration (e.g., from seconds to tens of seconds)",
+        "instruction": "Analyze trace calls from frontend or other upstream services to productcatalogservice's GetProduct method. A severe latency spike often points to its underlying dependency (like TiDB) being the bottleneck."
+      },
+      {
+        "modality": "Log",
+        "target": "error, warning",
+        "expected_pattern": "Absence of error logs during the fault window",
+        "instruction": "Search for any error or warning level logs in the fault timeframe for tidb-tikv and productcatalogservice. The lack of explicit error messages can be consistent with silent performance degradation at the infrastructure/storage layer."
+      }
+    ]
+  }
+}

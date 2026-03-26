@@ -1,0 +1,30 @@
+[Trigger]
+- Metric anomaly pattern: pod_processes count for a specific service instance changed from 1.0 to 2.0, indicating a process count increase
+- Metric anomaly pattern: error_ratio p99 value for the same instance surged from 0.0 to 16.69 during the fault window
+- Trace anomaly pattern: multiple upstream services showed increased latency in operations, with some downstream calls experiencing 5-6 times normal duration
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Process count metric showing a discrete jump from one to two processes - this indicates a fundamental change in the service instance's runtime state, not a gradual performance degradation
+- Evidence 2: Extreme error ratio spike at the p99 percentile specifically - this shows that while most requests succeeded, a significant portion of requests during peak latency experienced failures, consistent with a transient availability issue
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Latency increases in multiple upstream services - these show propagation effects where services depending on the affected instance experienced slowdowns when it was unavailable
+- Evidence 4: Contradictory latency metrics showing improvement in some service metrics - these likely represent different sampling periods or measurement perspectives that don't capture the transient failure window
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the discrete change in process count coupled with a sharp error ratio spike at high percentiles, we suspect an instance-level runtime disruption occurred. The simultaneous process change and error surge suggest the instance became temporarily unavailable rather than gradually slowing down."
+
+Step 2: Verification or elimination
+"If this were caused by gradual resource exhaustion or performance degradation, we would expect to see steadily increasing latency metrics and gradual error rate increases across all percentiles; However, actual observation shows a binary process count change and extreme p99 error spikes with normal median values; This rules out gradual performance issues and points to a discrete state change event."
+
+Step 3: Convergence to conclusion
+"The combination of process count discontinuity and high-percentile error concentration indicates a service instance interruption that caused dependent requests to fail quickly rather than wait. The downstream latency increases represent the cascading effects as upstream services experienced these rapid failures and potentially retried requests."
+
+[Conclusion]
+"The root cause is a runtime interruption of a service instance that caused temporary unavailability, leading to rapid request failures that propagated upstream as latency increases when calls were retried or queued."
+
+[Next Action]
+- Verify whether system-level events correlate with the process count change timestamp
+- Check for resource constraint patterns preceding the event that might explain why the interruption occurred

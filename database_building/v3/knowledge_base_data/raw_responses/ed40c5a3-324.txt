@@ -1,0 +1,71 @@
+```json
+{
+    "uuid": "ed40c5a3-324",
+    "fault_type": "request/response anomaly",
+    "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 与 recommendationservice 之间的网络通信因网络攻击导致 request 与 response 延迟飙升，并伴随 pod_network_receive_bytes 与 pod_network_transmit_bytes 异常，引发网络延迟故障。",
+        "reasoning_chain": [
+            "Step 1: 从 Metric 数据中观察到 request 与 response 的延迟指标（rrt, rrt_max）出现极端异常，例如 recommendationservice-2 的 rrt 从 4293.51ms 飙升至 185404.99ms（+190.95%），同时发现 pod_network_receive_bytes 与 pod_network_transmit_bytes 等网络流量指标也存在异常模式。",
+            "Step 2: 通过 Trace 数据分析，确认 frontend 调用 recommendationservice 的服务链路（hipstershop.RecommendationService/ListRecommendations）存在严重延迟，所有 frontend 实例的调用延迟增加至正常值的 4.0-4.8 倍，这是网络层面延迟的直接体现。",
+            "Step 3: 检查 Log 数据，未发现系统级错误日志，但在故障时段识别到 `http.resp.status` 为 `302` 的记录，这符合网络攻击或异常重定向场景的特征，结合 Metric 与 Trace 的网络延迟证据，确认为网络攻击导致的网络延迟故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "特定服务调用链（如 frontend -> recommendationservice）的持续平均延迟（avg_duration）较基线值激增数倍。",
+                "instruction": "在 Trace 数据中，重点扫描所有 frontend 实例对 RecommendationService 的调用，检查操作‘hipstershop.RecommendationService/ListRecommendations’的 anomaly_avg_duration 相对于 normal_avg_duration 的激增倍数。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status，302",
+                "expected_pattern": "日志中出现大量或异常的 HTTP 302 状态码响应记录。",
+                "instruction": "在故障时间段内的应用或访问日志中，搜索包含‘http.resp.status’字段且值为‘302’的日志条目，分析其出现频率和上下文。"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "请求相关指标（如 rrt）的 median 和 p99 值出现大幅度的百分比增长（change_ratio）。",
+                "instruction": "检查名为‘request’或具体表现为‘rrt’的指标，筛选出故障期与正常期中位数（median）或 p99 值变化率（change_ratio）超过严重阈值（例如 >100%）的服务和Pod。"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "响应相关指标（如 rrt_max）的 median 和 p99 值出现大幅度的百分比增长（change_ratio）。",
+                "instruction": "检查名为‘response’或具体表现为‘rrt_max’的指标，筛选出故障期与正常期中位数（median）或 p99 值变化率（change_ratio）超过严重阈值（例如 >100%）的服务和Pod。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Pod 工作集内存使用量出现异常波动或增长。",
+                "instruction": "检查受影响的 Pod（如 frontend-*, recommendationservice-*）的 pod_memory_working_set_bytes 指标，观察在故障时间段内是否存在异常增长或剧烈波动模式。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Pod 网络接收字节数出现异常峰值、激增或与基线相比显著不同的模式。",
+                "instruction": "检查受影响的 Pod 的 pod_network_receive_bytes 指标，分析故障时间段内的流量是否异常高于或低于正常水平，或出现尖峰。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "Pod 网络接收数据包数出现异常峰值、激增或与基线相比显著不同的模式。",
+                "instruction": "检查受影响的 Pod 的 pod_network_receive_packets 指标，分析故障时间段内的收包速率是否异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "Pod 网络发送字节数出现异常峰值、激增或与基线相比显著不同的模式。",
+                "instruction": "检查受影响的 Pod 的 pod_network_transmit_bytes 指标，分析故障时间段内的发送流量是否异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "Pod 网络发送数据包数出现异常峰值、激增或与基线相比显著不同的模式。",
+                "instruction": "检查受影响的 Pod 的 pod_network_transmit_packets 指标，分析故障时间段内的发包速率是否异常。"
+            }
+        ]
+    }
+}
+```

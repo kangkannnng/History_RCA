@@ -1,0 +1,66 @@
+```json
+{
+    "uuid": "b4feec3f-413",
+    "fault_type": "request response port misconfiguration",
+    "symptom_vector": "target port misconfiguration causing connection refused errors and service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 组件因目标端口配置错误导致请求无法连接，表现为 connection refused 错误和 request/response 指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 error_ratio 和 server_error_ratio 指标从 0% 飙升至 32-36%，表明系统出现严重错误",
+            "Step 2: 分析 trace 数据发现 CheckoutService/PlaceOrder 操作出现 connection refused 错误，具体为 'dial tcp 10.233.61.165:5050: connect: connection refused'，状态码为 14，发生 49 次",
+            "Step 3: 检查日志确认 frontend 服务尝试连接 checkoutservice 的 5050 端口时失败，出现 'transport: Error while dialing' 和 'connection refused' 错误",
+            "Step 4: 确认 checkoutservice-1 的 rrt_max 指标显示高延迟，中位数变化率为 0.1168，p99 变化率为 0.5433，表明服务响应异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status 302",
+                "expected_pattern": "HTTP 302 状态码出现频率异常",
+                "instruction": "检查 frontend 和 checkoutservice 日志中 HTTP 302 状态码的出现频率和上下文"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "包含 'request error' 的日志条目大量出现",
+                "instruction": "搜索所有服务日志中 'request error' 关键词的出现情况"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "RPC 调用失败并返回错误",
+                "instruction": "检查涉及 checkoutservice 的 RPC 调用是否出现错误"
+            },
+            {
+                "modality": "Log",
+                "target": "transport Error while dialing",
+                "expected_pattern": "连接建立失败，显示 'transport: Error while dialing'",
+                "instruction": "查找包含 'transport: Error while dialing' 的日志条目，特别注意目标地址和端口"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "服务不可用状态报告",
+                "instruction": "搜索 'unavailable' 关键词，确认哪些服务报告不可用状态"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "请求量异常变化",
+                "instruction": "检查 checkoutservice 的请求量指标是否出现异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "响应时间或成功率异常",
+                "instruction": "分析 checkoutservice 的响应时间、错误率等响应相关指标"
+            },
+            {
+                "modality": "Metric",
+                "target": "port",
+                "expected_pattern": "端口相关指标异常（如连接失败率）",
+                "instruction": "检查与端口连接相关的指标，特别是针对 5050 端口的连接状态"
+            }
+        ]
+    }
+}
+```

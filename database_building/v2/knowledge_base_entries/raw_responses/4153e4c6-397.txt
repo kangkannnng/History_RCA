@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "4153e4c6-397",
+    "fault_type": "rrt_max",
+    "symptom_vector": "RPC latency spike, context canceled errors, gRPC transport closing errors, 500 HTTP error ratio increase.",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 响应时间(rrt_max)异常飙升，导致上游 frontend 服务调用超时，引发大量上下文取消及连接关闭错误。",
+        "reasoning_chain": [
+            "Step 1: 在 Metric 数据中观察到 cartservice 的关键性能指标 rrt_max 出现剧烈异常。具体证据显示，cartservice-1 的 rrt_max P99 值从正常的 86262ms 飙升至故障期间的 174835917ms。Trace 数据进一步细化发现 cartservice 对 Redis 的 HGET 操作，其延迟从正常的平均 1553ms 飙升至 49590ms，延迟倍数达 31.9 倍。这表明 cartservice 的性能严重恶化是本次事件的起点。",
+            "Step 2: 在 Log 数据中观察到 frontend 服务产生了大量特定的 RPC 错误。这些错误消息明确指向调用 cartservice 时失败，包括 338 次 'context canceled' 和 11 次 'transport is closing' 错误。同时，cartservice 自身日志也出现 'System.IO.IOException' 和 'Error reading message'，进一步确认了其处理请求时存在 I/O 或网络层面的问题。",
+            "Step 3: 在 Trace 数据中确认了故障的传播路径。frontend 调用 cartservice 的 GetCart 操作，其平均延迟从 25581ms 飙升至 59026874ms，延迟倍数高达 2307 倍。大量调用被标记为 'context canceled' 状态。Metric 数据显示，frontend 服务的 error_ratio 和 server_error_ratio 随之显著上升（例如 frontend-1 的 error_ratio 从 0% 升至 22.5%）。这形成了一条清晰的因果链：cartservice 延迟激增 → frontend 调用超时/取消 → frontend 错误率升高 → 最终用户请求失败（HTTP 500）。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "对于 cartservice 服务或其 pod，rrt_max 指标（特别是 P99 分位数）出现数十倍或数百倍的突然飙升。",
+                "instruction": "检查 cartservice 各实例（如 cartservice-0, cartservice-1, cartservice-2）的 rrt_max 指标。重点对比故障时段与正常时段的 P99 值变化。寻找变化倍数超过 10 倍以上的异常激增点。"
+            },
+            {
+                "modality": "Log",
+                "target": "context canceled, transport is closing",
+                "expected_pattern": "在 frontend 服务的错误日志中，频繁出现包含 'context canceled' 或 'transport is closing' 关键词的错误条目，且错误描述中明确指出是调用 cartservice 时发生的 RPC 错误。",
+                "instruction": "在故障时间窗口内，搜索 frontend 服务的日志，过滤关键词 'context canceled' 和 'transport is closing'。分析错误消息，确认被调用的下游服务是否为 cartservice（例如 'could not retrieve cart', 'failed to add to cart'）。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend -> cartservice 调用链的 duration",
+                "expected_pattern": "从 frontend 到 cartservice 的调用链（如 GetCart, AddItem 操作）的耗时（duration）出现极端异常，平均延迟或 P99 延迟相比正常时段有数千倍的增加。",
+                "instruction": "分析故障时段内的分布式追踪数据，筛选出服务名为 frontend 且调用了 cartservice 服务（例如操作名为 hipstershop.CartService/GetCart）的追踪记录。对比异常记录与基线（正常时段）记录的平均耗时与 P99 耗时，计算变化倍数。"
+            }
+        ]
+    }
+}
+```

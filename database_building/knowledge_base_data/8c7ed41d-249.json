@@ -1,0 +1,47 @@
+{
+  "uuid": "8c7ed41d-249",
+  "fault_type": "rrt, rrt_max",
+  "symptom_vector": "High network latency and increased round-trip time between frontend and adservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [rrt, rrt_max] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth instance list).",
+      "Step 2: Check Observation - Found keyword [deadlineexceeded] in [Log] (From GT key_observations).",
+      "Step 3: Check Observation - Found keyword [latency_anomalies] and [frontend] in [Trace] (From GT key_observations).",
+      "Step 4: Check Observation - Found keyword [rrt] and [rrt_max] in [Metric] (From GT key_observations).",
+      "Step 5: Derive Root Cause - Based on the combined features of deadline errors, latency anomalies, and spiking RTT metrics, determined cause is [rrt, rrt_max] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Log entries from `frontend` pods containing the error message 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded'.",
+        "instruction": "Search for keyword 'deadlineexceeded' or 'DeadlineExceeded' in logs from the `frontend` service."
+      },
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Trace data showing the operation `hipstershop.AdService/GetAds` with a massive increase in average duration (e.g., from ~5.5 seconds to ~500,000 seconds) and associated 'context deadline exceeded' status messages.",
+        "instruction": "Analyze trace data for latency anomalies, specifically for calls from `frontend` to `adservice` for the `GetAds` operation."
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Trace status combinations where the parent service is `frontend`, the operation is `hipstershop.AdService/GetAds`, and the status is 'context deadline exceeded'.",
+        "instruction": "Search for traces where the `service_name` is 'frontend' and the `operation_name` contains 'AdService' to identify failed calls."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Metric `rrt` for service `adservice`, pod `adservice-1` showing a median value increase from 3393.62 to 494359.7 during the fault period.",
+        "instruction": "Check if the metric `rrt` for the `adservice` service shows an abnormal increase, specifically for the `adservice-1` pod instance."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Metric `rrt_max` for service `adservice`, pod `adservice-1` showing a median value increase from 42748.0 to 2640258.5 during the fault period.",
+        "instruction": "Check if the metric `rrt_max` for the `adservice` service shows an abnormal increase, specifically for the `adservice-1` pod instance."
+      }
+    ]
+  }
+}

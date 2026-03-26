@@ -1,0 +1,58 @@
+{
+  "uuid": "7bd681bb-358",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Service experiencing method errors, code errors, and runtime panic",
+  "expert_knowledge": {
+    "root_cause_desc": "Component checkoutservice experienced pod_processes fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is checkoutservice (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword context canceled in Log (From GT key_observations), observed in frontend logs as 'rpc error: code = Canceled desc = context canceled' indicating RPC timeouts",
+      "Step 3: Check Observation - Found keyword pod_cpu_usage in Metric (From GT key_observations), observed increased from 0.0 to 0.2 (2.0x change) for checkoutservice-2 indicating performance degradation",
+      "Step 4: Derive Root Cause - Based on log errors and metric anomalies, determined cause is pod_processes (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "context canceled",
+        "expected_pattern": "Error log entries with 'context canceled' in frontend logs during checkout calls",
+        "instruction": "Search for keyword 'context canceled' in logs from frontend service"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "Not observed in provided log data; may require additional log sources",
+        "instruction": "Search for HTTP response status 302 in logs, particularly from checkoutservice or related services"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log entries with 'request error' message in frontend logs, e.g., 'request error' in error descriptions",
+        "instruction": "Search for keyword 'request error' in logs, focusing on frontend service"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Log entries with 'rpc error' in error messages, such as 'rpc error: code = Canceled'",
+        "instruction": "Search for keyword 'rpc error' in logs, especially during checkout operations"
+      },
+      {
+        "modality": "Metric",
+        "target": "request response",
+        "expected_pattern": "Abnormal values in request-response time metrics like rrt and rrt_max, e.g., rrt_max increased significantly for frontend instances",
+        "instruction": "Check metrics related to request and response times, such as rrt and rrt_max, for anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Increased CPU usage for checkoutservice pods, specifically checkoutservice-2 showing pod_cpu_usage rise from 0.0 to 0.2",
+        "instruction": "Monitor pod_cpu_usage metric for checkoutservice pods, especially during the fault time window"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Anomalies in pod processes metric; based on Ground Truth, this is the root cause indicator",
+        "instruction": "Check pod_processes metric for abnormalities in checkoutservice or related components"
+      }
+    ]
+  }
+}

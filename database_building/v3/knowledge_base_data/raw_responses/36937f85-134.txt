@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "36937f85-134",
+    "fault_type": "jvm latency",
+    "symptom_vector": "High JVM response latency and elevated request latency, with observed rrt_max degradation in dependent services.",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-1 组件因 Byteman 代理配置问题引发 java.lang.reflect.InvocationTargetException 等异常，导致 JVM 响应延迟并间接影响下游服务 rrt_max 指标。",
+        "reasoning_chain": [
+            "Step 1: 在 adservice-1 的日志中观察到 6 条与 Byteman 代理相关的 java.lang.reflect.InvocationTargetException 异常，以及 AdService-getRandomAds-latency 规则触发器的错误信息。",
+            "Step 2: 分析调用链数据，发现故障期间本应存在的 adservice 调用链路完全缺失，表明该服务处于完全不可用或熔断状态。",
+            "Step 3: 确认指标数据中，依赖于 adservice 或与其共享节点的 shippingservice-0 出现了显著的 rrt_max p99 延迟飙升（增长 1640%），这是根因故障的间接影响体现。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "java.lang.reflect.InvocationTargetException",
+                "expected_pattern": "Contains exception stack trace indicating invocation failure.",
+                "instruction": "在 adservice-1 的日志中搜索 'java.lang.reflect.InvocationTargetException' 关键词，检查是否存在相关异常堆栈。"
+            },
+            {
+                "modality": "Log",
+                "target": "Byteman agent",
+                "expected_pattern": "Contains errors related to Byteman agent loading, startup, or rule injection.",
+                "instruction": "在 adservice-1 的日志中搜索 'Byteman agent'、'Agent failed to start!'、'Transformer'、'RuleTriggerMethodAdapter' 等关键词，确认代理配置或运行异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "Latency metric shows elevated values or spikes during the fault period.",
+                "instruction": "检查 adservice 的 'adservice-getRandomAds-latency' 指标在故障时间段内是否出现明显升高。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Significant increase in the p99 value of rrt_max for services that depend on or are co-located with the faulty instance.",
+                "instruction": "检查与 adservice-1 存在依赖关系或运行于同一节点（如 aiops-k8s-07）的服务（如 shippingservice），其 rrt_max 指标的 p99 值是否出现异常飙升。"
+            },
+            {
+                "modality": "Trace",
+                "target": "adservice",
+                "expected_pattern": "Complete absence of any service calls involving adservice from the trace data during the fault period.",
+                "instruction": "分析调用链数据，确认在故障时间段内，所有涉及的调用链中是否完全找不到 adservice 的踪迹。"
+            }
+        ]
+    }
+}
+```

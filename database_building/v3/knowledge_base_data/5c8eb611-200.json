@@ -1,0 +1,39 @@
+{
+  "uuid": "5c8eb611-200",
+  "fault_type": "rrt & rrt_max spike",
+  "symptom_vector": "high network latency and increased RTT between frontend and cartservice",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend 与 cartservice 服务间因 rrt 和 rrt_max 指标极端恶化导致的高网络延迟",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 服务所有实例（frontend-0, frontend-1, frontend-2）的 rrt 指标从正常约12秒（12033.29ms, 12069.42ms, 12251.62ms）显著上升至故障期间约19万秒（197093.3ms, 193921.34ms, 188070.07ms），且 Trace 数据显示 frontend 调用 cartservice 的 GetCart/AddItem 操作延迟激增数百倍。",
+      "Step 2: 分析 cartservice 服务，发现其关键延迟指标 rrt 和 rrt_max 出现极端恶化。cartservice-2 的 rrt 从正常 1362.2ms 飙升至 283515.09ms，rrt_max 从 9424.0ms 激增至 1514016.0ms，变化率高达 1.98 倍。",
+      "Step 3: 确认 Log 分析未发现应用层错误日志，但 Metric 和 Trace 数据一致显示 frontend 与 cartservice 间的网络延迟（rrt/rrt_max）为根本问题，符合静默性能下降模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "调用下游服务（特别是cartservice）的延迟（latency）异常激增，例如从毫秒级激增至秒级，且调用频次可能异常。",
+        "instruction": "在 Trace 数据中扫描所有 frontend 实例发起的调用链，重点检查其调用 cartservice 的操作（如 GetCart, AddItem）的延迟（duration）在故障时间段内相比正常基线是否出现数量级（10倍以上）的增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "指标值从稳定的正常基线（如毫秒级）突然飙升至异常高位（如秒级），中位数（median）和 P99 分位数均出现显著上升，变化率（change_ratio）远大于1。",
+        "instruction": "查询 cartservice 和 frontend 服务的 rrt（平均往返时间）和 rrt_max（最大往返时间）指标。对比故障时间段与正常时间段的指标值，确认是否存在极端飙升（例如增长数十倍或数百倍）。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_transmit_bytes, pod_network_receive_packets, pod_network_transmit_packets",
+        "expected_pattern": "网络接收/发送的字节数或包数可能出现异常波动，例如激增（可能对应攻击流量）或骤降（可能对应网络阻塞）。",
+        "instruction": "检查 cartservice 及上游 frontend 相关 Pod 的网络流量指标（接收/发送字节数、包数），观察在故障时间段内是否存在与基线相比的异常模式，例如突发流量或流量中断。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Pod 工作集内存使用量可能出现异常增长，可能指示内存泄漏或异常负载。",
+        "instruction": "检查 cartservice 及相关服务 Pod 的 pod_memory_working_set_bytes 指标，确认在故障期间内存使用是否有异常增长趋势。"
+      }
+    ]
+  }
+}

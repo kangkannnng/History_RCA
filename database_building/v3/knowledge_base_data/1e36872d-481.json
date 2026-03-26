@@ -1,0 +1,51 @@
+{
+  "uuid": "1e36872d-481",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault with filesystem call errors, read/write operation errors, and permission denied errors",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 region_pending 异常飙升（变化率164.14%）和 cpu_usage 异常（变化率104.18%）导致数据库性能下降，表现为IO故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标从正常中位数11018.0下降到1085.0，变化率高达164.14%，表明数据库处理能力严重下降",
+      "Step 2: 分析 tidb-tikv 组件的 cpu_usage 指标p99值从0.11增至0.35，变化率104.18%，同时 io_util 指标也有77.68%的变化，符合IO故障特征",
+      "Step 3: 日志分析未发现错误日志，这与IO性能下降而非应用层错误的特征一致，且故障传播模式符合数据库组件异常导致上游服务延迟"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden decrease from baseline with >100% change rate",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否从正常值突然下降，变化率是否超过100%"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Increase in IO utilization",
+        "instruction": "检查 tidb-tikv 组件的 io_util 指标是否异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "Abnormal QPS pattern",
+        "instruction": "检查 tidb-tikv 组件的 grpc_qps 和 qps 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "Increased wait time",
+        "instruction": "检查 tidb-tikv 组件的 raft_apply_wait 指标是否异常增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Abnormal store size changes",
+        "instruction": "检查 tidb-tikv 组件的 store_size 指标是否异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Abnormal memory usage pattern",
+        "instruction": "检查 tidb-tikv 组件的 memory_usage 指标是否异常"
+      }
+    ]
+  }
+}

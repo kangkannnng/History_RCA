@@ -1,0 +1,71 @@
+```json
+{
+    "uuid": "8a7a8a00-85",
+    "fault_type": "network_delay_with_high_rrt",
+    "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 和 productcatalogservice 之间的网络攻击导致网络延迟异常，表现为 rrt 和 rrt_max 指标显著飙升",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 rrt 和 rrt_max 指标全面异常，所有实例响应时间显著增加，最大响应时间增长超过 1900%",
+            "Step 2: 分析 productcatalogservice 的 rrt_max 指标出现严重异常，productcatalogservice-2 从正常值 28217.0 飙升到 2992238.0，变化率高达 196.26%",
+            "Step 3: 确认 Trace 数据显示 frontend->productcatalogservice 调用链延迟增加，但日志分析未检测到错误日志，表明是网络层性能问题而非应用层错误"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "frontend->productcatalogservice 调用链出现显著延迟增加",
+                "instruction": "检查 Trace 数据中 frontend 到 productcatalogservice 的调用链是否存在延迟异常，特别是 GetProduct 和 ListProducts 操作"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Round-trip time 显著增加，变化率超过 190%",
+                "instruction": "检查 frontend 和 productcatalogservice 服务的 rrt 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Maximum round-trip time 极端增加，变化率超过 190%",
+                "instruction": "检查 frontend 和 productcatalogservice 服务的 rrt_max 指标是否出现极端峰值"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "请求处理异常模式",
+                "instruction": "检查 frontend 和 productcatalogservice 的请求相关指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "响应时间异常模式",
+                "instruction": "检查 frontend 和 productcatalogservice 的响应相关指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "网络接收流量异常",
+                "instruction": "检查 frontend 和 productcatalogservice 的 pod_network_receive_bytes 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "网络接收包数异常",
+                "instruction": "检查 frontend 和 productcatalogservice 的 pod_network_receive_packets 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "网络发送流量异常",
+                "instruction": "检查 frontend 和 productcatalogservice 的 pod_network_transmit_bytes 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "网络发送包数异常",
+                "instruction": "检查 frontend 和 productcatalogservice 的 pod_network_transmit_packets 指标是否异常"
+            }
+        ]
+    }
+}
+```

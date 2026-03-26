@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "c9fbd527-582",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Client URL misconfigured, code error, runtime panic in frontend service",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 组件因代码错误导致客户端URL配置错误，引发运行时panic，表现为pod_processes指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务出现大量HTTP 404错误（frontend-1: 431次，frontend-2: 646次），状态码为'HTTP status code: 404'",
+            "Step 2: 分析 frontend 组件的 error_ratio 和 client_error_ratio 指标从0%飙升至7.56%，表明前端服务存在严重错误",
+            "Step 3: 确认故障描述包含'Client URL misconfigured'和'code error'，且关键指标为pod_processes，符合代码配置错误导致的运行时故障模式"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "HTTP 404错误状态码大量出现",
+                "instruction": "检查frontend服务的trace数据中是否出现大量HTTP 404状态码，特别是frontend-1和frontend-2实例"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP响应状态码302或相关错误日志",
+                "instruction": "在frontend组件的日志中搜索'http.resp.status'和'302'关键词，检查URL重定向或配置错误"
+            },
+            {
+                "modality": "Metric",
+                "target": "request,response",
+                "expected_pattern": "请求响应相关指标异常",
+                "instruction": "检查frontend服务的request和response相关指标是否出现异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "CPU使用率异常波动",
+                "instruction": "检查frontend组件的pod_cpu_usage指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "进程数量异常变化",
+                "instruction": "检查frontend组件的pod_processes指标是否异常，这可能指示运行时panic或进程重启"
+            }
+        ]
+    }
+}
+```

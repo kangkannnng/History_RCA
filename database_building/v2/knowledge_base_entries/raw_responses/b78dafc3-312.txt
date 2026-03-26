@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "b78dafc3-312",
+    "fault_type": "latency_anomalies, request_proportion_anomalies",
+    "symptom_vector": "Frontend service latency (rrt, rrt_max) spike from milliseconds to seconds, increased client and server error ratios across multiple services (frontend, checkoutservice, productcatalogservice, shippingservice), downstream RPC calls (e.g., to recommendationservice) timing out with status 'context canceled' or 'unavailable' (grpc_status=14).",
+    "expert_knowledge": {
+        "root_cause_desc": "底层网络数据包损坏（Packet Corruption）导致recommendationservice服务严重超时不可用，并引发向上游（frontend）传播的级联故障。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据观察到关键指标异常：`frontend`服务的`rrt`（平均响应时间）从约12ms飙升至9.4s（增长近千倍），`rrt_max`（最大响应时间）从196ms飙升至60s；同时`frontend`、`checkoutservice`、`productcatalogservice`、`shippingservice`等多个服务的`error_ratio`和`client_error_ratio`从0%激增至14-60%不等。这些数据表明整个系统存在广泛的性能下降和错误激增，源头可能在于某个公共依赖。",
+            "Step 2: 从Log数据定位到具体错误：`recommendationservice-2`的日志中反复出现明确的网络连接错误，包含`\"Connection timed out\"`、`\"grpc_status\":14`、`\"_InactiveRpcError\"`等关键词。同时，所有`frontend`实例的日志均报告调用`recommendationservice`失败，错误信息为`\"rpc error: code = Canceled desc = context canceled\"`。这表明`recommendationservice`是故障传播的关键节点，其自身的网络连接问题是触发上游服务`context canceled`的直接原因。",
+            "Step 3: 通过Trace数据分析故障调用链：`frontend`调用`recommendationservice`（`hipstershop.RecommendationService/ListRecommendations`）的链路在故障期间，`rrt_max`从正常的3852.31微秒激增至499103975.85微秒（约499秒），延迟倍数高达129,000倍，且状态码为14（UNAVAILABLE）。而其他服务（如`productcatalogservice`）的延迟增长（约1.2倍）相比之下微不足道。这证实了故障的核心瓶颈和异常源头是`recommendationservice`。综合Log中的`Connection timed out`，可推断其根本原因是底层网络问题（如数据包损坏）导致该服务无法正常响应。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Sudden spike of several orders of magnitude (e.g., from milliseconds to seconds or minutes), particularly affecting services that are downstream dependencies (like recommendationservice as seen from frontend traces).",
+                "instruction": "检查关键服务（特别是作为上游服务核心依赖的下游服务）的响应时间指标（rrt, rrt_max）。寻找在故障时间窗口内，数值发生数个数量级（例如100倍以上）剧烈增长的异常点。这种极端的延迟增长往往是网络或服务不可用问题的直接表现。"
+            },
+            {
+                "modality": "Log",
+                "target": "Connection timed out, grpc_status=14, _InactiveRpcError",
+                "expected_pattern": "Log entries containing explicit network timeout or unavailability errors, especially with gRPC status code 14 (UNAVAILABLE).",
+                "instruction": "在疑似故障源的服务（如本案例中的recommendationservice）的日志中，搜索包含“Connection timed out”、grpc_status为14（UNAVAILABLE）或“_InactiveRpcError”等关键词的错误条目。这些是服务因网络问题无法建立或维持连接的铁证。"
+            },
+            {
+                "modality": "Trace",
+                "target": "Status code 14 (UNAVAILABLE), latency spike in specific span",
+                "expected_pattern": "Traces showing failed RPC calls with status code 14, and a specific span (usually the call to the root cause service) exhibiting an extreme latency outlier compared to normal baseline.",
+                "instruction": "分析调用链（Trace）数据，定位状态码为14（UNAVAILABLE）或2（描述中包含超时）的失败跨度（Span）。重点关注从上游服务（如frontend）发往下游服务（如recommendationservice）的调用，对比故障时段与正常时段的耗时（如anomaly_avg_duration vs normal_avg_duration），识别出延迟激增最显著、达到数个数量级差异的特定调用。这是定位性能瓶颈和故障根源服务的关键。"
+            }
+        ]
+    }
+}
+```

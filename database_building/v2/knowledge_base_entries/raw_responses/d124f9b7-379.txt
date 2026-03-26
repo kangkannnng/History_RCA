@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "d124f9b7-379",
+    "fault_type": "Pod Resource: CPU",
+    "symptom_vector": "Extreme response time degradation (rrt_max spike from 15.7s to 192.6s) with cascading latency anomalies in dependent services.",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice-0 Pod的进程数激增导致CPU使用率飙升，进而引发下游服务响应时间急剧恶化。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据观察到productcatalogservice-0的pod_processes从1.0异常暴增到9.0，同时pod_cpu_usage从0.01飙升到0.4。这是一个显著异常的Pod级资源变化。",
+            "Step 2: 结合Trace数据分析，发现所有严重延迟增加的调用链（如checkoutservice->productcatalogservice延迟从10.3s增至93.9s）其下游终点均为productcatalogservice-0，表明该Pod是性能瓶颈的源头。",
+            "Step 3: Log分析显示在异常时间段内没有相关错误日志，排除了代码逻辑错误或外部依赖失败的可能性，进一步将问题指向底层资源性能问题。综合以上，推导出根因是pod_processes激增导致的CPU饱和与资源争用。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes, pod_cpu_usage",
+                "expected_pattern": "Sudden and significant increase (e.g., pod_processes from 1.0 to 9.0, pod_cpu_usage from 0.01 to 0.4)",
+                "instruction": "检查目标Pod的进程数和CPU使用率指标。关注是否存在远超正常基线的激增。这种异常通常是进程泄漏、频繁重启或异常进程启动的标志。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max, checkoutservice->productcatalogservice latency",
+                "expected_pattern": "Extreme latency spike in calls to the suspected component from multiple upstream services",
+                "instruction": "分析指向可疑组件（如productcatalogservice-0）的调用链延迟。寻找是否存在从多个上游服务（如checkoutservice, recommendationservice）调用该组件时，延迟都出现数量级增长的共同模式。这表明该组件是性能瓶颈的中心点。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, error keywords",
+                "expected_pattern": "Absence of significant error logs, indicating a performance rather than functional issue",
+                "instruction": "在异常时间段内，搜索可疑组件的日志。如果未发现大量错误日志（如5xx错误、异常堆栈），则支持根因是资源性能问题（如CPU饱和），而非应用逻辑错误。"
+            }
+        ]
+    }
+}
+```

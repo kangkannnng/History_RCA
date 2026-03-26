@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "55b23e04-325",
+    "fault_type": "server_error_ratio", 
+    "symptom_vector": "Massive increase in client-side HTTP 500 errors at frontend services, severe latency spike and high error ratio in checkoutservice, downstream DNS resolution failures for productcatalogservice.",
+    "expert_knowledge": {
+        "root_cause_desc": "DNS解析失败导致 productcatalogservice 服务不可用，进而引发 checkoutservice 处理订单的调用链整体故障。",
+        "reasoning_chain": [
+            "Step 1: 在前端服务（frontend）的日志中观察到大量 'request error'，其具体错误信息为 'failed to complete the order: rpc error: code = Internal desc = failed to prepare order: failed to get product'。这表明前端调用下游服务处理订单时失败。",
+            "Step 2: 检查指标数据，发现 checkoutservice-2 的 server_error_ratio 从 0.0% 激增至 67.59%，其 rrt (响应时间) 和 rrt_max 也分别增加了 18倍 和 17倍，确认 checkoutservice 是异常的核心表现点。",
+            "Step 3: 深入分析追踪（Trace）数据，发现 checkoutservice 调用 productcatalogservice 的 GetProduct 操作延迟异常激增（从 19.5ms 到 1413ms），且状态码信息明确显示 'connection error: desc = transport: Error while dialing dial tcp: lookup productcatalogservice on 10.233.33.139:53: server misbehaving'。这直接定位到故障根因为 productcatalogservice 的 DNS 解析失败，导致 checkoutservice 无法访问该服务，进而引发级联故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "message, error",
+                "expected_pattern": "Contains specific error keywords: 'request error', 'failed to get product', 'rpc error', 'Internal desc'",
+                "instruction": "在前端(frontend)服务的错误日志中，搜索并统计包含 'request error' 及错误描述中包含 'failed to get product' 的日志条目。这些日志指示了用户请求失败的最表层症状和大致错误方向。"
+            },
+            {
+                "modality": "Metric",
+                "target": "checkoutservice.error_ratio, checkoutservice.server_error_ratio, checkoutservice.rrt, checkoutservice.rrt_max",
+                "expected_pattern": "Sudden and significant increase in median and P99 values (e.g., error ratio from 0% to >60%, rrt increased by >10x)",
+                "instruction": "检查 checkoutservice 的 error_ratio, server_error_ratio, rrt, rrt_max 等关键服务指标在异常时间段内的变化。寻找是否存在急剧的峰值或持续的高位。这有助于确认故障的核心影响服务及异常严重程度。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->productcatalogservice hipstershop.ProductCatalogService/GetProduct operation latency and status messages",
+                "expected_pattern": "Extreme latency spike (e.g., >70x increase) combined with status messages containing 'lookup productcatalogservice on ...:53: server misbehaving' or similar DNS/connection errors.",
+                "instruction": "在调用链数据中，重点关注 checkoutservice 调用下游 productcatalogservice 的 GetProduct 操作。分析其调用延迟（如 rrt_max）的异常增长倍数，并详细检查该调用链路状态码（status_code）和错误信息（status_message），寻找网络层（如DNS解析）或连接层面的直接失败证据。这是定位根因服务及具体错误类型的关键步骤。"
+            }
+        ]
+    }
+}
+```

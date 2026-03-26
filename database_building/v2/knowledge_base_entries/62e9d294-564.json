@@ -1,0 +1,33 @@
+{
+  "uuid": "62e9d294-564",
+  "fault_type": "rrt_max",
+  "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice和currencyservice的rrt_max指标异常导致网络延迟激增，表现为所有节点frontend调用checkoutservice的延迟均出现50+倍增长",
+    "reasoning_chain": [
+      "Step 1: 观察到Trace数据中所有节点的frontend调用checkoutservice延迟均出现50+倍异常增长，aiops-k8s-08:59.6倍, aiops-k8s-06:56.5倍, aiops-k8s-04:57.6倍，延迟倍数高度一致",
+      "Step 2: 分析Metric数据发现checkoutservice和currencyservice的rrt_max和rrt指标均出现显著异常，其中currencyservice-0的rrt_max从2699μs增至1063061μs(变化率1.99)，currencyservice-2的rrt_max从2386μs增至1071647μs(变化率1.99)，checkoutservice的rrt_max也从正常值剧增至异常值",
+      "Step 3: 确认Log数据中未发现内存不足等应用层错误日志，排除了节点资源问题作为根因的可能性，进一步支持了服务本身网络延迟异常是系统级瓶颈的结论"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend->checkoutservice的PlaceOrder调用",
+        "expected_pattern": "Sudden spike in latency with consistent 50+倍增长 across all nodes",
+        "instruction": "检查所有节点上frontend调用checkoutservice的延迟是否均出现50+倍异常增长，重点关注延迟倍数是否高度一致（如aiops-k8s-08:59.6倍, aiops-k8s-06:56.5倍, aiops-k8s-04:57.6倍）"
+      },
+      {
+        "modality": "Metric",
+        "target": "checkoutservice和currencyservice的rrt_max和rrt指标",
+        "expected_pattern": "Dramatic increase in values (接近2倍变化率) for multiple instances",
+        "instruction": "查询checkoutservice和currencyservice的rrt_max和rrt指标，检查是否有多个实例出现指标值剧增（如currencyservice-0的rrt_max从2699μs增至1063061μs）"
+      },
+      {
+        "modality": "Log",
+        "target": "内存不足相关错误日志",
+        "expected_pattern": "No error logs related to memory issues",
+        "instruction": "搜索故障时间段内checkoutservice和currencyservice的日志，确认是否缺少内存不足相关的错误日志（如OOMKilled、OutOfMemoryError等）"
+      }
+    ]
+  }
+}

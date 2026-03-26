@@ -1,0 +1,58 @@
+```json
+{
+    "uuid": "50bce1c4-311",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Database error causing cart storage access failures with runtime panic and SQLException",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [cartservice] experienced [pod_processes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [cartservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [FailedPrecondition] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [request error] in Log (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [rpc, error] in Log (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+            "Step 8: Derive Root Cause - Based on above features, determined cause is [pod_processes] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "FailedPrecondition",
+                "expected_pattern": "Error status code 'FailedPrecondition' with detail 'Can't access cart storage.' raised in cartservice logs",
+                "instruction": "Search for keyword 'FailedPrecondition' in cartservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "HTTP response status 302 appears in frontend service logs",
+                "instruction": "Search for keyword 'http.resp.status' with value '302' in frontend service logs"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "'request error' message appears in frontend logs with cartservice RPC failures",
+                "instruction": "Search for keyword 'request error' in frontend service logs"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc, error",
+                "expected_pattern": "'rpc error: code = FailedPrecondition desc = Can't access cart storage' in frontend logs",
+                "instruction": "Search for keyword 'rpc' and 'error' together in frontend service logs"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "cartservice pods show abnormal CPU usage patterns during fault period",
+                "instruction": "Check metric [pod_cpu_usage] for cartservice pods (cartservice-0, cartservice-1, cartservice-2)"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "cartservice pods show abnormal process metrics indicating runtime issues",
+                "instruction": "Check metric [pod_processes] for cartservice pods to detect process-level anomalies"
+            }
+        ]
+    }
+}
+```

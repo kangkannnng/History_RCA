@@ -1,0 +1,40 @@
+{
+  "uuid": "6e08f907-417",
+  "fault_type": "node_memory_exhaustion",
+  "symptom_vector": "redis HGET latency spike (35x), cartservice GetCart latency spike (57x), RedisTimeoutException logs, node_cpu_usage_rate spike (p99: 25%→76.65%)",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08节点内存耗尽导致redis-cart-0性能严重下降，引发级联故障",
+    "reasoning_chain": [
+      "Step 1: 从Trace数据中观察到redis HGET操作延迟从正常1.7秒激增至61秒（35倍增长），同时cartservice GetCart操作从2.5秒激增至141秒（57倍增长），表明存储层性能严重劣化",
+      "Step 2: 从Log数据中发现RedisTimeoutException错误日志，超时时间5909ms超过配置的5000ms阈值，且错误信息明确指出cartstorage访问失败",
+      "Step 3: 从Metric数据中发现aiops-k8s-08节点的node_cpu_usage_rate p99从25%激增至76.65%，同时检查node_pod_mapping确认redis-cart-0恰好运行在该异常节点上",
+      "Step 4: 综合多模态证据，应用故障模式3（Node vs Pod归因）：节点CPU异常但节点上的Pod资源使用相对平稳，表明是节点自身问题而非单个Pod问题，节点资源约束导致redis-cart性能下降，进而引发上游服务级联故障"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "P99值突然激增（本案例中从25%上升到76.65%），中位数相对稳定",
+        "instruction": "检查故障期间异常节点（本例为aiops-k8s-08）的CPU使用率P99值是否出现显著异常升高，同时观察中位数是否相对平稳，这种模式暗示节点资源压力而非单个Pod异常"
+      },
+      {
+        "modality": "Trace",
+        "target": "redis HGET操作延迟",
+        "expected_pattern": "延迟激增（通常10倍以上），且影响节点与异常节点匹配",
+        "instruction": "查找redis相关操作（特别是HGET）的延迟异常，对比正常与故障期间平均延迟，确认延迟激增倍数，并验证受影响Pod是否运行在异常节点上"
+      },
+      {
+        "modality": "Log",
+        "target": "RedisTimeoutException",
+        "expected_pattern": "包含Timeout awaiting response、超时时间超过配置阈值、command=HGET等关键词",
+        "instruction": "搜索RedisTimeoutException相关错误日志，确认超时时间是否超过配置阈值（如本例5909ms > 5000ms），记录超时命令类型（如HGET）和影响的pod名称"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "节点上关键Pod的CPU使用率未随节点CPU异常同步激增",
+        "instruction": "对比异常节点（aiops-k8s-08）上运行的Pod（特别是redis-cart-0）的CPU使用率与节点CPU使用率，如果节点CPU异常而Pod CPU相对平稳，则符合节点自身问题模式"
+      }
+    ]
+  }
+}

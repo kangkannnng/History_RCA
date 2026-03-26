@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "9450018e-372",
+    "fault_type": "runtime panic",
+    "symptom_vector": "Severe latency spike in currency conversion operations (over 2900x increase), frequent RPC errors (context canceled, connection refused, transport is closing), and a surge in HTTP 500 errors from frontend services.",
+    "expert_knowledge": {
+        "root_cause_desc": "CurrencyService服务因JavaScript代码缺陷导致栈溢出（RangeError: Maximum call stack size exceeded），进而进程崩溃，引发服务完全不可用。",
+        "reasoning_chain": [
+            "Step 1: 从Log数据中观察到currencyservice服务持续且大量出现'conversion request failed: RangeError: Maximum call stack size exceeded'的错误信息，这直接表明该服务内部发生了JavaScript栈溢出异常，通常意味着递归调用失控或代码逻辑缺陷。",
+            "Step 2: 结合Metric数据分析，发现currencyservice-2的`timeout`指标在p99分位从0.0急剧上升到2723.0，同时Trace数据显示`CurrencyService/Convert`操作的平均延迟从正常的~2.3秒激增至超过690万秒（延迟倍数2978倍），并伴随大量'connection refused'与'transport is closing'的调用错误。这证实了currencyservice服务已无法正常响应请求，处于不可用状态。",
+            "Step 3: 进一步分析上层服务影响，发现frontend服务的所有实例均出现`error_ratio`大幅上升、大量HTTP 500错误，且其下游对`CheckoutService/PlaceOrder`的调用也因依赖`CurrencyService`而出现严重延迟。证据链条清晰表明，currencyservice的栈溢出是导致整个调用链故障的根源。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "currencyservice",
+                "expected_pattern": "Contains multiple instances of error messages with keywords 'RangeError: Maximum call stack size exceeded'.",
+                "instruction": "在currencyservice服务的日志中，搜索是否频繁出现'RangeError: Maximum call stack size exceeded'或其变体的错误条目。这是识别JavaScript栈溢出运行时故障的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "timeout (for currencyservice)",
+                "expected_pattern": "Shows a significant spike or increase from a baseline of zero, especially at high percentiles (e.g., p99).",
+                "instruction": "检查currencyservice服务的`timeout`指标。确认在故障时间段内，该指标（尤其是p99分位值）是否从正常值（通常接近0）出现急剧上升。这印证了服务因内部问题无法及时处理请求。"
+            },
+            {
+                "modality": "Trace",
+                "target": "CurrencyService/Convert",
+                "expected_pattern": "Displays an extreme increase in average duration (e.g., hundreds or thousands of times longer than normal) and contains error statuses like 'connection refused' or 'transport is closing'.",
+                "instruction": "分析涉及`CurrencyService/Convert`操作的Trace调用链。观察其平均延迟是否在故障期间出现数倍甚至数千倍的异常飙升，并检查其状态码或错误信息是否表明连接失败或服务不可用。这有助于定位性能瓶颈和故障源头。"
+            }
+        ]
+    }
+}
+```

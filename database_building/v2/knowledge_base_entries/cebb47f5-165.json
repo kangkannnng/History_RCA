@@ -1,0 +1,27 @@
+{
+  "uuid": "cebb47f5-165",
+  "fault_type": "trace.request_proportion_anomalies",
+  "symptom_vector": "Multiple service calls between checkoutservice, emailservice, frontend, productcatalogservice, and shippingservice exhibit proportion anomalies; multiple pod processes terminated simultaneously.",
+  "expert_knowledge": {
+    "root_cause_desc": "多Pod进程异常终止导致服务间调用比例及网络活动异常。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到多个Pod的`pod_processes`指标在同一时刻从正值（如1.0）骤降至0.0，这明确指示发生了Pod进程的批量异常终止事件。",
+      "Step 2: 分析相关Pod（如productcatalogservice-0, frontend-1）的其他指标，发现其`pod_cpu_usage`、`pod_network_receive_packets`及`pod_network_transmit_packets`等指标也同步降至0.0，证实这些服务实例的活动完全停止。",
+      "Step 3: 结合Trace数据观察到的上游服务（如frontend）对不同下游服务（如productcatalogservice, recommendationservice）的调用延迟出现异常波动，这可以被解释为部分下游实例失效导致的负载重分配或调用链超时。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden drop from a positive value (e.g., 1.0) to 0.0 across multiple pods within a short time window.",
+        "instruction": "请同时检查多个Pod的`pod_processes`指标值。如果在故障时间点，有多个Pod的该指标值同时从1.0变为0.0，这是Pod进程集体终止的强有力证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Sudden drop from a normal baseline value to 0.0, coinciding with the `pod_processes` drop.",
+        "instruction": "对于`pod_processes`已归零的Pod，检查其`pod_network_receive_packets`和`pod_network_transmit_packets`指标。如果它们也同步降至0，则进一步确认了该Pod的网络活动已完全停止。"
+      }
+    ]
+  }
+}

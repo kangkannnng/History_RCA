@@ -1,0 +1,58 @@
+{
+  "uuid": "b9e3efbd-357",
+  "fault_type": "qps_grpc_qps_io_util_cpu_usage_memory_usage",
+  "symptom_vector": "pod crash with pod terminated unexpectedly, container exit, and pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因存储层Region不可用导致pod故障，表现为qps、grpc_qps、io_util、cpu_usage、memory_usage等关键指标异常",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-pd 的 store_unhealth_count 指标从0增加到1，表明TiDB集群存储层存在节点不可用",
+      "Step 2: 分析 tidb-tidb 的 memory_usage 指标从1271083008.0降至668977152.0，duration_99th从0.01增至64.88，failed_query_ops在p99分位达到41.33，显示数据库层严重性能问题",
+      "Step 3: 日志中发现 productcatalogservice 出现151次'failed to query product by id: Error 9005 (HY000): Region is unavailable'错误，frontend服务因数据库查询失败出现142次RPC错误，确认故障传播路径",
+      "Step 4: 确认 productcatalogservice-2 的 rrt 指标从7337.79激增至20171482.25，变化率1.9985，表明该服务实例受到数据库问题严重影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Contains pod crash, pod terminated unexpectedly, container exit, or pod failure keywords",
+        "instruction": "在 tidb-tikv-0 和 tidb-tikv 的日志中搜索 failure 关键词，检查是否有pod故障相关记录"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Contains Region is unavailable or unavailable keywords",
+        "instruction": "在 tidb-tikv 相关组件的日志中搜索 unavailable 关键词，特别是'Region is unavailable'错误"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "Significant drop or abnormal fluctuation",
+        "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否出现显著下降或异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Significant drop or abnormal fluctuation",
+        "instruction": "检查 tidb-tikv 组件的 qps 指标是否出现显著下降或异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Abnormal spike or drop",
+        "instruction": "检查 tidb-tikv 组件的 io_util 指标是否出现异常飙升或下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Abnormal spike or drop",
+        "instruction": "检查 tidb-tikv-0 和 tidb-tikv 的 cpu_usage 指标是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Significant drop or abnormal fluctuation",
+        "instruction": "检查 tidb-tikv-0 和 tidb-tikv 的 memory_usage 指标是否出现显著下降或异常波动"
+      }
+    ]
+  }
+}

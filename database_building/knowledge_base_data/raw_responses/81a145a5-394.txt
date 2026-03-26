@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "81a145a5-394",
+    "fault_type": "request response port",
+    "symptom_vector": "target port misconfig, service port mismatch, incorrect target port, port mapping changed, misconfigured service port, unreachable target port",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [paymentservice] experienced [request] and [response] fault, accompanied by [port] anomaly.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [paymentservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [request] in Log (From GT key_observations) - Multiple frontend services making POST requests to '/cart/checkout'",
+            "Step 3: Check Observation - Found keyword [response] in Log (From GT key_observations) - All requests receiving 'connection refused' error responses",
+            "Step 4: Derive Root Cause - Based on above features, determined cause is [request], [response], and [port] misconfiguration (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "request",
+                "expected_pattern": "Frontend services making HTTP POST requests to '/cart/checkout' endpoint",
+                "instruction": "Search for keyword 'POST' and '/cart/checkout' in frontend service logs"
+            },
+            {
+                "modality": "Log",
+                "target": "response",
+                "expected_pattern": "All checkout requests receiving 'connection refused' error responses with HTTP 500 status",
+                "instruction": "Search for keyword 'connection refused' and 'HTTP status code: 500' in frontend and checkoutservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "port",
+                "expected_pattern": "Specific port number 50051 appears in connection refused errors targeting paymentservice",
+                "instruction": "Search for keyword '50051' and 'dial tcp' in error logs to identify the misconfigured port"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,34 @@
+{
+  "uuid": "a63a0c8b-290",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload, high CPU usage, CPU saturation, CPU spike, node cpu stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-05] experienced [node_cpu_usage_rate] fault, with CPU usage increasing from 27.64% to 89.8% (change rate 1.0585).",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-05] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [node_cpu_usage_rate] in Metric data with abnormal increase from 27.64% to 89.8% (From GT key_observations)",
+      "Step 3: Check Observation - Found keywords [node_network_receive_packets_total, node_network_transmit_packets_total] in Metric observations (From GT key_observations)",
+      "Step 4: Derive Root Cause - Based on CPU usage spike and network packet metrics, determined cause is [node_cpu_usage_rate] exhaustion (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Value increased from 27.64% to 89.8% with change rate 1.0585, appearing in anomaly_metrics data",
+        "instruction": "Search for metric 'node_cpu_usage_rate' with node_name='aiops-k8s-05' and check if median value increased significantly"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Network packet metrics show abnormal patterns during fault period",
+        "instruction": "Check network receive/transmit packet metrics for node 'aiops-k8s-05' during fault timeframe"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_transmit_packets_total",
+        "expected_pattern": "Network packet metrics show abnormal patterns during fault period",
+        "instruction": "Check network transmit packet metrics for node 'aiops-k8s-05' during fault timeframe"
+      }
+    ]
+  }
+}

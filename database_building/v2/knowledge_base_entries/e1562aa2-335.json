@@ -1,0 +1,33 @@
+{
+  "uuid": "e1562aa2-335",
+  "fault_type": "dns",
+  "symptom_vector": "HTTP 302 redirects observed in logs; downstream service call latency spikes (e.g., cartservice rrt_max p99 increased from 12007ms to 67892ms); Redis HMSET operation latency increased 13.3x.",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice DNS解析失败导致服务间通信异常，进而引发Redis操作延迟和下游checkoutservice性能恶化。",
+    "reasoning_chain": [
+      "Step 1: 在Log分析中，观察到checkoutservice的日志中存在包含'http.resp.status'和'302'的条目。HTTP 302状态码通常表示重定向，在微服务间内部调用场景下，这可能暗示服务发现或DNS解析出现问题，导致请求被错误地重定向。",
+      "Step 2: 在Metric分析中，发现cartservice-2的响应时间指标rrt_max和rrt的p99值显著飙升（rrt_max p99从12007ms增加到67892ms），表明该服务处理请求的能力严重下降。同时，Trace分析显示redis->cartservice调用链中的HMSET操作延迟从正常的1.4秒飙升至18.1秒（13.3倍）。这符合cartservice因自身问题（如网络连接、DNS解析）无法高效访问Redis，导致操作阻塞的假设。",
+      "Step 3: 综合Log中出现的异常HTTP 302状态码和Metric/Trace中cartservice及其Redis依赖的严重性能劣化，可以推断根因是cartservice遇到了DNS解析失败（如超时、不可达、错误响应），这中断了其正常的服务间通信或资源访问流程，进而引发自身性能崩溃并波及其调用方（如checkoutservice）。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entries containing both 'http.resp.status' and the value '302'.",
+        "instruction": "在故障时间窗口（2025-06-17T16:10:02Z 到 2025-06-17T16:29:02Z）内，搜索并筛选所有包含关键词'http.resp.status'且状态码为'302'的日志条目。分析这些日志的来源服务（如checkoutservice）和上下文，确认重定向的发生频率和模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cartservice-2 rrt_max, cartservice-2 rrt",
+        "expected_pattern": "Significant increase in p99 values during fault window compared to normal baseline (e.g., rrt_max p99从12007ms增加到67892ms).",
+        "instruction": "对比故障窗口与正常基线期间，cartservice-2 Pod的rrt_max和rrt指标的p99值。重点关注p99响应时间的增长幅度和变化趋势，确认cartservice-2是否出现了严重的性能退化。"
+      },
+      {
+        "modality": "Trace",
+        "target": "redis->cartservice HMSET operation latency",
+        "expected_pattern": "Dramatic increase in average duration for HMSET operation (e.g., from 1.4s to 18.1s, 13.3x).",
+        "instruction": "分析redis服务到cartservice-2 Pod的调用链，特别关注HMSET操作的耗时。对比故障期间与正常期间的平均延迟，计算延迟增长倍数，确认Redis操作是否因cartservice端问题而显著变慢。"
+      }
+    ]
+  }
+}

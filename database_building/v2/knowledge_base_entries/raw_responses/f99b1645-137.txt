@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "f99b1645-137",
+    "fault_type": "metric",
+    "symptom_vector": "Service latency degradation, cartservice and upstream services exhibit increased response times.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点内存使用率激增导致节点性能下降，进而影响其上运行的服务。",
+        "reasoning_chain": [
+            "Step 1: 通过Metric数据扫描，发现在异常时间段内，多个节点（包括aiops-k8s-05）的`node_memory_usage_rate`指标出现显著异常。特别是aiops-k8s-05节点的该指标P99值从56.21%急剧上升至84.37%，变化率高达40.07%，表明该节点在故障期间经历了严重的内存使用率高峰。",
+            "Step 2: 分析位于故障节点aiops-k8s-05上的服务Pod（如paymentservice-2、cartservice-1、currencyservice-0），其中cartservice-1的相关Trace数据显示其对上游服务的调用延迟（`POST /hipstershop.CartService/GetCart`）出现数倍增长，符合节点资源不足影响服务性能的模式。",
+            "Step 3: 交叉验证其他数据源：Log分析未发现明确错误信息，符合基础设施资源瓶颈而非应用逻辑错误的特征。同时，根因节点上的其他核心资源指标`node_cpu_usage_rate`的P99值也有明显上升（21.79% -> 33.36%），进一步佐证了节点层面的资源压力。由此可以推断，根因为aiops-k8s-05节点的高内存使用率导致的节点级性能瓶颈。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "P99值出现显著突增（例如增长超过40%），尤其在特定节点上。",
+                "instruction": "检查所有节点的`node_memory_usage_rate`指标的P99或P95值在异常时间窗口内的变化率。重点关注变化率最高的节点，并与该节点上运行的关键服务列表进行关联。"
+            },
+            {
+                "modality": "Log",
+                "target": "Out of memory, Memory cgroup out of memory, Killed process",
+                "expected_pattern": "包含内存不足、进程被OOM Killer终止等关键词的日志条目。",
+                "instruction": "在疑似故障节点（如aiops-k8s-05）或运行在该节点上的Pod（如cartservice-1）的日志中，搜索与内存压力、OOM相关的错误信息。即使没有直接OOM日志，干净的日志结果结合Metric的异常，也暗示了非应用代码错误的资源问题。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.CartService/GetCart, hipstershop.CurrencyService/GetSupportedCurrencies 等",
+                "expected_pattern": "源自或经过故障节点的关键服务调用链延迟显著增加（例如数倍到十数倍）。",
+                "instruction": "筛选并分析故障节点（aiops-k8s-05）上运行的Pod（从Metric数据的`node_pod_mapping`获取）作为服务提供者（child_pod）或消费者（parent_pod）的Trace记录。观察其`anomaly_avg_duration`相比`normal_avg_duration`的增长倍数，以确认节点问题对服务层面的影响。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "cd81a09b-101",
+    "fault_type": "Pod生命周期异常",
+    "symptom_vector": "Multiple pod metrics (cpu_usage, processes, network_packets, memory) across multiple nodes dropped to zero within a 1-second window. Trace data shows a single call chain with improved response time. No error logs found.",
+    "expert_knowledge": {
+        "root_cause_desc": "Pod被强制终止（如killed、evicted）导致其进程及所有相关指标瞬间归零。",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据中，多个节点（aiops-k8s-03, 04, 06, 07, 08）上的多个Pod的关键指标（如pod_processes, pod_cpu_usage, pod_network_transmit_packets, pod_memory_working_set_bytes）在故障期间中位数（median）均降为0，变化率（median_change_ratio）均为2.0，表明这些指标从正常值骤降至零，而非波动。",
+            "Step 2: 分析Metric数据中的关键证据，例如`redis-cart-0`的`pod_processes`从正常中位数1.0降至故障中位数0.0。`pod_processes`指标直接反映Pod内进程数，归零是进程终止（Pod停止运行）的强有力证据。",
+            "Step 3: 结合Trace数据仅显示单一节点（aiops-k8s-03）上一条调用链的响应时间变化，且无错误状态码；同时Log数据在故障窗口内无任何错误记录。这种Metric广泛异常而Trace/Log影响有限的矛盾，以及极短的故障窗口（1秒），符合Pod被强制终止（如kill、eviction）的特征：进程瞬间停止导致所有运行时指标归零，但可能因时间极短或未触发应用层错误而未在业务日志中留下记录。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden drop to zero (median_change_ratio = 2.0) for specific pods.",
+                "instruction": "检查所有Pod的`pod_processes`指标。如果发现特定Pod（如redis-cart-0）的该指标在故障期间中位数突降至0，这是该Pod进程终止、可能已被杀死或驱逐的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets, pod_network_transmit_packets",
+                "expected_pattern": "Simultaneous drop to zero across multiple pods on different nodes.",
+                "instruction": "检查多个Pod（尤其是分布在多个节点上的Pod）的网络收发包指标。如果它们在相同时刻同时归零，这支持发生了广泛的Pod停止事件，而非单个节点故障。"
+            },
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Anomalies concentrated in calls involving specific services (e.g., frontend).",
+                "instruction": "分析Trace数据中的请求比例异常。关注是否只有涉及特定服务（如frontend）的调用链出现异常，这可能指示上游或下游服务中断的影响范围。"
+            }
+        ]
+    }
+}
+```

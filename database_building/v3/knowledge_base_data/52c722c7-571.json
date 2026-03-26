@@ -1,0 +1,69 @@
+{
+  "uuid": "52c722c7-571",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault with filesystem call error and database latency anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv 组件因 region_pending 指标异常飙升和 io_util 升高导致存储层IO性能故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 的 region_pending 指标中位数从11193.0下降到1075.5（变化率164.93%），p99变化率177.73%，表明存储层存在严重堆积",
+      "Step 2: 分析 tidb-tikv 的 io_util 指标p99从0.22上升到0.56，cpu_usage p99从0.09上升到0.28，显示IO和CPU资源异常",
+      "Step 3: 追踪数据显示 productcatalogservice 调用 TiDB 的延迟显著增加（例如从9988.6ms增加到31460.6ms），确认下游服务受数据库性能影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Latency anomalies with significant increase in response time",
+        "instruction": "检查 productcatalogservice 调用链的延迟是否异常增加，特别是与数据库相关的操作"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "Abnormal fluctuations in query rate",
+        "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Query rate anomalies",
+        "instruction": "检查 tidb-tikv 的 qps 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization spike above normal baseline",
+        "instruction": "检查 tidb-tikv 的 io_util 指标是否异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden increase in pending region count",
+        "instruction": "检查 tidb-tikv 的 region_pending 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "Increased wait time for raft apply operations",
+        "instruction": "检查 tidb-tikv 的 raft_apply_wait 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Abnormal changes in storage size",
+        "instruction": "检查 tidb-tikv 的 store_size 指标是否异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage anomalies",
+        "instruction": "检查 tidb-tikv 的内存使用率是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU usage spike",
+        "instruction": "检查 tidb-tikv 的 cpu_usage 指标是否异常升高"
+      }
+    ]
+  }
+}

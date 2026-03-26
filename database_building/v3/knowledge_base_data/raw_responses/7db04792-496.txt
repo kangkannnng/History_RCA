@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "7db04792-496",
+    "fault_type": "region_pending",
+    "symptom_vector": "pod crash, pod terminated unexpectedly, container exit, pod failure",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 组件因 region_pending 指标异常导致 pod 故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标在故障期间出现异常波动",
+            "Step 2: 分析 tidb-tikv-0 实例的日志中可能包含 failure 关键词，表明 pod 异常终止",
+            "Step 3: 确认 tidb-tikv 组件的 region_pending 指标异常与 pod 故障时间窗口吻合"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Abnormal spike or sustained high values",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标在故障期间是否出现异常飙升或持续高位"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains pod failure, crash or termination keywords",
+                "instruction": "在 tidb-tikv-0 和 tidb-tikv 的日志中搜索 failure 关键词，确认 pod 异常状态"
+            }
+        ]
+    }
+}
+```

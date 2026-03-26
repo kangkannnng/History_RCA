@@ -1,0 +1,58 @@
+```json
+{
+    "uuid": "11f619f0-285",
+    "fault_type": "client_error client_error_ratio error error_ratio",
+    "symptom_vector": "Pod crash or termination causing service unavailability with connection refusal errors",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [productcatalogservice] experienced [client_error, client_error_ratio, error, error_ratio] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [productcatalogservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [Connection, refused] in [Log] (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [Error, while, dialing] in [Log] (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [timeout] in [Log] (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [unavailable] in [Log] (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [client_error, client_error_ratio, error, error_ratio] in [Metric] (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in [Metric] (From GT key_observations)",
+            "Step 8: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratio] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection, refused",
+                "expected_pattern": "Log entries show 'connection refused' errors when connecting to productcatalogservice on port 3550",
+                "instruction": "Search for keyword 'connection refused' in logs related to productcatalogservice"
+            },
+            {
+                "modality": "Log",
+                "target": "Error, while, dialing",
+                "expected_pattern": "Log entries contain 'transport: Error while dialing dial tcp 10.233.54.177:3550' error messages",
+                "instruction": "Search for keyword 'Error while dialing' in logs"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Timeout-related errors in service connection attempts",
+                "instruction": "Search for keyword 'timeout' in logs during fault period"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Log entries show 'StatusCode.UNAVAILABLE' or 'unavailable' status codes",
+                "instruction": "Search for keyword 'unavailable' in logs"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error, client_error_ratio, error, error_ratio",
+                "expected_pattern": "Metrics show error_ratio increased from 0.0 to 6.44 on productcatalogservice-2 and client_error_ratio increased from 0.0 to 6.44",
+                "instruction": "Check metric values for error_ratio and client_error_ratio on productcatalogservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "Network metrics show abnormal patterns indicating pod communication issues",
+                "instruction": "Check pod network metrics for productcatalogservice pods"
+            }
+        ]
+    }
+}
+```

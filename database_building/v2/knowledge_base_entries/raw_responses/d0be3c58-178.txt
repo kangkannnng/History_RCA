@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "d0be3c58-178",
+    "fault_type": "resource_cpu",
+    "symptom_vector": "Latency spike (rrt increased from 3338ms to 19640ms, rrt_max from 43.4s to 140s), error ratio rise (from 0.0 to 1.59), and pod CPU usage surge (from 0.01-0.0 to 0.6).",
+    "expert_knowledge": {
+        "root_cause_desc": "Byteman混沌代理的压力注入导致多压力线程执行和代理加载冲突，引发JVM CPU过载。",
+        "reasoning_chain": [
+            "Step 1: 通过指标数据分析，发现异常时间段内 adservice 服务的 pod_cpu_usage、rrt、error_ratio 三个核心指标同时发生剧烈异常。其中 adservice-0 的 pod_cpu_usage 从 0.01 飙升到 0.6，rrt 从 3338.07 上升到 19640.14，error_ratio 从 0.0 上升到 1.59。adservice-1 和 adservice-2 的 pod_cpu_usage 也从 0.0 上升到 0.6。这组症状高度吻合 JVM CPU 饱和时的表现：响应时间剧增并伴随少量错误。",
+            "Step 2: 深入日志数据，在三个 adservice Pod 中均发现了大量包含 `AdService--stress-1749503423` 关键词的日志，记录了压力线程的创建、启动和运行。同时发现 `InvocationTargetException` 错误和 `attempting to load Byteman agent more than once` 的代理加载冲突信息。这些日志明确指向了 Byteman (一个混沌工程代理) 正在进行压力注入。",
+            "Step 3: 检查 Trace 数据，确认在调用链层面未发现显著异常，结合第一步的指标（资源级）和第二步的日志（明确的操作指令），排除了业务逻辑或服务间调用的问题，将根因锁定在 adservice 服务实例的资源层，即由 Byteman chaos agent 执行的 CPU 压力注入导致了服务过载。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden and significant spike (e.g., increasing by tens or hundreds of times)",
+                "instruction": "检查异常时间段内 adservice 相关 Pod 的 pod_cpu_usage 指标。如果观察到从接近0（如0.0-0.01）急剧飙升至高位（如0.6），这是 JVM CPU 被异常占用的强烈信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max, error_ratio",
+                "expected_pattern": "rrt and rrt_max increase significantly (e.g., 5-10x or more) concurrently with a minor error_ratio rise.",
+                "instruction": "检查 adservice 服务的 rrt、rrt_max 和 error_ratio 指标。若发现响应时间与最大响应时间同时出现数量级增长，并伴随错误率轻微上升（非0），这符合 CPU 资源瓶颈导致的性能劣化模式。"
+            },
+            {
+                "modality": "Log",
+                "target": "AdService--stress-",
+                "expected_pattern": "Log lines containing the keyword 'AdService--stress-' followed by timestamps or identifiers, indicating stress thread activity.",
+                "instruction": "在 adservice Pod 的日志中搜索关键词 'AdService--stress-'。若发现大量相关日志（如 Rule.execute called for...， Creating thread...），表明存在计划内的压力注入攻击。"
+            },
+            {
+                "modality": "Log",
+                "target": "InvocationTargetException, attempting to load Byteman agent more than once",
+                "expected_pattern": "Log lines containing these exact error messages, indicating agent loading conflicts.",
+                "instruction": "在 adservice Pod 的日志中搜索 'InvocationTargetException' 和 'attempting to load Byteman agent more than once'。这些错误是 Byteman 代理多次加载失败的直接证据，常伴随压力注入发生。"
+            },
+            {
+                "modality": "Trace",
+                "target": "Span latency and error rate within service calls.",
+                "expected_pattern": "No significant anomalies or propagation patterns across service boundaries.",
+                "instruction": "分析异常时间段的 Trace 数据。如果调用链在服务间层面未发现明显的延迟传播或错误扩散模式，则有助于将问题范围限定在特定服务内部的基础设施或资源层面，而非业务逻辑或服务依赖问题。"
+            }
+        ]
+    }
+}
+```

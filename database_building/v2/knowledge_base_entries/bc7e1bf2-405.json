@@ -1,0 +1,33 @@
+{
+  "uuid": "bc7e1bf2-405",
+  "fault_type": "service_error",
+  "symptom_vector": "Latency spike and server error ratio surge for checkoutservice-2, with frontend service experiencing increased response times.",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice-2 因 DNS 解析失败无法连接到 emailservice，导致其自身错误率飙升和响应时间恶化。",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice-2 在调用链（Trace）中，向 emailservice 发起的 SendOrderConfirmation 操作频繁失败（出现48次），状态码为14，错误信息明确指出‘lookup emailservice on 10.233.33.139:53: server misbehaving’，且该调用的平均延迟从 20.2 ms 异常增长至 2538.3 ms。",
+      "Step 2: 分析日志（Log）发现，同一时间段内，pod `checkoutservice-2` 持续打印错误日志，内容与调用链错误完全一致，为‘transport: Error while dialing dial tcp: lookup emailservice...’，共出现48次。",
+      "Step 3: 核查指标（Metric）确认，故障期间 `checkoutservice-2` 的 `error_ratio` 和 `server_error_ratio` 从 0% 急剧上升至 34.04%，其 `rrt_max` 也从 193.255 ms 暴增至 3214.3285 ms。指标恶化的时间点与日志、调用链错误高度关联。综合三者证据，确定故障根源是 checkoutservice-2 在尝试连接 emailservice 时遭遇 DNS 解析失败。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice-2 -> emailservice (hipstershop.EmailService/SendOrderConfirmation) 调用状态",
+        "expected_pattern": "Status Code 14 且错误信息包含 'lookup', 'dial tcp', 'server misbehaving' 等DNS相关关键词；该调用平均延迟（anomaly_avg_duration）显著高于正常值（normal_avg_duration）。",
+        "instruction": "在异常时间窗口内，查询 checkoutservice-2 对 emailservice 的调用链状态。重点检查 SendOrderConfirmation 操作的 status_code 和 status_message 字段，确认是否存在大量 DNS 查找失败的连接错误（Code 14），并对比正常与异常时段的平均延迟数据。"
+      },
+      {
+        "modality": "Log",
+        "target": "checkoutservice-2 Pod 的错误日志内容",
+        "expected_pattern": "日志消息中包含关键词 'transport: Error while dialing', 'lookup emailservice', 'server misbehaving', 表明是 DNS 解析导致的连接失败。",
+        "instruction": "在故障时间范围内，搜索来自 Pod checkoutservice-2 且包含 'Error while dialing', 'lookup', 'server misbehaving' 等关键词的日志条目，确认是否存在反复出现的 DNS 解析失败错误。"
+      },
+      {
+        "modality": "Metric",
+        "target": "checkoutservice-2 的 error_ratio, server_error_ratio, rrt_max 指标",
+        "expected_pattern": "在故障发生的时间点，error_ratio 与 server_error_ratio 出现从 0% 开始的突然飙升（例如升至30%以上），同时 rrt_max（最大响应时间）也出现数量级的增长。",
+        "instruction": "获取 checkoutservice-2 在异常时间窗口前后的 error_ratio, server_error_ratio 以及 rrt_max 指标数据。观察这些指标是否在故障开始时同步发生剧烈变化，以确认服务错误和性能劣化的关联性。"
+      }
+    ]
+  }
+}

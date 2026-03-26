@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "b1ab098d-83",
+    "fault_type": "metric",
+    "symptom_vector": "High P99 latency spikes in upstream services (cartservice-2) and degradation of services running on node aiops-k8s-06.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-06 内存使用率饱和（P99 异常飙升），导致运行于其上的服务性能恶化。",
+        "reasoning_chain": [
+            "Step 1: 对Metric数据进行全面扫描，发现节点`aiops-k8s-06`的指标`node_memory_usage_rate`在P99分位数上发生剧烈异常，从正常值23.28%飙升至57.99%，变化率达85.41%，是所有指标中变化最剧烈的之一，表明该节点存在严重的尾部内存压力或泄漏。",
+            "Step 2: 分析节点与Pod的映射关系`node_pod_mapping`，确认`aiops-k8s-06`节点上运行着`productcatalogservice-1`, `emailservice-2`, `checkoutservice-2`等多个服务Pod。节点资源问题是其管辖范围内所有Pod的潜在共同瓶颈。",
+            "Step 3: 核查Trace数据，发现运行在`aiops-k8s-06`节点上的服务（如`productcatalogservice-1`）的调用链确实出现显著延迟，例如`checkoutservice-2`调用其`GetProduct`操作延迟从9.6秒增至18.8秒，佐证了节点资源问题已转化为应用层性能问题。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "P99分位数发生剧烈飙升（例如>50%增长率），而中位数变化相对平缓，指示尾部内存压力或泄漏。",
+                "instruction": "请立即检查节点`aiops-k8s-06`的`node_memory_usage_rate`指标，特别是P99及更高分位数的时序数据。重点关注其是否在故障时间段内出现持续或间歇性的尖峰，峰值是否远超正常基线。同时，检查同一节点的`node_cpu_usage_rate`作为辅助参考。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice-1",
+                "expected_pattern": "所有以`productcatalogservice-1`为下游服务的调用链，其平均或尾部延迟显著增加。",
+                "instruction": "请分析所有调用方（如`frontend-2`, `checkoutservice-2`, `recommendationservice-0`）对`productcatalogservice-1`的调用延迟。若这些调用链普遍出现延迟恶化，且该Pod恰好位于Metric检测出内存异常的节点上，则应高度怀疑节点资源问题是根因。"
+            }
+        ]
+    }
+}
+```

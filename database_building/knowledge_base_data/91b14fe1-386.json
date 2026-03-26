@@ -1,0 +1,80 @@
+{
+  "uuid": "91b14fe1-386",
+  "fault_type": "qps grpc_qps region_pending io_util tidb-tikv",
+  "symptom_vector": "pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv-0] experienced [qps, grpc_qps, region_pending, io_util, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv-0] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data with latency_anomalies and request_proportion_anomalies (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [failure] and [unavailable] in Log data (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [grpc_qps, qps] in Metric data (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [io_util, region_pending] in Metric data (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [store_size] in Metric data (From GT key_observations)",
+      "Step 7: Check Observation - Found keyword [cpu_usage, memory_usage] in Metric data (From GT key_observations)",
+      "Step 8: Derive Root Cause - Based on above features, determined cause is [qps, grpc_qps, region_pending, io_util, tidb-tikv] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Trace data shows productcatalogservice with latency_anomalies and request_proportion_anomalies: 'productcatalogservice出现rrt_max和error_ratio异常 frontend->productcatalogservice调用链失败' and 'ProductCatalogService出现严重延迟：正常平均耗时约10秒，异常时段平均耗时高达39-40秒'",
+        "instruction": "Search for keyword 'productcatalogservice' in trace data and check for latency anomalies and request proportion anomalies"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log data contains 'failed to query product by id: Error 9005 (HY000): Region is unavailable' with occurrence count of 148 times",
+        "instruction": "Search for keyword 'failure' in log data, specifically looking for database query failures"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log data shows 'Region is unavailable' error messages from multiple services including frontend and productcatalogservice",
+        "instruction": "Search for keyword 'unavailable' in log data, focusing on database region availability errors"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "Metric data shows database performance degradation with duration_99th increasing from 0.01ms to 64.85ms and failed_query_ops increasing from 0 to 42.67",
+        "instruction": "Check metric data for grpc_qps anomalies and related database performance metrics"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Metric data indicates query performance issues with duration_99th变化率199.94% and failed_query_ops变化率200%",
+        "instruction": "Monitor qps metrics for abnormal patterns during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Metric data shows storage health issues with store_unhealth_count p99 increasing from 0 to 1",
+        "instruction": "Check io_util metrics and related storage health indicators"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Metric data reveals database region availability problems evidenced by store_unhealth_count异常",
+        "instruction": "Examine region_pending metrics and database region health status"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Metric data indicates storage layer issues with tidb-pd showing store_unhealth_count异常",
+        "instruction": "Monitor store_size metrics for capacity or performance issues"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Metric data shows resource usage anomalies with pod_cpu_usage changes observed",
+        "instruction": "Check cpu_usage metrics for abnormal patterns during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Metric data displays memory usage changes with tidb-tidb memory_usage showing variations",
+        "instruction": "Monitor memory_usage metrics for potential resource constraints"
+      }
+    ]
+  }
+}

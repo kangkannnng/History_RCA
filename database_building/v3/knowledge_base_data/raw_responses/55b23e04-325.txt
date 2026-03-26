@@ -1,0 +1,60 @@
+```json
+{
+    "uuid": "55b23e04-325",
+    "fault_type": "server_error_ratio",
+    "symptom_vector": "DNS lookup failure causing DNS resolution timeout and server error ratio increase",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-2 组件因 DNS 解析失败导致 server_error_ratio 异常飙升",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-2 的 server_error_ratio 从 0.0% 飙升至 67.59%，同时 rrt_max 从 202793ms 增加到 2934032ms",
+            "Step 2: 分析 checkoutservice-2 调用 productcatalogservice 的 GetProduct 操作，发现 rrt_max 从 19.5ms 激增至 1413ms（72倍增长）",
+            "Step 3: 在 Trace 数据中确认 DNS 解析错误：'lookup productcatalogservice on 10.233.33.139:53: server misbehaving'",
+            "Step 4: 日志中发现 frontend 服务报告 'rpc error: code = Internal desc = failed to prepare order: failed to get product'，表明 productcatalogservice 不可达"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "checkoutservice->productcatalogservice 调用延迟异常增加",
+                "instruction": "检查 checkoutservice 调用 productcatalogservice 的 GetProduct 操作是否存在延迟异常（如 rrt_max 激增）"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "HTTP 状态码异常（如 302 或 500）",
+                "instruction": "在 frontend 日志中搜索 http.resp.status 字段，检查是否有异常状态码"
+            },
+            {
+                "modality": "Log",
+                "target": "Internal",
+                "expected_pattern": "包含 Internal 错误描述",
+                "instruction": "在日志中搜索包含 'Internal' 关键词的错误信息"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "请求错误信息",
+                "instruction": "在 frontend 日志中搜索 'request error' 关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "RPC 调用失败",
+                "instruction": "在日志中搜索 'rpc error' 关键词，特别是涉及 productcatalogservice 的调用"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "错误率突然飙升",
+                "instruction": "检查 checkoutservice-2 的 error_ratio 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "服务器错误率异常",
+                "instruction": "检查 checkoutservice-2 的 server_error_ratio 指标是否显著上升"
+            }
+        ]
+    }
+}
+```

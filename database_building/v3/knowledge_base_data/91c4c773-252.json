@@ -1,0 +1,45 @@
+{
+  "uuid": "91c4c773-252",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "JVM CPU spike and overload with high CPU usage saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-0 组件因 Byteman stress 注入导致 pod_cpu_usage 指标异常飙升，引发 JVM CPU 过载",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的 pod_cpu_usage 指标从 0.0 飙升至 0.6（200%变化），同时 rrt_max 从 42790 增加到 94467（75.3%变化）",
+      "Step 2: 分析 adservice-0 的日志发现大量 Byteman stress 注入相关记录，包括 'AdService--stress-1749773423' 规则执行和 'java.lang.reflect.InvocationTargetException' 异常",
+      "Step 3: 确认 stress 注入导致多个并发线程创建和执行，引发 CPU 资源竞争和 JVM 应用异常"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase from baseline (e.g., 0.0 to 0.6 with 200% change)",
+        "instruction": "检查 adservice-0 的 pod_cpu_usage 指标是否在故障期间异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Response time degradation, especially rrt_max significant increase",
+        "instruction": "检查 adservice-0 的 rrt 和 rrt_max 指标是否出现异常延迟"
+      },
+      {
+        "modality": "Log",
+        "target": "adservice--stress",
+        "expected_pattern": "Contains stress injection related keywords like 'AdService--stress-'",
+        "instruction": "在 adservice-0 的日志中搜索 'stress' 或 'AdService--stress-' 关键词，检查 Byteman 注入记录"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Contains Java reflection exception 'java.lang.reflect.InvocationTargetException'",
+        "instruction": "在 adservice-0 的日志中搜索 'InvocationTargetException' 关键词，确认 Java 应用异常"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Contains Byteman transformation or trigger related keywords",
+        "instruction": "在 adservice-0 的日志中搜索 'Transformer' 或 'TriggerThread' 等 Byteman 相关关键词"
+      }
+    ]
+  }
+}

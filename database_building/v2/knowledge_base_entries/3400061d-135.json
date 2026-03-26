@@ -1,0 +1,33 @@
+{
+  "uuid": "3400061d-135",
+  "fault_type": "client_error",
+  "symptom_vector": "Connection refused errors, error_ratio spike, request/response traffic drop, service dependency failures",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice连接拒绝导致前端服务错误率飙升和流量下降",
+    "reasoning_chain": [
+      "Step 1: 观察到Trace数据中frontend->recommendationservice调用出现803次连接拒绝错误（错误码14），表明推荐服务无法连接",
+      "Step 2: 分析Log数据发现所有frontend实例都报告'transport: Error while dialing dial tcp 10.233.43.10:8080: connect: connection refused'错误，目标地址指向recommendationservice",
+      "Step 3: 确认Metric数据显示所有frontend实例的error_ratio从0%飙升到约10%，同时request/response流量下降68-70%，形成完整的因果链条"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend->recommendationservice调用链",
+        "expected_pattern": "大量connection refused错误（错误码14）",
+        "instruction": "检查frontend到recommendationservice的调用链，查找状态码为14（UNAVAILABLE）的连接拒绝错误"
+      },
+      {
+        "modality": "Log",
+        "target": "frontend服务日志中的'connection refused'和'Error while dialing'关键词",
+        "expected_pattern": "包含连接拒绝错误的日志条目，指向特定IP:端口（10.233.43.10:8080）",
+        "instruction": "搜索frontend服务日志中是否包含'connection refused'和'Error while dialing'关键词，确认错误目标地址"
+      },
+      {
+        "modality": "Metric",
+        "target": "frontend服务的error_ratio和request/response指标",
+        "expected_pattern": "error_ratio从0%突然上升到10%左右，同时request/response流量显著下降",
+        "instruction": "监控frontend服务的error_ratio指标，当观察到从0%急剧上升并伴随流量下降时，立即检查下游服务可用性"
+      }
+    ]
+  }
+}

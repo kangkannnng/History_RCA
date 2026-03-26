@@ -1,0 +1,33 @@
+{
+  "uuid": "a499f40d-202",
+  "fault_type": "metric",
+  "symptom_vector": "Multiple downstream service latency spikes (e.g., cartservice->redis HGET: 1.7s→50.3s; checkoutservice->paymentservice: 13.9s→49.9s), increase in cartservice error ratios.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点内存使用率过高，影响其上运行的Redis实例性能，导致下游服务级联延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据中观察到cartservice->redis的HGET操作延迟激增29倍，从1.7秒飙升至50.3秒，是系统中最显著的性能瓶颈。同时，checkoutservice调用下游多个服务的延迟普遍出现3-6倍增长，表明异常已沿调用链向上游扩散。",
+      "Step 2: 检查Metric数据，发现节点aiops-k8s-08的`node_memory_usage_rate`在故障期间的P99值从64.32%显著上升至81.75%，表明该节点存在内存压力。",
+      "Step 3: 进一步查看Pod与节点的映射关系，确认`redis-cart-0`实例正运行在aiops-k8s-08节点上。结合Trace数据中位于同一节点的`cartservice-2`也出现延迟增长，以及Metric数据中该节点`node_cpu_usage_rate`同步升高的事实，可以推断节点级别的资源压力（尤其是内存）是导致核心存储服务（redis-cart-0）性能严重下降的根本原因，并引发连锁反应。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "P99值或均值相比基线显著上升（例如>15%）。",
+        "instruction": "检查所有节点的内存使用率指标，识别出在异常时间段内持续高位或出现突增的节点。"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis (HGET或其他关键操作)",
+        "expected_pattern": "平均延迟或尾部延迟（如P99）相比基线显著激增（例如10倍以上）。",
+        "instruction": "检查服务间调用链，重点关注对存储类服务（如Redis）的调用延迟，识别是否存在异常高的延迟点。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "伴随内存使用率升高，CPU使用率也可能出现增长或波动。",
+        "instruction": "对于已识别出内存异常节点，检查其CPU使用率作为辅助证据，确认节点资源压力可能存在的综合性。"
+      }
+    ]
+  }
+}

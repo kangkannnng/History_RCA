@@ -1,0 +1,39 @@
+{
+  "uuid": "7bd681bb-358",
+  "fault_type": "pod_processes",
+  "symptom_vector": "RPC timeout errors (context canceled) from frontend when calling checkoutservice, latency spike (rrt/rrt_max) on frontend, CPU usage increase on checkoutservice pod",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice进程异常导致性能下降，引发前端调用超时和上下文取消错误",
+    "reasoning_chain": [
+      "Step 1: 观察到前端服务日志中多次出现'rpc error: code = Canceled desc = context canceled'错误，错误发生在调用/cart/checkout接口时，表明下游checkout服务响应超时",
+      "Step 2: 分析指标数据发现checkoutservice-2的pod_cpu_usage从0.0增加到0.2（2倍增长），同时rrt_max指标从192682.5降为0.0，表明该pod存在CPU瓶颈或进程异常",
+      "Step 3: 确认前端服务的rrt和rrt_max指标均显著增加（1.7-1.98倍），这是checkoutservice性能下降导致的连锁反应，结合故障特征中的进程异常描述，推断为checkoutservice进程问题引发整体故障"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "context canceled, rpc error",
+        "expected_pattern": "Contains error messages indicating RPC timeout and context cancellation",
+        "instruction": "检查frontend服务日志，查找在调用/cart/checkout接口时是否出现'rpc error: code = Canceled desc = context canceled'错误信息"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase (e.g., 2x or more) for checkoutservice pods",
+        "instruction": "检查checkoutservice pod的CPU使用率是否有突增，特别是checkoutservice-2的pod_cpu_usage是否从正常值0.0异常增加到0.2或更高"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Abnormal drop to 0 or significant change for checkoutservice",
+        "instruction": "检查checkoutservice的rrt_max指标是否异常下降或归零，这可能表示服务无响应或进程异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Significant increase (e.g., >1.5x) for frontend services",
+        "instruction": "检查所有frontend实例的响应时间(rrt)和最大响应时间(rrt_max)是否有显著增长，这通常是由于下游服务延迟导致的"
+      }
+    ]
+  }
+}

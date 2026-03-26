@@ -1,0 +1,66 @@
+```json
+{
+    "uuid": "c4b46577-499",
+    "fault_type": "server_error_ratio",
+    "symptom_vector": "DNS lookup failure for emailservice causing server_error_ratio spike and rrt_max increase",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 组件因 DNS 解析失败导致 server_error_ratio 和 error_ratio 指标飙升，无法连接到 emailservice",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice 的 server_error_ratio 指标从 0.0 飙升至 25.98，error_ratio 同步增加至 25.98",
+            "Step 2: 分析 checkoutservice 的 rrt_max 指标从 162292.0 激增至 4062637.0，rrt 从 4626.01 增至 101938.76",
+            "Step 3: 日志中发现 checkoutservice 的 DNS 解析错误：'transport: Error while dialing dial tcp: lookup emailservice on 10.233.33.139:53: server misbehaving'",
+            "Step 4: 链路追踪确认 checkoutservice->emailservice 调用失败，EmailService/SendOrderConfirmation 延迟激增 70 倍"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "checkoutservice->emailservice calls failing with high latency",
+                "instruction": "检查 checkoutservice 到 emailservice 的调用链路是否存在延迟异常和失败"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "HTTP response status 302",
+                "instruction": "在 checkoutservice 日志中搜索 http.resp.status 为 302 的记录"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "RPC error with Unavailable status",
+                "instruction": "在 checkoutservice 日志中搜索 rpc error 关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "transport Error while dialing",
+                "expected_pattern": "DNS lookup failure with server misbehaving",
+                "instruction": "在 checkoutservice 日志中搜索 'transport: Error while dialing' 和 'lookup' 关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Connection unavailable errors",
+                "instruction": "在 checkoutservice 日志中搜索 unavailable 关键词"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Sudden increase from baseline",
+                "instruction": "检查 checkoutservice 的 error_ratio 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "Significant spike in server error ratio",
+                "instruction": "检查 checkoutservice 的 server_error_ratio 指标是否显著增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "dns",
+                "expected_pattern": "DNS related metric anomalies",
+                "instruction": "检查 DNS 相关指标是否存在异常"
+            }
+        ]
+    }
+}
+```

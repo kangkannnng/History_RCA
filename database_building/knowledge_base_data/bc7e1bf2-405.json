@@ -1,0 +1,49 @@
+{
+  "uuid": "bc7e1bf2-405",
+  "fault_type": "server_error server_error_ratio error error_ratio dns http.resp.status 302",
+  "symptom_vector": "DNS lookup failure for emailservice causing connection errors, service unavailability, and latency anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice-2] experienced [server_error, server_error_ratio, error, error_ratio, dns, http.resp.status, 302] fault, specifically dns resolution failure.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice-2] (From Ground Truth instance).",
+      "Step 2: Check Observation - Found keyword [transport, Error, while, dialing] in Log (From GT key_observations), as seen in error log: 'transport: Error while dialing dial tcp: lookup emailservice on 10.233.33.139:53: server misbehaving'.",
+      "Step 3: Check Observation - Found keyword [rpc, error] in Log, as seen in log: 'rpc error: code = Unavailable'.",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log, as seen in log: 'code = Unavailable'.",
+      "Step 5: Check Observation - Found keyword [error, error_ratio, server_error, server_error_ratio] in Metric, with values spiking for checkoutservice-2: error_ratio increased from 0% to 34.04%, server_error_ratio from 0% to 34.04%.",
+      "Step 6: Check Observation - Found keyword [frontend] in Trace, with latency anomalies observed in frontend-2 calls.",
+      "Step 7: Derive Root Cause - Based on above features, determined cause is [server_error, server_error_ratio, error, error_ratio, dns, http.resp.status, 302] fault, specifically dns resolution failure leading to service errors."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Latency anomalies observed in trace data for frontend-2, e.g., normal_avg_duration 156733.33 μs to anomaly_avg_duration 2732283.93 μs",
+        "instruction": "Search for keyword 'frontend' in trace data to identify latency anomalies in calls involving frontend-2."
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "Error log entry: 'transport: Error while dialing dial tcp: lookup emailservice on 10.233.33.139:53: server misbehaving'",
+        "instruction": "Search for keyword 'transport: Error while dialing' in logs to detect DNS lookup failures."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Log entry containing 'rpc error', such as 'rpc error: code = Unavailable'",
+        "instruction": "Search for keyword 'rpc error' in logs to identify RPC-related errors."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log with 'code = Unavailable' indicating service unavailability",
+        "instruction": "Search for keyword 'unavailable' in logs to check for service unavailability errors."
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio server_error_ratio",
+        "expected_pattern": "Metric data showing error_ratio and server_error_ratio spiking from 0% to 34.04% for checkoutservice-2",
+        "instruction": "Check metric error_ratio and server_error_ratio for checkoutservice-2 to confirm service error increases."
+      }
+    ]
+  }
+}

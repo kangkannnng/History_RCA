@@ -1,0 +1,33 @@
+{
+  "uuid": "b168261d-355",
+  "fault_type": "request, response, port",
+  "symptom_vector": "Connection refused errors from upstream services (frontend), elevated error ratios (server_error_ratio) on dependent services.",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice端口配置错误，导致其无法接受来自frontend服务的连接请求。",
+    "reasoning_chain": [
+      "Step 1: 在Log数据中观察到，所有frontend服务实例（frontend-0, frontend-1, frontend-2）在故障时间窗口内持续报告相同的错误：`transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused`。这表明所有调用方都无法连接到paymentservice的50051端口。",
+      "Step 2: 在Metric数据中观察到，所有frontend实例的`server_error_ratio`和`error_ratio`指标在故障期间从0%飙升至28-33%。这证实了用户请求因下游服务不可用而失败。同时，观察到paymentservice自身的`rrt_max`指标中位数和P99值在故障期间反而下降，这符合服务完全不可用（无成功请求）而非性能下降的特征，与Log中的`connection refused`现象一致。",
+      "Step 3: 综合Log中明确的“连接被拒绝”错误信息和Metric中上下游服务指标的关联异常（调用方错误率飙升，被调用方响应时间指标异常下降），可以确认根因是paymentservice的端口（50051）无法接受连接，符合端口配置错误或服务未在正确端口监听的故障模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "frontend 服务日志中的 `connection refused` 及 `dial tcp [IP]:[PORT]` 关键词",
+        "expected_pattern": "包含 `connection refused` 错误，且目标地址指向同一下游服务（如 `10.233.55.4:50051`）。来自多个上游实例的相同错误是强信号。",
+        "instruction": "搜索来自frontend或任何调用方服务的错误日志，过滤包含 `connection refused` 和 `dial tcp` 关键词的条目。确认错误是否集中指向同一个下游服务端点（IP:Port）。"
+      },
+      {
+        "modality": "Metric",
+        "target": "frontend 服务的 `server_error_ratio` 或 `error_ratio`",
+        "expected_pattern": "在故障时间窗口内，该指标从接近0的水平突然显著飙升（例如，超过20%）。",
+        "instruction": "查询故障时间段内，所有frontend实例的 `server_error_ratio` 或 `error_ratio` 指标。观察是否出现同步的、显著的上升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "被怀疑服务（如 paymentservice）的 `rrt_max` 或请求速率（如有）",
+        "expected_pattern": "在故障期间，`rrt_max` 的中位数或P99值可能异常降低或归零，同时请求速率可能降至0。这暗示服务没有处理任何成功请求。",
+        "instruction": "对比故障时间段与正常时间段，检查被怀疑根因服务（本例中为paymentservice）的响应时间指标（如`rrt_max`）和请求量指标。寻找指标异常下降至接近零或基线以下的情况，这可能与“连接拒绝”导致的零成功请求相符。"
+      }
+    ]
+  }
+}

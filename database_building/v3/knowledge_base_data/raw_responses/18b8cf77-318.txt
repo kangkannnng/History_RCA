@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "18b8cf77-318",
+    "fault_type": "server_error_ratio",
+    "symptom_vector": "DNS lookup failure, DNS resolution timeout, incorrect DNS response, DNS server unreachable, truncated DNS packet",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 组件因 DNS 故障导致 server_error_ratio 从0%飙升至72.73%且响应时间急剧恶化",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-0 和 checkoutservice-2 的 server_error_ratio 指标从0%飙升至72.73%，同时 rrt 指标从约6秒激增至180-210秒",
+            "Step 2: 分析 checkoutservice 组件的 error_ratio 和 server_error_ratio 同步异常，表明服务端错误率激增",
+            "Step 3: 确认故障模式符合 DNS 故障特征（DNS lookup failure, DNS resolution timeout），导致 checkoutservice 无法解析 productcatalogservice 等下游服务"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "从0%突然飙升至72.73%以上",
+                "instruction": "检查 checkoutservice 组件的 server_error_ratio 指标是否在故障窗口内异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "与 server_error_ratio 同步异常增长",
+                "instruction": "检查 checkoutservice 的 error_ratio 指标是否同样出现异常增长"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "响应时间从毫秒级激增至百秒级",
+                "instruction": "检查 checkoutservice 的 rrt 指标是否出现数十倍增长，符合DNS解析超时特征"
+            }
+        ]
+    }
+}
+```

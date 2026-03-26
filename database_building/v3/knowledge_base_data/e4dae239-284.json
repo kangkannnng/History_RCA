@@ -1,0 +1,21 @@
+{
+  "uuid": "e4dae239-284",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full with high disk utilization and disk space exhaustion",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-05 节点因 node_filesystem_usage_rate 指标异常飙升导致磁盘空间耗尽",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-05 节点的 node_filesystem_usage_rate 指标从正常中位数25.18%飙升至故障期间63.61%，变化率86.56%",
+      "Step 2: 分析该指标P99值从36.0%上升到91.42%，确认磁盘使用率异常严重且接近饱和",
+      "Step 3: 确认故障期间该节点上运行的 cartservice-1、paymentservice-1、currencyservice-0 等服务可能受到磁盘IO影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden increase from baseline (e.g., >50% change rate)",
+        "instruction": "检查所有节点的 node_filesystem_usage_rate 指标，重点关注变化率超过50%的异常节点"
+      }
+    ]
+  }
+}

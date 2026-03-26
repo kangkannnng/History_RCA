@@ -1,0 +1,33 @@
+{
+  "uuid": "ba4ffa4e-416",
+  "fault_type": "database_storage_layer_failure",
+  "symptom_vector": "Latency spike (duration_99th from 0.01ms to 64.87ms), Failed query operations (44 failed_query_ops), High error rate ('Error 9005 (HY000): Region is unavailable'), Service response time surge (rrt from milliseconds to tens of seconds), Store unhealth count (PD detects unhealthy storage nodes)",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB存储层组件tidb-tikv出现Region不可用，导致数据库查询失败并引发上游服务级联故障",
+    "reasoning_chain": [
+      "Step 1: 在metric数据中观察到tidb-tidb组件的duration_99th从正常0.01ms飙升至64.87ms，变化率199.94%，同时failed_query_ops在P99分位出现44个失败查询，表明数据库层出现严重性能问题",
+      "Step 2: 在log数据中发现productcatalogservice服务出现237次'Error 9005 (HY000): Region is unavailable'错误日志，该错误明确指向TiDB数据库Region不可用问题",
+      "Step 3: 在trace数据中确认productcatalogservice的rrt_max从正常约10秒激增至3900万秒（延迟倍数>4000倍），且错误传播路径显示所有异常都源自productcatalogservice的TiDB数据库连接问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "duration_99th",
+        "expected_pattern": "Sudden spike from milliseconds level to tens of milliseconds (e.g., 0.01ms to 64.87ms)",
+        "instruction": "检查TiDB组件（特别是tidb-tidb和tidb-tikv）的duration_99th指标，观察是否出现从毫秒级到几十毫秒的突增，变化率是否超过100%"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "Contains error message indicating TiDB database region unavailability",
+        "instruction": "搜索所有服务日志中的'Error 9005 (HY000): Region is unavailable'关键词，统计出现频率和分布的服务（特别是依赖数据库的服务如productcatalogservice）"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice->frontend调用链的rrt_max",
+        "expected_pattern": "Response time surges from normal seconds to extremely high values (e.g., 10 seconds to 39 million seconds)",
+        "instruction": "分析productcatalogservice与上游服务（特别是frontend）之间的调用链，检查rrt_max是否出现异常激增，并确认是否伴随'Region is unavailable'错误状态码"
+      }
+    ]
+  }
+}

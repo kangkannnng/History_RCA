@@ -1,0 +1,30 @@
+```json
+{
+    "uuid": "b67cbc30-102",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload, high CPU usage, CPU saturation, CPU spike, node cpu stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-01] experienced [node_cpu_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-01] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [node_cpu_usage_rate] in Metric data with abnormal increase (From GT key_observations)",
+            "Step 3: Check Observation - Found keywords [node_network_receive_packets_total, node_network_transmit_packets_total] in Metric analysis context (From GT key_observations)",
+            "Step 4: Derive Root Cause - Based on above features, determined cause is [node_cpu_usage_rate] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Metric value shows abnormal increase from 16.28% to 92.95% with 140.38% change rate",
+                "instruction": "Search for metric [node_cpu_usage_rate] for node [aiops-k8s-01] and check if value exceeds threshold"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_receive_packets_total",
+                "expected_pattern": "Network packet metrics appear in metric analysis context as detected metric keys",
+                "instruction": "Check if network-related metrics [node_network_receive_packets_total, node_network_transmit_packets_total] show anomalies"
+            }
+        ]
+    }
+}
+```

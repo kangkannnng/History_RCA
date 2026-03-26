@@ -1,0 +1,45 @@
+{
+  "uuid": "fe4efdc8-364",
+  "fault_type": "server_error_ratio",
+  "symptom_vector": "DNS lookup failure for paymentservice causing server error spikes and payment service unavailability",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 组件的 checkoutservice-2 实例由于 paymentservice 的 DNS 解析失败，导致 server_error_ratio 和 error_ratio 指标异常飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice-2 的 server_error_ratio 指标从 0.0 飙升到 42.11，同时 rrt_max 从 206942.5 上涨到 2817341.0，表明该服务出现严重错误和性能劣化。",
+      "Step 2: 分析相关服务的日志，发现 frontend 服务在调用 checkoutservice 时出现包含 'lookup paymentservice on 10.233.33.139:53: server misbehaving' 的错误信息，直接指向 DNS 解析故障。",
+      "Step 3: 通过调用链分析确认故障传播路径为 frontend -> checkoutservice -> paymentservice，并发现 paymentservice 的调用因状态码 14 (DNS 解析错误) 而完全失败，锁定了故障根因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "rrt_max 和 rrt 出现10倍以上的异常增长，调用状态码出现大量异常（如14，13）。",
+        "instruction": "扫描 checkoutservice 及其上下游服务（特别是 frontend->checkoutservice, checkoutservice->paymentservice）的调用链，分析是否存在延迟暴增及特定的错误状态码。"
+      },
+      {
+        "modality": "Log",
+        "target": "transport， Error while dialing, lookup paymentservice, server misbehaving",
+        "expected_pattern": "日志消息中包含 'lookup paymentservice ... server misbehaving' 等表示 DNS 查找失败的字符串。",
+        "instruction": "在 frontend 或 checkoutservice 的日志中搜索包含 'lookup'、'dialing'、'server misbehaving' 等关键词的错误条目，确认 DNS 解析错误的具体描述。"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status， 302",
+        "expected_pattern": "出现大量 HTTP 302 或其他非 200 状态码。",
+        "instruction": "检查 frontend 服务日志中的 'http.resp.status' 字段，确认是否有异常状态码激增。"
+      },
+      {
+        "modality": "Log",
+        "target": "Internal， request error， rpc， error， unavailable",
+        "expected_pattern": "日志中出现 'Internal'、'request error'、'rpc error'、'Unavailable' 等通用错误描述。",
+        "instruction": "检查所有相关服务的错误级别日志，寻找关于 RPC 调用失败、服务不可用或内部错误的通用描述。"
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio， error_ratio， rrt_max",
+        "expected_pattern": "server_error_ratio 和 error_ratio 从接近于0的值突然飙升至高位（如 > 40），同时 rrt_max 出现数量级的增长。",
+        "instruction": "监控 checkoutservice 和 frontend 服务的 server_error_ratio、error_ratio 以及 rrt_max 指标。当这些指标出现突发性、剧烈增长时，应立即触发告警和根因分析。"
+      }
+    ]
+  }
+}

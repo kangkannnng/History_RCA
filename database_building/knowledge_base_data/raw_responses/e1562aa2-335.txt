@@ -1,0 +1,21 @@
+{
+    "uuid": "e1562aa2-335",
+    "fault_type": "dns, http.resp.status, 302",
+    "symptom_vector": "DNS lookup failure, resolution timeout, incorrect response, server unreachable, and truncated packet issues.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component checkoutservice-2 experienced dns and http.resp.status 302 fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is checkoutservice-2 (From Ground Truth instance field).",
+            "Step 2: Check Observation - Based on Ground Truth key_observations, keyword [http.resp.status, 302] is specified for logs, but in the provided Full Context, log data was not collected (as indicated by 'LOG AGENT - Log data not collected' warning and empty log_analysis_findings).",
+            "Step 3: Derive Root Cause - Given the metadata and specified observations from Ground Truth, determined cause is dns and http.resp.status 302 anomalies."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "Log entries containing HTTP response status 302, which may indicate redirects or errors related to DNS faults such as lookup failure or resolution timeout.",
+                "instruction": "Search for keyword 'http.resp.status' and value '302' in logs during the fault time window from 2025-06-17T16:10:02Z to 2025-06-17T16:29:02Z."
+            }
+        ]
+    }
+}

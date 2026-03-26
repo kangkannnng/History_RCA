@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "31392fda-93",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory stress leading to pod restart",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice-0 Pod因内存压力(pod_memory_working_set_bytes过高)导致重启",
+        "reasoning_chain": [
+            "Step 1: 观察到 shippingservice-0 的 pod_processes 指标从1.0变化为2.0 (p99_change_ratio=0.6667)，表明Pod发生了重启或进程数异常变化",
+            "Step 2: 分析 shippingservice-0 Pod重启的潜在原因。在故障期间，Log专家未发现任何错误日志，这排除了因功能错误导致重启的可能性，更符合因资源压力（如内存耗尽）触发的Pod生命周期异常特征",
+            "Step 3: 结合故障类型为'memory stress'，确认根因是 shippingservice-0 Pod因内存压力(pod_memory_working_set_bytes指标异常高)导致重启，进而引发了下游调用链（如redis、cartservice）的延迟"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "计数值（如从1.0到2.0）或p99值发生显著增加，表明Pod发生重启或进程数变化",
+                "instruction": "检查 shippingservice-0 Pod的pod_processes指标在故障时间窗口内是否出现计数值或p99值的突然增加，这通常表明Pod重启事件。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "指标值持续处于高水位、达到或接近内存限制，并可能在Pod重启前后出现陡降或波动",
+                "instruction": "检查 shippingservice-0 Pod的pod_memory_working_set_bytes指标在故障期间是否异常飙升，并观察其变化是否与pod_processes变化的时间点相关联，以确认内存压力是重启的直接原因。"
+            }
+        ]
+    }
+}
+```

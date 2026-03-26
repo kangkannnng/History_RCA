@@ -1,0 +1,45 @@
+{
+  "uuid": "146da42a-586",
+  "fault_type": "TiDB/IO故障",
+  "symptom_vector": "latency spike in productcatalogservice calls, region_pending queue backlog in TiKV, increased io_util and cpu_usage, no error logs",
+  "expert_knowledge": {
+    "root_cause_desc": "TiKV存储层因region_pending队列积压和IO利用率异常导致的数据库性能下降",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到tidb-tikv组件的region_pending指标出现151.73%的剧烈变化（正常7753.5，故障期1064.0），同时io_util和cpu_usage指标也出现异常波动，表明存储层存在性能瓶颈。",
+      "Step 2: 在Trace数据中发现productcatalogservice的调用延迟激增152.2倍（例如从checkoutservice调用productcatalogservice的延迟从10473.99ms增加到1593610.25ms），而productcatalogservice依赖TiDB，这间接证实了数据库层性能问题已影响上层应用。",
+      "Step 3: 在Log数据中未发现任何错误日志，这与存储层性能瓶颈的特征一致（通常不会产生显式错误日志），进一步排除应用层直接故障的可能性。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden spike or significant change (e.g., >100% increase)",
+        "instruction": "检查TiKV组件的region_pending指标是否出现异常突变，重点关注变化率超过阈值的情况。"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Elevated or spiking values",
+        "instruction": "检查TiKV组件的io_util指标是否出现异常升高，这可能表明存储IO瓶颈。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Elevated values",
+        "instruction": "检查TiKV组件的cpu_usage指标是否异常升高，辅助判断资源瓶颈。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.ProductCatalogService/GetProduct",
+        "expected_pattern": "Latency spike in calls to productcatalogservice",
+        "instruction": "检查调用链中productcatalogservice的延迟是否激增，尤其关注其依赖TiDB的调用路径。"
+      },
+      {
+        "modality": "Log",
+        "target": "tidb-tikv",
+        "expected_pattern": "No error logs (silent performance degradation)",
+        "instruction": "在TiKV组件日志中搜索错误关键字（如'error', 'failed', 'timeout'），若无明确错误日志，则符合性能瓶颈特征。"
+      }
+    ]
+  }
+}

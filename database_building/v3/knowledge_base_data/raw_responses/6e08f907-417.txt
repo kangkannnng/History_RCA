@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "6e08f907-417",
+    "fault_type": "node_memory_stress",
+    "symptom_vector": "node memory exhaustion and saturation with high memory usage",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-08 节点因内存压力（node_memory_MemAvailable_bytes 下降）导致节点级内存紧张",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-08 节点相关的 trace 数据显示多个服务延迟异常，包括 cartservice-2 的 EmptyCart 操作延迟增长 11.6 倍，frontend-2 的 CurrencyService 延迟增长 8 倍",
+            "Step 2: 分析 metric 数据发现 aiops-k8s-08 节点的 node_cpu_usage_rate p99 从 25% 激增至 76.65%，同时 aiops-k8s-04 节点的 node_memory_MemAvailable_bytes 从 9.16GB 下降至 8.10GB，表明内存可用性降低",
+            "Step 3: 确认日志中虽然主要显示 RedisTimeoutException，但这是内存压力导致的级联影响，实际根因是节点级内存资源紧张"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Multiple services on the same node showing latency spikes",
+                "instruction": "检查 aiops-k8s-08 节点上运行的所有服务的调用链延迟是否出现异常增长，特别是 frontend 相关操作"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "HTTP status codes indicating errors (e.g., 302, 500)",
+                "instruction": "在 frontend 服务日志中搜索 HTTP 响应状态码，特别是 302 或其他错误状态码"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Increased disk read activity indicating memory pressure",
+                "instruction": "检查 aiops-k8s-08 节点的 node_disk_read_bytes_total 指标是否异常增长，这可能表明内存不足导致交换"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increased disk read time indicating I/O contention",
+                "instruction": "检查 node_disk_read_time_seconds_total 指标是否增加，这可能与内存压力导致的磁盘交换相关"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Decreasing available memory over time",
+                "instruction": "监控 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 指标，确认可用内存是否持续下降"
+            }
+        ]
+    }
+}
+```

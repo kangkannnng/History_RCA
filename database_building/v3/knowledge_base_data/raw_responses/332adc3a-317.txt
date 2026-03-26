@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "332adc3a-317",
+    "fault_type": "region_pending_io_util",
+    "symptom_vector": "io fault with filesystem call errors, read/write operation errors, and permission denied errors",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 region_pending 指标异常下降和 io_util 指标异常导致的存储层IO性能问题",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标从正常中位数10467大幅下降至故障中位数739（变化率1.7362），表明存储层调度异常",
+            "Step 2: 分析 tidb-tikv 组件的 io_util 指标P99值从0.1上升至0.35（变化率1.1131），同时 cpu_usage 的P99值从0.14上升至0.69（变化率1.3273），显示IO和CPU资源异常",
+            "Step 3: 确认上游服务 productcatalogservice-1 的 rrt_max 从13969.5升至20026.0，cartservice-1 的 rrt_max 从5950.0升至9999.0，表明存储层问题已向上游传播"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Significant decrease from baseline (10467→739, change rate 1.7362)",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否出现异常下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "P99 value increase from 0.1 to 0.35 (change rate 1.1131)",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标P99值是否异常上升"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "Abnormal increase indicating storage layer write delays",
+                "instruction": "检查 tidb-tikv 组件的 raft_apply_wait 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Abnormal memory usage patterns",
+                "instruction": "检查 tidb-tikv 组件的内存使用情况是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "snapshot_apply_count",
+                "expected_pattern": "Abnormal snapshot application patterns",
+                "instruction": "检查 tidb-tikv 组件的 snapshot_apply_count 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_size",
+                "expected_pattern": "Abnormal store size changes",
+                "instruction": "检查 tidb-tikv 组件的 store_size 指标是否异常"
+            }
+        ]
+    }
+}
+```

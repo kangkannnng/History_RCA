@@ -1,0 +1,27 @@
+{
+  "uuid": "5c4502b0-551",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault causing filesystem call errors and downstream service latency anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv 组件因 region_pending 指标异常飙升和 io_util 增高，导致存储层出现性能瓶颈",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 的 region_pending 指标中位数从 8977.5 飙升至 1666.0 (变化率 1.37x)，P99 值从 11819.25 升至 1936.56 (变化率 1.44x)，同时 io_util 的 P99 值从 0.09 升至 0.22，表明存储层 IO 存在显著性能问题",
+      "Step 2: 分析 tidb-tikv 的 cpu_usage P99 值也出现异常，从 0.1 升至 0.32，进一步确认了资源瓶颈",
+      "Step 3: 通过 Trace 数据确认，依赖于 tidb 的 productcatalogservice 的 GetProduct 操作延迟从约 10 秒飙升到 38-118 秒 (3.8-12x 增长)，且下游 cartservice 和 redis 操作延迟也大幅增加，这符合 tidb-tikv 存储层瓶颈导致上游服务性能恶化的因果关系"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending, io_util",
+        "expected_pattern": "指标值出现显著增长，变化率超过正常阈值",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 和 io_util 指标在故障时间窗口内是否出现异常飙升。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "调用链上游服务（如 productcatalogservice 的 GetProduct 操作）的 rrt_max 延迟大幅增加",
+        "instruction": "检查从应用服务（如 frontend）到 TiDB 依赖服务（如 productcatalogservice）的调用链，查看其最大响应时间 (rrt_max) 是否因底层存储问题而出现异常延迟。"
+      }
+    ]
+  }
+}

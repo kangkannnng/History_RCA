@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "a0e512ba-384",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload, node high CPU usage, node CPU saturation, node CPU spike",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-07 节点因 node_cpu_usage_rate 指标异常飙升（17.95% → 90.7%）导致其上运行的服务性能下降",
+        "reasoning_chain": [
+            "Step 1: 从 Metric 数据中观察到 aiops-k8s-07 节点的 node_cpu_usage_rate 从正常中位值 17.95% 飙升至故障中位值 90.7%，变化率为 1.3392，表明该节点CPU使用率严重异常。",
+            "Step 2: 结合 node_pod_mapping 数据分析，发现 aiops-k8s-07 节点上运行有 cartservice-0、currencyservice-1、adservice-1 等多个Pod。检查这些Pod的指标，发现它们同时出现了 error_ratio、client_error_ratio 的P99值飙升以及 rrt_max 异常。",
+            "Step 3: 根据节点级资源耗尽（node_cpu_usage_rate）导致其承载的所有Pod普遍性能下降的模式，确认故障根因为 aiops-k8s-07 节点的CPU资源瓶颈。Log中无错误日志符合资源型问题的特征，Trace数据中该节点记录的缺失亦可归因为节点CPU耗尽导致调用链路未被成功记录。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "中位值从较低基线（<30%）突然且持续地飙升至高值（>80%），变化率（change_ratio）显著（如 >1.0）",
+                "instruction": "检查 node_cpu_usage_rate 指标，定位异常飙升的节点，并计算其故障期与正常期中位值的变化率。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio, client_error_ratio, rrt_max",
+                "expected_pattern": "在已确认CPU使用率异常的节点上，其承载的多个Pod的 error_ratio、client_error_ratio 或 rrt_max 指标（尤其是P99值）同步出现异常升高。",
+                "instruction": "通过节点-Pod映射关系，获取可疑节点上运行的所有Pod列表，并检查这些Pod的 error_ratio、client_error_ratio 以及 rrt_max 等性能指标的P99值是否同时出现恶化。"
+            },
+            {
+                "modality": "Log",
+                "target": "error",
+                "expected_pattern": "无明显应用错误日志记录。",
+                "instruction": "检查故障时间段内，被识别为可疑节点及其上所有Pod的日志，确认是否缺少直接的错误日志记录，以辅助判断是否为资源瓶颈而非代码错误。"
+            }
+        ]
+    }
+}
+```

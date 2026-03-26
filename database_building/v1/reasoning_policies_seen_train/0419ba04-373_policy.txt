@@ -1,0 +1,31 @@
+[Trigger]
+- Log anomaly pattern: Multiple frontend instances log "connection refused" errors when attempting to connect to IP 10.233.39.78 on port 7000, accompanied by "transport is closing" and "failed to convert price" errors in RPC calls.
+- Metric anomaly pattern: Error ratios spike significantly in frontend services, while pod CPU usage drops to zero for a specific service instance, and request/response metrics decrease in other services.
+- Trace anomaly pattern: Trace data shows high-frequency failed calls from frontend to a currency-related service with connection refusal status codes, and increased latency in downstream services like cart and checkout.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs consistently show "connection refused" errors targeting a specific IP and port (10.233.39.78:7000) from all frontend instances during the fault period. This matters because it directly indicates a persistent connectivity failure to a critical service endpoint, suggesting the service is not accepting connections.
+- Evidence 2: Metric data reveals that pod CPU usage for a currency service instance dropped from a normal median to zero during the anomaly. This matters because it correlates with the service being unresponsive, supporting the hypothesis that the instance may have stopped or failed to start properly.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Error ratio spikes in frontend and other services like shipping service. This is a consequence because when the primary service becomes unreachable, dependent services experience cascading failures, leading to increased error rates.
+- Evidence 4: Increased latency in cart service and Redis calls. This can be deprioritized as it is likely a secondary effect caused by retries or resource contention due to the main service failure, not the root cause.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the repeated connection refused errors to a specific port and the concurrent drop in resource usage for that service instance, we suspect that a service instance has become inaccessible due to a network or configuration issue preventing connection establishment."
+
+Step 2: Verification or elimination
+"If this were caused by a widespread network partition, we would expect similar connection errors across multiple services and endpoints; however, actual observation shows isolated failures only to this specific service instance, with other inter-service communications remaining functional. This rules out a broad network infrastructure problem."
+"If the issue were due to high load or application crashes within the service, we would expect different error patterns such as timeouts or internal server errors, not consistent connection refusals. The evidence points to a lower-level connectivity barrier."
+
+Step 3: Convergence to conclusion
+"The combination of direct connection refusal evidence and the resource usage anomaly indicates that the service instance is not listening on the expected port, likely due to an incorrect endpoint configuration or instance deployment error, which prevents client connections and propagates failures upstream."
+
+[Conclusion]
+"The root cause is a service instance failing to become accessible at the configured network endpoint, leading to persistent connection refusals that cascade into dependent service failures and increased error rates across the system."
+
+[Next Action]
+- "Verify whether the service deployment configuration matches the expected port and IP settings for client connections."
+- "Check for any logs or events indicating service instance startup failures or configuration changes prior to the anomaly period."

@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "de4a919c-126",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice 组件因内存压力测试导致 pod_memory_working_set_bytes 指标异常飙升，引发内存耗尽和系统级性能问题",
+        "reasoning_chain": [
+            "Step 1: 观察到 paymentservice 的 pod_memory_working_set_bytes 指标在故障时间段内出现异常增长，符合内存压力测试特征",
+            "Step 2: 分析 paymentservice 组件的 pod_processes 指标显示所有实例的 p99 变化率均为 0.6667，表明进程状态异常变化",
+            "Step 3: 日志中 paymentservice 出现 PluginLoader 加载失败错误，但这是内存压力导致的副作用而非根因",
+            "Step 4: 确认系统级延迟异常（如 currencyservice-1 的 rrt_max 变化率 169.79%）是内存压力测试的连锁反应"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "could not load",
+                "expected_pattern": "Contains PluginLoader load failure errors",
+                "instruction": "在 paymentservice 日志中搜索 'could not load' 关键词，检查 OpenTelemetry 插件加载错误"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value change from 1.0 to 2.0 with p99_change_ratio 0.6667",
+                "instruction": "检查 paymentservice 所有实例的 pod_processes 指标是否从 1.0 变为 2.0，并计算 p99 变化率"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Significant increase indicating memory pressure",
+                "instruction": "检查 paymentservice 的 pod_memory_working_set_bytes 指标是否在故障时间段内异常增长，表明内存压力"
+            }
+        ]
+    }
+}
+```

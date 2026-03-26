@@ -1,0 +1,42 @@
+```json
+{
+    "uuid": "11f619f0-285",
+    "fault_type": "client_error_ratio",
+    "symptom_vector": "pod failure with connection refused errors and error ratio spike",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice 组件因端口连接拒绝导致 client_error_ratio 飙升和服务不可用",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 error_ratio 和 server_error_ratio 从 0.0 飙升至 43-44，表明前端服务出现大量错误",
+            "Step 2: 分析 Trace 数据发现多个服务（frontend、recommendationservice、checkoutservice）连接 productcatalogservice 失败，错误信息为 'connection refused on 10.233.54.177:3550'，状态码为 14",
+            "Step 3: 检查 Log 数据确认 productcatalogservice 的连接拒绝错误，具体为 'transport: Error while dialing dial tcp 10.233.54.177:3550: connect: connection refused'",
+            "Step 4: 确认 productcatalogservice-2 的 client_error_ratio 和 error_ratio 从 0.0 上升至 6.44，表明该组件处理请求时出现错误"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection|refused|Error|while|dialing|timeout|unavailable",
+                "expected_pattern": "包含 connection refused、Error while dialing、timeout、unavailable 等关键词",
+                "instruction": "在 productcatalogservice 相关日志中搜索连接拒绝、拨号错误、超时和不可用等关键词"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error|client_error_ratio|error|error_ratio",
+                "expected_pattern": "从基线值异常飙升",
+                "instruction": "检查 productcatalogservice 组件的 client_error、client_error_ratio、error、error_ratio 指标是否出现异常增长"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "网络流量异常变化",
+                "instruction": "检查 productcatalogservice pod 的网络接收/发送字节数和包数指标是否异常"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->productcatalogservice|recommendationservice->productcatalogservice|checkoutservice->productcatalogservice",
+                "expected_pattern": "调用链状态码为 14（UNAVAILABLE）或包含 connection refused 错误",
+                "instruction": "检查所有调用 productcatalogservice 的调用链，特别是 frontend、recommendationservice、checkoutservice 到 productcatalogservice 的调用是否失败"
+            }
+        ]
+    }
+}
+```

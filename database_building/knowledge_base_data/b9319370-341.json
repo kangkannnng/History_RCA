@@ -1,0 +1,77 @@
+{
+  "uuid": "b9319370-341",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Service failures due to method error, code error, and runtime panic",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [productcatalogservice] experienced [pod_processes] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [productcatalogservice] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword [context canceled] in Log, as evidenced by log entries with 'context canceled' errors (e.g., 'could not retrieve product: rpc error: code = Canceled desc = context canceled').",
+      "Step 3: Check Observation - Found keyword [pod_cpu_usage] in Metric, with anomalies in productcatalogservice pods (e.g., pod_cpu_usage increased from 0% to 0.4% in fault period).",
+      "Step 4: Check Observation - Keyword [pod_processes] is specified in key metrics and observations from Ground Truth, indicating process-related faults.",
+      "Step 5: Derive Root Cause - Based on the presence of keywords like context canceled, pod_cpu_usage, and the instance productcatalogservice, determined cause is [pod_processes] as per Ground Truth key_metrics."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, frontend, recommendationservice",
+        "expected_pattern": "Latency anomalies or call failures involving these services to productcatalogservice, as seen in trace data with operations like 'hipstershop.ProductCatalogService/GetProduct' showing high latency.",
+        "instruction": "Search for trace calls from checkoutservice, frontend, recommendationservice to productcatalogservice for latency spikes or errors."
+      },
+      {
+        "modality": "Log",
+        "target": "context canceled",
+        "expected_pattern": "'context canceled' error messages in logs, e.g., 'could not retrieve product: rpc error: code = Canceled desc = context canceled'.",
+        "instruction": "Search for keyword 'context canceled' in log entries to identify RPC call timeouts."
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "HTTP response status 302 in logs, though not explicitly found in provided data, it is a key observation from Ground Truth.",
+        "instruction": "Search for 'http.resp.status' with value 302 in logs to check for redirect errors."
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "'request error' log entries, e.g., messages with 'request error' indicating failed requests.",
+        "instruction": "Search for keyword 'request error' in logs to capture general request failures."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "'rpc error' in log messages, often paired with context canceled or other errors.",
+        "instruction": "Search for keyword 'rpc error' in logs to identify gRPC communication issues."
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "'transport: Error while dialing' errors in logs, e.g., 'transport: Error while dialing dial tcp 10.233.54.177:3550: connect: connection refused'.",
+        "instruction": "Search for keyword 'transport Error while dialing' in logs to detect connection failures."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "'unavailable' status or errors in logs, though not explicitly found in provided data, it is a key observation from Ground Truth.",
+        "instruction": "Search for keyword 'unavailable' in logs to check for service unavailability messages."
+      },
+      {
+        "modality": "Metric",
+        "target": "request response",
+        "expected_pattern": "Anomalies in request-response metrics, such as error_ratio or client_error_ratio changes, as seen in metric data with values rising from 0%.",
+        "instruction": "Check metrics related to request and response, like error_ratio, for anomalies during fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Increased pod_cpu_usage for productcatalogservice pods, e.g., from 0% to 0.4% in fault metrics.",
+        "instruction": "Monitor metric 'pod_cpu_usage' for productcatalogservice pods to detect resource usage spikes."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Anomaly in pod processes metric, as specified in Ground Truth key_metrics and observations, though not explicitly in provided data.",
+        "instruction": "Check metric 'pod_processes' for productcatalogservice pods to identify process-related faults, such as increases due to deadloop code error."
+      }
+    ]
+  }
+}

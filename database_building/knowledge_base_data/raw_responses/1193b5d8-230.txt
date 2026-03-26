@@ -1,0 +1,57 @@
+```json
+{
+    "uuid": "1193b5d8-230",
+    "fault_type": "client_error client_error_ratio error error_ratio",
+    "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [cartservice-1] experienced [client_error, client_error_ratio, error, error_ratio] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [cartservice-1] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [Connection, refused] in Log (From GT key_observations: 'transport: Error while dialing dial tcp 10.233.46.196:7070: connect: connection refused' appears in raw_log_result)",
+            "Step 3: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations: Same error message in raw_log_result)",
+            "Step 4: Check Observation - Found keyword [failure] in Log (From GT key_observations: 'cart failure: failed to get user cart during checkout' appears in raw_log_result)",
+            "Step 5: Check Observation - Found keyword [unavailable] in Log (From GT key_observations: 'rpc error: code = Unavailable desc = connection error' appears in raw_log_result)",
+            "Step 6: Check Observation - Found keyword [client_error, client_error_ratio, error, error_ratio] in Metric (From GT key_observations: cartservice-1 shows client_error_ratio P99=20.73%, error_ratio P99=22.46% in raw_metric_result)",
+            "Step 7: Derive Root Cause - Based on connection refused errors and high error ratios, determined cause is [client_error, client_error_ratio, error, error_ratio] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection refused",
+                "expected_pattern": "'connect: connection refused' error appears in frontend logs when connecting to cartservice-1",
+                "instruction": "Search for keyword 'connection refused' in logs, specifically looking for connections to cartservice-1 (IP: 10.233.46.196:7070)"
+            },
+            {
+                "modality": "Log",
+                "target": "Error while dialing",
+                "expected_pattern": "'transport: Error while dialing' error appears in trace status messages",
+                "instruction": "Search for keyword 'Error while dialing' in trace status combinations for cartservice calls"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "'cart failure: failed to get user cart during checkout' appears in error logs",
+                "instruction": "Search for keyword 'failure' in logs related to cartservice operations"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "'rpc error: code = Unavailable' appears in error messages",
+                "instruction": "Search for keyword 'Unavailable' in logs and trace status messages"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "cartservice-1 shows client_error_ratio P99=20.73% (normal=0.0%) in anomaly_metrics",
+                "instruction": "Check metric [client_error_ratio] for cartservice-1, verify P99 value exceeds threshold"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "cartservice-1 shows error_ratio P99=22.46% (normal=0.0%) in anomaly_metrics",
+                "instruction": "Check metric [error_ratio] for cartservice-1, verify P99 value shows significant increase"
+            }
+        ]
+    }
+}
+```

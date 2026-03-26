@@ -1,0 +1,57 @@
+{
+  "uuid": "56c934bb-205",
+  "fault_type": "client_error_ratio",
+  "symptom_vector": "pod failure with connection refused errors and client_error_ratio spike",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 组件因端口连接拒绝导致 client_error_ratio 飙升和 pod failure",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 服务的 error_ratio 和 server_error_ratio 指标在故障期间显著升高，从正常值0%升至26-28%",
+      "Step 2: 分析 cartservice 组件的 rrt 和 rrt_max 指标异常增加，表明存在延迟问题",
+      "Step 3: 日志中发现所有 frontend 实例都无法连接到 cartservice 的7070端口，出现 'connection refused' 错误，确认 cartservice 不可用"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Connection|refused",
+        "expected_pattern": "Contains connection refused errors",
+        "instruction": "在 frontend 和 checkoutservice 日志中搜索 'connection refused' 关键词，检查是否无法连接到 cartservice"
+      },
+      {
+        "modality": "Log",
+        "target": "Error|while|dialing",
+        "expected_pattern": "Contains dialing error messages",
+        "instruction": "检查日志中是否包含 'Error while dialing' 错误信息，特别是针对 cartservice 的7070端口"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Contains failure keywords",
+        "instruction": "搜索日志中的 'failure' 关键词，特别是与 cartservice 相关的故障描述"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Contains unavailable status",
+        "instruction": "检查日志中是否报告 cartservice 为 unavailable 状态"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "Sudden increase from baseline",
+        "instruction": "检查 cartservice 的 client_error_ratio 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "Significant spike during fault period",
+        "instruction": "监控 frontend 和 cartservice 的 error_ratio 指标是否同时出现峰值"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal network traffic pattern",
+        "instruction": "检查 cartservice pod 的网络流量指标是否异常"
+      }
+    ]
+  }
+}

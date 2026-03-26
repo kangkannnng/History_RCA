@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "6dee3cf4-590",
+    "fault_type": "dns, http.resp.status, 302",
+    "symptom_vector": "DNS lookup failure, DNS resolution timeout, incorrect DNS response, DNS server unreachable, truncated DNS packet",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [checkoutservice-1] experienced [dns] fault, accompanied by [http.resp.status, 302] anomaly.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [checkoutservice-1] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations keyword field)",
+            "Step 3: Derive Root Cause - Based on above features, determined cause is [dns, http.resp.status, 302] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "Log entries containing HTTP response status code 302",
+                "instruction": "Search for keyword 'http.resp.status' with value '302' in logs from checkoutservice-1 during the fault time window"
+            },
+            {
+                "modality": "Metric",
+                "target": "dns",
+                "expected_pattern": "DNS-related metric anomalies (e.g., DNS lookup failures, resolution timeouts)",
+                "instruction": "Check DNS metrics for checkoutservice-1 during 2025-06-28T07:10:22Z to 2025-06-28T07:31:22Z"
+            }
+        ]
+    }
+}
+```

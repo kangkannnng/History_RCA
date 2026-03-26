@@ -1,5 +1,5 @@
 """
-Context-RCA
+History RCA
 """
 import os
 import json
@@ -29,7 +29,7 @@ load_dotenv(_env_path, override=False)
 # 配置
 # ============================================================
 USER_ID = "user"
-APP_NAME = "context_rca"
+APP_NAME = "history_rca"
 
 LOG_DIR = "logs"
 
@@ -280,7 +280,7 @@ def process_item_worker(item, run_id, queue):
 
 async def main():
     # 解析命令行参数
-    parser = argparse.ArgumentParser(description="Context-RCA Runner")
+    parser = argparse.ArgumentParser(description="History RCA Runner")
     parser.add_argument("--batch", action="store_true", help="Run in batch mode (process all items)")
     parser.add_argument("--workers", type=int, default=1, help="Number of workers for batch processing (default: 1)")
     parser.add_argument("--random", type=int, default=0, help="Run in random mode with N items")
@@ -303,7 +303,7 @@ async def main():
     
     # 加载数据
     try:
-        with open(input_path, "r") as f:
+        with open(input_path, "r", encoding="utf-8") as f:
             items = json.load(f)
     except FileNotFoundError:
         logger.error(f"Input file not found: {input_path}")

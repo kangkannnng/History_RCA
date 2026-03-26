@@ -1,0 +1,57 @@
+{
+  "uuid": "7513dbaf-190",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "high JVM latency with elevated request latency and JVM response delay",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 Byteman 代理重复加载失败并注入 AdService-getRandomAds-latency-1749546648 延迟规则，导致 adservice-getRandomAds-latency 和 rrt 指标异常飙升",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice 的 rrt 指标从 3081.34 激增至 161041.4，rrt_max 从 43075.0 增至 349903.0，表明服务响应延迟严重恶化",
+      "Step 2: 分析 adservice 日志发现 Byteman 代理重复加载失败（'attempting to load Byteman agent more than once'）和 AdService-getRandomAds-latency-1749546648 规则注入记录",
+      "Step 3: 确认调用链中 frontend->adservice 调用出现 context deadline exceeded 错误，平均延迟从 5.5秒激增至 339秒，验证了延迟问题的级联影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Contains AdService-getRandomAds-latency-1749546648 execute() and rule injection messages",
+        "instruction": "在 adservice 日志中搜索 AdService-getRandomAds-latency-1749546648 相关规则执行和注入记录"
+      },
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Contains context deadline exceeded error messages",
+        "instruction": "在 frontend 和 adservice 日志中搜索 deadline exceeded 相关错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Contains InvocationTargetException and Byteman agent failed to start messages",
+        "instruction": "在 adservice 日志中搜索 InvocationTargetException 和 Byteman 代理启动失败记录"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Contains Transformer and RuleTriggerMethodAdapter injection messages",
+        "instruction": "在 adservice 日志中搜索 Transformer 和 RuleTriggerMethodAdapter 相关的规则注入记录"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "frontend->adservice calls show extreme latency increase and context deadline exceeded errors",
+        "instruction": "分析调用链中 frontend 到 adservice 的调用延迟和错误状态，特别是 hipstershop.AdService/GetAds 操作"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Significant increase from baseline (e.g., 3081.34 to 161041.4)",
+        "instruction": "检查 adservice 的 rrt 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme increase from baseline (e.g., 43075.0 to 349903.0)",
+        "instruction": "检查 adservice 的 rrt_max 指标是否达到异常峰值"
+      }
+    ]
+  }
+}

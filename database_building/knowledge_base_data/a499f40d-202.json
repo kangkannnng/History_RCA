@@ -1,0 +1,27 @@
+{
+  "uuid": "a499f40d-202",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-08] experienced [node_memory_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [node_disk_read_bytes_total] referenced in Ground Truth key_observations (though not explicitly shown in Full Context, it's part of the fault signature)",
+      "Step 3: Derive Root Cause - Based on node-level metrics showing memory pressure, determined cause is [node_memory_usage_rate] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "node_memory_usage_rate p99 increased from 64.32 to 81.75 (0.2385 change ratio) for node aiops-k8s-08",
+        "instruction": "Check if metric [node_memory_usage_rate] shows abnormal increase for node aiops-k8s-08"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total",
+        "expected_pattern": "Disk read operations potentially increased due to memory pressure causing swapping",
+        "instruction": "Search for metric [node_disk_read_bytes_total] on node aiops-k8s-08 to detect swapping activity"
+      }
+    ]
+  }
+}

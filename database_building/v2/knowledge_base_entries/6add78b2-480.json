@@ -1,0 +1,34 @@
+{
+  "uuid": "6add78b2-480",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "Severe latency spike in paymentservice and upstream services, with no explicit error logs present.",
+  "expert_knowledge": {
+    "root_cause_desc": "进程数激增导致CPU资源饱和，引发严重性能劣化。",
+    "reasoning_chain": [
+      "Step 1: 观察到整体系统性能出现劣化，关键链路如 checkoutservice 的 PlaceOrder 请求延迟显著增加（约2倍）。",
+      "Step 2: 深入追踪发现，延迟劣化的根源指向 paymentservice，其关键服务 `hipstershop.PaymentService/Charge` 的平均耗时从 13865.84 ms 剧增至 103683.57 ms，增幅达7.48倍。",
+      "Step 3: 检查 paymentservice 的资源指标，发现该服务的所有 Pod (paymentservice-0, -1, -2) 均出现 `pod_processes` 数量从 1.0 激增至 9.0 (增长1.6倍) 的异常现象。与此同时，`pod_cpu_usage` 从基线 0.0 上升至 0.4 (增长2倍)。这种进程数爆炸式增长的模式，导致CPU资源被快速消耗和饱和，是引发服务性能严重劣化的直接根因。",
+      "Step 4: 检查日志维度，未发现任何错误或异常日志记录。这印证了问题属于资源型性能瓶颈，而非应用逻辑错误，与推理结论相符。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden and significant increase in count (e.g., from 1.0 to 9.0) across multiple pods of the same service.",
+        "instruction": "检查目标服务（特别是性能出现劣化的服务）所有Pod的 `pod_processes` 指标，对比故障期与正常期的中位数或P99值，寻找是否存在进程数量级的激增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Steady increase or spike in CPU utilization following or accompanying the process count explosion.",
+        "instruction": "在发现 `pod_processes` 异常的服务上，检查其 `pod_cpu_usage` 指标。确认CPU使用率是否也出现明显上升，以佐证资源饱和的推断。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Severe degradation (e.g., increase by orders of magnitude) in the maximum response time of the affected service.",
+        "instruction": "检查性能出现问题的服务（本案例为 paymentservice）的 `rrt_max` 指标，确认延迟劣化的严重程度和具体数值。"
+      }
+    ]
+  }
+}

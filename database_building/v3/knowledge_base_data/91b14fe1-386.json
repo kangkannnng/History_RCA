@@ -1,0 +1,82 @@
+{
+  "uuid": "91b14fe1-386",
+  "fault_type": "qps degradation",
+  "symptom_vector": "pod failure with database region unavailability, cascading service errors, and performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 组件的 pod 因 region_pending 和 io_util 等存储层指标异常导致故障崩溃，并引发 Error 9005 (HY000) Region is unavailable 数据库错误。",
+    "reasoning_chain": [
+      "Step 1: 观察到 Tidb 层关键指标异常，包括 tidb-tidb 的 duration_99th 从 0.01ms 飙升至 64.85ms，failed_query_ops 从 0 增加到 42.67，tidb-pd 的 store_unhealth_count p99 从 0 增加到 1，表明存储层 tidb-tikv 出现健康问题。",
+      "Step 2: 分析日志数据，发现 productcatalogservice 频繁出现 ‘Error 9005 (HY000): Region is unavailable’ 错误，出现次数高达 148 次，该错误码明确指向 TiDB 数据库层面的 region 不可用，是 tidb-tikv 故障的直接表现。",
+      "Step 3: 确认 Trace 数据中所有 productcatalogservice 的 GetProduct 调用均出现严重延迟 (从 10ms 级增长到 39 秒级) 和错误 (状态码 2 对应‘Region is unavailable‘)，并且上游 frontend 等服务产生大量 HTTP 500 错误，构成从 tidb-tikv -> productcatalogservice -> 前端应用的级联故障链。",
+      "Step 4: 综合 Metric、Log、Trace 数据，所有异常源都追溯至数据库 region 不可用，这与 tidb-tikv 作为 TiDB 的存储组件，其 pod 故障（failure/unavailable）导致 region_pending、io_util 等关键指标恶化相符，从而确认根因为 tidb-tikv-0 pod failure。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "下游关键服务（如 productcatalogservice）的响应时间（rrt）出现数量级的异常增长，且错误率激增。",
+        "instruction": "检查从应用层（如 frontend）到数据层依赖服务（如 productcatalogservice）的调用链，是否存在延迟（latency）突然飙升且伴随高错误率的情况。"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "对特定出错服务（productcatalogservice）的请求量占比或失败请求占比显著升高。",
+        "instruction": "分析服务间调用拓扑，定位失败请求集中指向的服务节点（如 productcatalogservice）及其操作接口（如 GetProduct）。"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "日志中包含 ‘failure‘ 等描述服务失败的通用关键词。",
+        "instruction": "在关键服务（尤其是数据库客户端如 productcatalogservice）的日志中搜索 ‘failure‘、‘failed‘ 等关键词。"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "日志中出现明确指示资源或服务不可用的错误信息，例如 ‘Region is unavailable‘。",
+        "instruction": "在数据库客户端或中间件日志中搜索 ‘unavailable‘ 关键词，特别是结合数据库错误码（如 Error 9005）。"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "grpc_qps 指标出现异常波动或下降，反映服务间通信流量异常。",
+        "instruction": "检查 tidb-tikv 及其依赖服务的 grpc_qps 指标，观察在故障时段是否有显著下降或断崖。"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "qps 指标出现显著下降，反映服务处理能力严重受损。",
+        "instruction": "监控 tidb-tikv 及依赖它的上游服务（如 productcatalogservice）的 qps 指标，确认是否在故障时间点发生骤降。"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "region_pending 指标异常升高，表明 TiDB 存储层存在 region 调度或处理堆积。",
+        "instruction": "检查 tidb-tikv 相关的 region_pending 指标，确认在故障期间是否出现突增，这是 region 不可用的直接前兆或表现。"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "io_util 指标持续高企或出现异常峰值，可能指示存储 I/O 瓶颈或故障。",
+        "instruction": "检查 tidb-tikv 所在节点或 pod 的 io_util 指标，判断是否存在 I/O 性能瓶颈。"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "store_size 指标的异常变化可能关联存储压力或 region 分布不均。",
+        "instruction": "检查 tidb-tikv 的 store_size 指标历史趋势，判断是否存在快速变化或接近容量上限。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "cpu_usage 可能因处理堆积的 region 请求而飙升，或因 pod 故障而骤降。",
+        "instruction": "检查 tidb-tikv 相关 pod 的 cpu_usage 指标，观察在故障时间窗口前后的变化模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "memory_usage 异常可能指向内存泄漏、OOM 或 pod 状态异常。",
+        "instruction": "检查 tidb-tikv 相关 pod 的 memory_usage 指标，判断是否存在持续增长或突然下降（可能因重启）的情况。"
+      }
+    ]
+  }
+}

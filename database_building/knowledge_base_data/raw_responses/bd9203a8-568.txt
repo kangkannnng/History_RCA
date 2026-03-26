@@ -1,0 +1,33 @@
+{    "uuid": "bd9203a8-568",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets fault",
+    "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [cartservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault, as evidenced by metric anomalies such as rrt_max increase from 4641.0 to 2134533.0 for cartservice-0.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [cartservice] (From Ground Truth instance list, and it appears in Full Context metric and trace data, e.g., in metric analysis for cartservice-0).",
+            "Step 2: Check Observation - Found keyword [rrt] and [rrt_max] in Metric data, with significant value increases (e.g., cartservice-0 rrt from 1511.24 to 258377.59 and rrt_max from 4641.0 to 2134533.0, as shown in Full Context metric analysis).",
+            "Step 3: Check Observation - Found keyword [frontend] in Trace data, indicating latency anomalies (e.g., 'frontend->checkoutservice' in trace analysis findings from Full Context).",
+            "Step 4: Derive Root Cause - Based on the observed metric anomalies (rrt and rrt_max spikes) and trace patterns (frontend involvement), determined cause is the key metrics including rrt and rrt_max fault, per Ground Truth key_metrics."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Metric value shows abnormal increase during fault period, e.g., cartservice-0 rrt increased from 1511.24 to 258377.59 (change rate 1.9767) as per Full Context metric analysis.",
+                "instruction": "Search for metric [rrt] in the collected metric data and check for significant changes between normal and fault medians."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Metric value shows severe spike, e.g., cartservice-0 rrt_max increased from 4641.0 to 2134533.0 (change rate 1.9913) as documented in Full Context metric analysis.",
+                "instruction": "Search for metric [rrt_max] in the metric data and identify instances with high change rates (e.g., >1.9)."
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Keyword appears in trace analysis findings related to latency anomalies, such as 'frontend->checkoutservice' in the filtered traces from Full Context.",
+                "instruction": "Search for keyword 'frontend' in trace data to detect affected services and operation delays, especially in latency anomaly entries."
+            }
+        ]
+    }
+}

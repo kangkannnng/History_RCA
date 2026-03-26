@@ -1,0 +1,39 @@
+{
+  "uuid": "825545e5-279",
+  "fault_type": "metric",
+  "symptom_vector": "Frontend service error rate spike (error_ratio up to 35%) due to extreme RPC latency increase (rrt_max from 11ms to 60s) and massive context canceled errors, causing cascading failures in dependent services.",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend与productcatalogservice之间的网络链路（如包损坏）导致RPC调用超时，引发级联故障。",
+    "reasoning_chain": [
+      "Step 1: 从Trace数据中观察到 frontend 服务调用 productcatalogservice 的 GetProduct 和 ListProducts RPC 响应时间（rrt_max）从正常的约11毫秒激增至约60秒，延迟倍数高达数千倍，同时伴随大量的 ‘context canceled’ (状态码1) 和少量 ‘transport is closing’ (状态码14) 错误。",
+      "Step 2: 分析Log数据，发现所有 frontend 实例（frontend-0, frontend-1, frontend-2）均报告大量格式为 ‘rpc error: code = Canceled desc = context canceled’ 的错误日志，这些错误发生在调用 productcatalogservice、currencyservice 等下游服务时，表明RPC调用因超时被取消。",
+      "Step 3: 结合Metric数据，确认 frontend 服务的 error_ratio 和 server_error_ratio 在故障期间均飙升至30%-35%。同时，productcatalogservice 的 error_ratio 也有升高（如productcatalogservice-2达42.55%）。Trace数据显示 productcatalogservice 自身处理延迟正常（~12ms），但 frontend 调用端延迟极高，且 frontend-0 与 productcatalogservice-0 的 pod_cpu_usage 异常下降，这符合网络层问题导致请求无法正常到达/返回，进而使服务处理队列空转或空闲的特征。综合三者证据，将根因锁定在 frontend 与 productcatalogservice 之间的网络链路异常上。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Sudden and extreme spike (e.g., increase by 1000x or more) in round-trip time for specific RPC calls (e.g., frontend -> productcatalogservice).",
+        "instruction": "在Trace数据中，查找 frontend 服务到 productcatalogservice 服务的 RPC 调用（如 GetProduct, ListProducts），检查其正常时段的 rrt_max 与故障时段的 rrt_max 对比。若发现延迟从毫秒级飙升至数十秒级别（如11ms -> 60s），则表明存在严重的网络延迟或阻塞。"
+      },
+      {
+        "modality": "Trace",
+        "target": "status_code",
+        "expected_pattern": "High frequency of ‘1’ (context canceled) and ‘14’ (transport is closing) status codes on the RPC spans between frontend and productcatalogservice.",
+        "instruction": "在Trace数据的状态组合（status_combinations）中，筛选服务名为 ‘frontend’，操作名涉及 ‘ProductCatalogService’ 的条目。检查是否出现大量状态码为 ‘1’ (context canceled) 和 ‘14’ (transport is closing) 的错误。这直接表明RPC调用因超时或连接问题被取消。"
+      },
+      {
+        "modality": "Log",
+        "target": "code = Canceled desc = context canceled",
+        "expected_pattern": "Log messages from frontend service containing the exact keyword pattern ‘code = Canceled desc = context canceled’ and mentioning calls to productcatalogservice (e.g., ‘could not retrieve product’).",
+        "instruction": "在 frontend 服务的日志中，搜索包含 ‘code = Canceled desc = context canceled’ 的错误信息。统计其出现频率，并确认错误是否在调用 productcatalogservice 的上下文中（如日志中包含 ‘could not retrieve product’）。高频出现的此类日志是RPC超时的直接表现。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio, server_error_ratio",
+        "expected_pattern": "Significant increase (e.g., from 0% to >30%) in error_ratio and/or server_error_ratio metrics for the frontend service and its downstream service (e.g., productcatalogservice).",
+        "instruction": "检查 frontend 服务所有实例在故障时间窗口内的 error_ratio 和 server_error_ratio 指标。同时，检查 productcatalogservice 服务的 error_ratio 指标。如果 frontend 的错误率突然大幅升高，且 productcatalogservice 错误率也有异常，则表明故障在服务间传播，源头可能在下游或网络链路。"
+      }
+    ]
+  }
+}

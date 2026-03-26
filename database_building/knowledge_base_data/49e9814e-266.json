@@ -1,0 +1,40 @@
+{
+  "uuid": "49e9814e-266",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "Packet corruption and data errors on network causing service response time degradation and increased error rates.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [frontend] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [frontend] based on Ground Truth instance field.",
+      "Step 2: Check Observation - Found keyword [rrt] and [rrt_max] in Metric data showing significant increases (e.g., frontend rrt from ~10k to ~11M+ with change rate ~199.6%).",
+      "Step 3: Check Observation - Found keyword [client_error_ratio] and [error_ratio] in Metric data for related services (e.g., error_ratio spikes observed in frontend and other services).",
+      "Step 4: Derive Root Cause - Based on network-related keywords from key_observations and metric anomalies, determined cause is the anomaly in key_metrics including rrt, rrt_max, and network packet metrics."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio, error_ratio",
+        "expected_pattern": "Error ratio metrics show spikes from 0.0 to high values (e.g., frontend error_ratio increased to 22.26% with P99 up to 37.64%).",
+        "instruction": "Search for metric names 'client_error_ratio' and 'error_ratio' in the monitoring system during the fault period for services like frontend and cartservice."
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Not observed in the provided metric data set from Full Context.",
+        "instruction": "Look for metrics related to request and response counts or rates in the available metric data or logs."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "rrt and rrt_max values increased significantly for frontend instances (e.g., frontend-0 rrt from 10451.25 to 11725488.8) and cartservice instances.",
+        "instruction": "Check rrt and rrt_max metrics for anomalies, focusing on median and P99 changes during the fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network packet metrics not available in the provided metric data from Full Context.",
+        "instruction": "Search for pod network receive and transmit metrics (e.g., pod_network_receive_bytes) in network monitoring tools or additional data sources."
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{    "uuid": "13ebf32d-216",
+    "fault_type": "pod_cpu_usage, adservice--stress",
+    "symptom_vector": "JVM CPU spike and overload causing performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "Component adservice experienced pod_cpu_usage and adservice--stress fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is adservice (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword adservice--stress in Log (e.g., 'AdService--stress-1749640247 execute()' in raw_log_result)",
+            "Step 3: Check Observation - Found keyword invocationtargetexception in Log (e.g., 'java.lang.reflect.InvocationTargetException' in raw_log_result)",
+            "Step 4: Check Observation - Found keyword transformlistener in Log (related logs such as 'org.jboss.byteman.agent.Transformer' in raw_log_result)",
+            "Step 5: Check Observation - Found keyword frontend in Trace with latency anomalies (e.g., frontend->adservice delays in trace_analysis_findings)",
+            "Step 6: Check Observation - Found keyword pod_cpu_usage in Metric with abnormal increase (e.g., from 0.01 to 0.6 in raw_metric_result)",
+            "Step 7: Check Observation - Found keywords rrt and rrt_max in Metric with significant degradation (e.g., rrt increased from 3073.25 to 21377.46 in raw_metric_result)",
+            "Step 8: Derive Root Cause - Based on above features, determined cause is pod_cpu_usage and adservice--stress (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice--stress",
+                "expected_pattern": "Log entries containing 'AdService--stress' indicating stress agent activity",
+                "instruction": "Search for keyword 'adservice--stress' in logs"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Exception logs showing InvocationTargetException",
+                "instruction": "Search for keyword 'invocationtargetexception' in logs"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Logs related to transform listener, e.g., 'Transformer' entries",
+                "instruction": "Search for keyword 'transformlistener' in logs"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace data showing frontend service calls with high latency anomalies",
+                "instruction": "Analyze trace data for frontend service latency anomalies"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Metric value spike from normal median to fault median",
+                "instruction": "Check metric pod_cpu_usage for abnormal increases during fault period"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Response time metric showing significant increase",
+                "instruction": "Check metric rrt for degradation compared to normal state"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Maximum response time metric showing significant increase",
+                "instruction": "Check metric rrt_max for degradation compared to normal state"
+            }
+        ]
+    }
+}

@@ -1,0 +1,84 @@
+```json
+{
+    "uuid": "8c7ed41d-249",
+    "fault_type": "rrt",
+    "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 和 adservice 组件之间的网络延迟异常，表现为 rrt 和 rrt_max 指标大幅飙升，导致服务间调用超时",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-1 的 rrt 指标从 3393.62 激增至 494359.7（增长约200倍），rrt_max 从 42748.0 增至 2640258.5，表明网络往返时间异常增加",
+            "Step 2: 分析 frontend 到 adservice 的调用链，发现 hipstershop.AdService/GetAds 操作的平均耗时从正常约5.5秒激增至49-50万秒，延迟倍数达90倍",
+            "Step 3: 确认 frontend 服务日志中频繁出现 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded' 错误，这是 adservice 响应延迟导致的直接后果",
+            "Step 4: 所有 frontend 实例（frontend-0, frontend-1, frontend-2）的 rrt 和 rrt_max 指标均显著恶化，表明故障从 adservice 向上游传播形成级联影响"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "包含 'DeadlineExceeded' 或 'context deadline exceeded' 关键词的错误日志",
+                "instruction": "在 frontend 和 adservice 服务的日志中搜索 deadlineexceeded 相关错误，特别是 frontend 调用 adservice 的超时记录"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "frontend->adservice 调用链延迟异常激增，出现大量超时错误",
+                "instruction": "分析调用链数据，检查 frontend 到 adservice 的调用延迟是否异常增加，特别是 hipstershop.AdService/GetAds 操作"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "rrt 指标值大幅飙升（正常值的数十倍或数百倍）",
+                "instruction": "检查 adservice 和 frontend 服务的 rrt 指标是否在故障期间异常增加，重点关注 adservice-1 实例"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "rrt_max 指标值大幅飙升，达到异常高水平",
+                "instruction": "检查 adservice 和 frontend 服务的 rrt_max 指标是否在故障期间异常增加，确认最大响应时间恶化情况"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "请求相关指标异常变化",
+                "instruction": "检查服务间请求相关的指标变化，确认请求处理是否受到影响"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "响应相关指标异常变化",
+                "instruction": "检查服务响应相关的指标变化，确认响应能力是否下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "网络接收字节数异常变化",
+                "instruction": "检查 adservice 和 frontend 的 pod_network_receive_bytes 指标，确认网络接收流量模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "网络接收数据包数异常变化",
+                "instruction": "检查 adservice 和 frontend 的 pod_network_receive_packets 指标，确认网络接收数据包情况"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "网络发送字节数异常变化",
+                "instruction": "检查 adservice 和 frontend 的 pod_network_transmit_bytes 指标，确认网络发送流量模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "网络发送数据包数异常变化",
+                "instruction": "检查 adservice 和 frontend 的 pod_network_transmit_packets 指标，确认网络发送数据包情况"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "内存使用量异常变化",
+                "instruction": "检查 adservice 和 frontend 的 pod_memory_working_set_bytes 指标，确认内存使用情况"
+            }
+        ]
+    }
+}
+```

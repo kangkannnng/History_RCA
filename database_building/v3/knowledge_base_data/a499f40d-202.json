@@ -1,0 +1,21 @@
+{
+  "uuid": "a499f40d-202",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion and saturation causing cascading service delays",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点因 node_memory_usage_rate 指标异常升高导致内存压力，进而影响节点上运行的Pod性能",
+    "reasoning_chain": [
+      "Step 1: 观察到节点 aiops-k8s-08 的 node_memory_usage_rate 指标 P99 值从正常基线 64.32% 异常上升至 81.75%，表明节点内存使用率显著升高",
+      "Step 2: 分析故障时间段内，部署在 aiops-k8s-08 节点上的 redis-cart-0 Pod 的 rrt_max 指标（P99）出现显著波动（从74257.6变为63135.0），表明其性能已受所在节点环境影响",
+      "Step 3: 确认故障传播路径，节点内存压力导致 redis-cart-0 性能下降，进而引发上游 cartservice 乃至 checkoutservice 调用链的级联延迟"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total",
+        "expected_pattern": "Potential increase due to memory swapping or IO wait",
+        "instruction": "检查 aiops-k8s-08 节点的 node_disk_read_bytes_total 指标，观察在内存使用率高期间，磁盘读字节数是否异常增加，这可能表明存在内存交换或IO瓶颈。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "uuid": "2878f9f0-376",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault, silent performance degradation with latency anomalies and io_util spike",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 组件因 region_pending 指标突变率高达 175.06% 且伴有 io_util 峰值，导致存储层 IO 瓶颈。",
+    "reasoning_chain": [
+      "Step 1: 观察到 TiDB-TiKV 组件的 region_pending 指标中位数变化率高达 175.06%（从10450.0降至695.0），且 io_util 指标的 P99 值变化率达 164.65%（从0.02升至0.21），这是存储层性能瓶颈的明确信号。",
+      "Step 2: 分析 trace 数据发现，依赖 tidb-tikv 的上游服务 productcatalogservice 的 GetProduct 操作延迟激增，从正常 9.6ms 增加到 3033.4ms，增幅达 315 倍，这层延迟是底层存储瓶颈的症状表现。",
+      "Step 3: 检查日志数据，确认在故障时间段内未发现错误日志（No error logs found），这与‘无声的性能下降’模式相符，进一步支持是底层基础设施（存储层）性能问题而非应用层功能性故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Median change rate above 100% (e.g., 175.06%)",
+        "instruction": "检查 tidb-tikv-0 或 tidb-tikv 组件的 region_pending 指标的中位数变化率是否出现异常飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "P99 value spike (e.g., change rate 164.65%)",
+        "instruction": "检查 tidb-tikv-0 或 tidb-tikv 组件的 io_util 指标的 P99 值是否显著增加。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Latency anomalies in operations like GetProduct (e.g., >100x increase)",
+        "instruction": "分析调用链，检查是否有依赖 TiDB 的服务（如 productcatalogservice）出现响应时间（rrt/rrt_max）的异常增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "P99 value increase (e.g., change rate 123.07%)",
+        "instruction": "检查 tidb-tikv-0 或 tidb-tikv 组件的 cpu_usage 指标是否出现异常增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Increase in usage rate or decrease in available memory",
+        "instruction": "检查 tidb-tikv-0 所在节点（如 aiops-k8s-01）的 node_memory_usage_rate 或 node_memory_MemAvailable_bytes 指标是否异常。"
+      },
+      {
+        "modality": "Log",
+        "target": "error",
+        "expected_pattern": "Absence of error logs (silent degradation)",
+        "instruction": "在 tidb-tikv-0 的日志中搜索 error 等关键词，确认是否存在错误日志；若无，可能为性能瓶颈而非功能性错误。"
+      }
+    ]
+  }
+}

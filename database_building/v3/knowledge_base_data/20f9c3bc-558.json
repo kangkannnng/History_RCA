@@ -1,0 +1,63 @@
+{
+  "uuid": "20f9c3bc-558",
+  "fault_type": "pod_processes",
+  "symptom_vector": "code error causing runtime panic with request timeout and context canceled errors",
+  "expert_knowledge": {
+    "root_cause_desc": "currencyservice 组件因代码错误导致 Maximum call stack size exceeded 运行时异常，引发 pod_processes 异常和 timeout 指标飙升",
+    "reasoning_chain": [
+      "Step 1: 观察到 currencyservice 日志中出现大量 'RangeError: Maximum call stack size exceeded' 错误，表明存在代码递归或无限循环问题",
+      "Step 2: 分析 currencyservice 的 pod_cpu_usage 指标异常下降至0，同时 CurrencyService/Convert 的 rrt_max 指标从2325.68ms飙升至10921885.85ms（4696倍增长）",
+      "Step 3: 确认 trace 数据中 frontend->frontend CurrencyService/Convert 调用出现大量 context canceled 错误，并级联影响 checkoutservice 等下游服务"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "CurrencyService/Convert 调用延迟异常飙升（4696倍增长）",
+        "instruction": "检查 frontend 到 currencyservice 的 CurrencyService/Convert 调用链是否存在 latency_anomalies，特别是 checkoutservice 和 frontend 之间的调用"
+      },
+      {
+        "modality": "Log",
+        "target": "context|canceled",
+        "expected_pattern": "大量 'rpc error: code = Canceled desc = context canceled' 错误信息",
+        "instruction": "在 frontend 和 currencyservice 日志中搜索 'context canceled' 关键词，确认 RPC 调用取消情况"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status|302",
+        "expected_pattern": "HTTP 响应状态码 302 出现",
+        "instruction": "检查日志中是否存在 http.resp.status 为 302 的记录"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "包含 'request error' 的错误日志",
+        "instruction": "搜索所有服务日志中的 'request error' 关键词"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc|error",
+        "expected_pattern": "RPC 调用错误信息",
+        "instruction": "检查日志中的 'rpc error' 相关记录"
+      },
+      {
+        "modality": "Metric",
+        "target": "request|response|timeout",
+        "expected_pattern": "请求响应超时指标异常",
+        "instruction": "检查 currencyservice 和 frontend 的 request/response timeout 相关指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "CPU 使用率异常下降或归零",
+        "instruction": "检查 currencyservice 所有实例的 pod_cpu_usage 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "进程数量或状态异常",
+        "instruction": "检查 currencyservice 的 pod_processes 相关指标是否正常"
+      }
+    ]
+  }
+}

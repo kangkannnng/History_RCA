@@ -1,0 +1,33 @@
+{
+  "uuid": "d4cf6596-245",
+  "fault_type": "metric",
+  "symptom_vector": "Multiple service latency spikes (rrt_max), high client error ratios in cartservice and shippingservice, node memory usage rate surge.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06节点内存使用率飙升，导致该节点上运行的微服务性能严重下降。",
+    "reasoning_chain": [
+      "Step 1: 观察到 `node_memory_usage_rate` 指标出现全局异常，节点 `aiops-k8s-06` 的内存使用率中位数从21.02%上升到33.77%，上升了46.56%；而其p99值从27.21%飙升到81.91%，上升了100.24%，表明该节点在特定时刻经历了极度的内存压力或内存饱和。",
+      "Step 2: 分析节点与Pod的映射关系，发现 `aiops-k8s-06` 节点上运行着 `checkoutservice-2`, `productcatalogservice-0`, `emailservice-2` 等Pod。其中，Trace数据显示 `checkoutservice-2` 实例的 `hipstershop.ShippingService/ShipOrder` 操作延迟从12.5秒激增至75.9秒，增加了5.1倍，证实了运行在该问题节点上的应用受到了直接影响。",
+      "Step 3: 确认故障的传播路径。`checkoutservice-2` 的性能下降与其Metric数据中 `error_ratio` 从0%飙升至5.77%的现象吻合。节点内存资源不足影响了其上Pod的调度与执行，是导致一系列服务延迟和错误的源头，而其他被历史结论提及的组件（如redis-cart）是本起事件中观察到的次要或关联现象。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sudden spike in both median and p99 values, with p99 approaching or exceeding 80%.",
+        "instruction": "检查所有节点在故障时间窗口内的 `node_memory_usage_rate` 指标。定位到指标变化率（尤其是p99变化率）最高的节点，确认是否存在内存使用率飙升的异常模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Significant and sustained decrease.",
+        "instruction": "对于已识别出的内存使用率异常节点，进一步检查其 `node_memory_MemAvailable_bytes` 指标，确认可用内存是否出现大幅减少，以佐证内存资源紧张的事实。"
+      },
+      {
+        "modality": "Trace",
+        "target": "服务间调用延迟，特别是从 `checkoutservice-2`, `productcatalogservice-0`, `emailservice-2` 发起的调用",
+        "expected_pattern": "Drastic increase in average duration or latency spike for operations originating from pods on the problematic node.",
+        "instruction": "根据节点-Pod映射关系，聚焦于运行在问题节点（如 `aiops-k8s-06`）上的Pod（如 `checkoutservice-2`）。在Trace数据中筛选这些Pod作为调用方（parent_pod）的记录，分析其调用的平均耗时是否出现异常增长。"
+      }
+    ]
+  }
+}

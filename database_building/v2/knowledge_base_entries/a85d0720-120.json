@@ -1,0 +1,33 @@
+{
+  "uuid": "a85d0720-120",
+  "fault_type": "metric",
+  "symptom_vector": "High latency in frontend service calls to cartservice (AddItem and GetCart operations), degraded IO performance on node",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-04文件系统使用率异常飙升导致IO性能瓶颈，进而影响部署在该节点上的服务",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到节点aiops-k8s-04的node_filesystem_usage_rate指标出现显著异常，正常中位数为25.6%，故障期间中位数飙升至66.5%，变化率达到88.83%，p99值从36.38%升至97.94%",
+      "Step 2: 分析Trace数据发现，部署在aiops-k8s-04节点上的frontend-2服务调用cartservice的AddItem操作延迟从正常平均5267.97ms飙升至29482.0ms（5.6倍），GetCart操作从3918.41ms飙升至12799.72ms（3.27倍），表明该节点上的服务性能严重下降",
+      "Step 3: 检查Log数据发现故障时间段内无任何错误日志记录，这排除了应用层代码问题，符合基础设施层资源瓶颈的特征。结合node_pod_mapping确认frontend-2、checkoutservice-0、currencyservice-1等关键服务部署在aiops-k8s-04节点上，文件系统IO瓶颈导致节点整体性能下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden spike with high change ratio (>50%)",
+        "instruction": "检查所有节点的node_filesystem_usage_rate指标，重点关注变化率超过50%的异常节点，确认文件系统使用率是否出现异常飙升"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->cartservice",
+        "expected_pattern": "Significant latency increase in AddItem and GetCart operations (>3x normal)",
+        "instruction": "分析frontend服务调用cartservice的链路追踪数据，特别关注AddItem和GetCart操作的响应时间是否出现数倍增长"
+      },
+      {
+        "modality": "Log",
+        "target": "error",
+        "expected_pattern": "No error logs during fault window",
+        "instruction": "检查故障时间段内的应用日志，确认是否存在应用层错误（如OOM、连接超时等），无错误日志可能表明是基础设施问题"
+      }
+    ]
+  }
+}

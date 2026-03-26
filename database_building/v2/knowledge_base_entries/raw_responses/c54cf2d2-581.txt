@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "c54cf2d2-581",
+    "fault_type": "region_pending_anomaly",
+    "symptom_vector": "Service latency spike (especially for productcatalogservice), significant increase in database storage layer pending region count, elevated IO utilization and CPU usage, with no explicit error logs indicating silent performance degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB存储节点因底层I/O问题导致region调度队列堆积，引发级联延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察到核心存储组件`tidb-tikv`的`region_pending`指标出现剧烈飙升，故障期中位数(743)相较于正常期中位数(9415.5)变化率达+170.74%。同时，其`io_util`的P99分位数和`cpu_usage`的P99分位数也出现显著上升，表明存储层存在严重性能瓶颈。",
+            "Step 2: 分析应用层Trace数据，发现大量上游服务（如`productcatalogservice`、`frontend`）的`rrt_max`（最大响应时间）出现异常升高。特别地，`productcatalogservice`对`tidb-tikv`的GetProduct操作延迟从正常10-15ms激增至28-141ms，延迟倍数最高达15.3倍，这直接印证了存储层问题是导致上游服务延迟的根本原因。",
+            "Step 3: 验证日志数据，在故障窗口期内未发现相关错误日志，排除配置错误或应用代码级问题，确认为基础设施层（存储I/O）的静默性能退化。综合Metric的根因指标异常（region_pending, io_util）与Trace中的下游影响证据，确认故障根因为`tidb-tikv`存储节点I/O瓶颈导致的region调度堆积。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden Spike (Change Rate > 50%)",
+                "instruction": "立即检查TiDB集群中所有`tidb-tikv`实例的`region_pending`指标。对比故障期与正常期的中位数值，若变化率超过50%，表明存储层Region调度出现严重堆积，是核心根因信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Elevated P99 Value",
+                "instruction": "结合`region_pending`异常，检查同一`tidb-tikv`实例的`io_util`指标，特别是P99分位数。若P99值显著上升，可与`region_pending`飙升形成交叉验证，指向底层磁盘I/O瓶颈。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice->tidb-tikv (GetProduct)",
+                "expected_pattern": "Latency Multiplier > 2.0",
+                "instruction": "扫描调用链路，查找依赖`tidb-tikv`的服务（如`productcatalogservice`）的数据库查询操作（如GetProduct）。若其平均或最大延迟较基线增长超过2倍，且时间线与`region_pending`异常吻合，可作为下游影响的关键证据。"
+            },
+            {
+                "modality": "Log",
+                "target": "error, fail, exception, deny",
+                "expected_pattern": "Absence of Error Logs",
+                "instruction": "在故障时间窗口内，搜索`tidb-tikv`及相关应用组件的日志。若无明确的错误日志（如I/O错误、权限拒绝），则符合‘静默性能退化’模式，应优先转向Metric和Trace数据寻找性能瓶颈证据。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "fa555038-392",
+    "fault_type": "region_pending_io_fault",
+    "symptom_vector": "database latency spike with io fault, filesystem call errors, read/write operation errors",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0/tidb-tikv 组件因 region_pending 指标异常飙升及 io_util 指标显著增加，导致存储层严重IO性能故障。",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标异常飙升，其中位数值变化率高达173.84%，io_util 指标的P99值从0.02升至0.21，变化率165.87%。",
+            "Step 2: 分析 Trace 数据，发现直接依赖 TiDB 的 productcatalogservice 服务出现极端延迟，其 GetProduct 操作的平均延迟从9.6秒飙升至240.3秒，延迟倍数高达24.8倍，这表明上层服务性能问题源自在 TiDB 的查询阻塞。",
+            "Step 3: 检查 Log 数据，未发现相关错误日志，这符合存储层静默性能故障（如IO瓶颈）的特征，进一步排除了应用层逻辑错误导致的可能性。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice",
+                "expected_pattern": "Latency anomalies with extreme spike (e.g., 24.8x increase) in operations like GetProduct.",
+                "instruction": "检查追踪数据中，对 productcatalogservice 服务的调用（尤其是 GetProduct 操作）是否出现显著的延迟异常（如数十倍的增加）。"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden and significant spike (e.g., change ratio >100%) from its normal median value.",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标，在中位数或P99分位数上是否出现异常飙升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Significant increase, especially at high percentiles (P99), indicating high disk I/O saturation.",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标，在P99分位数上是否显著升高，接近或达到1。"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "May show increased latency as a downstream effect of storage I/O bottleneck.",
+                "instruction": "检查 tidb-tikv 组件的 raft_apply_wait 指标是否出现延迟增加，这可能是存储IO问题的间接表现。"
+            },
+            {
+                "modality": "Metric",
+                "target": "grpc_qps",
+                "expected_pattern": "May show decreased QPS as the database becomes unresponsive.",
+                "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否出现下降，反映数据库处理能力下降。"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Monitor for unusual patterns, though not necessarily the primary cause in IO fault scenarios.",
+                "instruction": "检查 tidb-tikv 组件的 memory_usage 指标是否存在异常模式，以排除内存压力作为并发因素。"
+            },
+            {
+                "modality": "Log",
+                "target": "filesystem call error|read operation error|write operation error|permission denied error|file descriptor error",
+                "expected_pattern": "Presence of IO-related error messages in the component's logs.",
+                "instruction": "在 tidb-tikv-0 及 tidb-tikv 相关组件的日志中搜索文件系统调用错误、读写操作错误、权限拒绝错误或文件描述符错误等关键词。"
+            }
+        ]
+    }
+}
+```

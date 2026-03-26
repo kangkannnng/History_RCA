@@ -1,0 +1,54 @@
+{
+  "uuid": "98eacd31-244",
+  "fault_type": "client_error client_error_ratio error error_ratio request response",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [emailservice] experienced [client_error, client_error_ratio, error, error_ratio, request, response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [emailservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [Connection, refused] in Log (From GT key_observations) - Actual evidence: 'transport: Error while dialing dial tcp 10.233.49.244:5000: connect: connection refused'",
+      "Step 3: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations) - Actual evidence: 'transport: Error while dialing dial tcp 10.233.49.244:5000: connect: connection refused'",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log (From GT key_observations) - Actual evidence: 'rpc error: code = Unavailable desc = connection error'",
+      "Step 5: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations) - Actual evidence: 'pod_cpu_usage' appears in available_metric_names and anomaly_metrics",
+      "Step 6: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratio, request, response] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Connection, refused",
+        "expected_pattern": "'connection refused' error appeared in checkoutservice logs targeting emailservice port 5000",
+        "instruction": "Search for keyword 'connection refused' in logs during fault timeframe, specifically looking for references to emailservice"
+      },
+      {
+        "modality": "Log",
+        "target": "Error, while, dialing",
+        "expected_pattern": "'Error while dialing' error message appeared in RPC connection failures",
+        "instruction": "Search for keyword 'Error while dialing' in logs to identify connection establishment failures"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "'Unavailable' status code appeared in RPC error responses",
+        "instruction": "Search for keyword 'Unavailable' in logs to identify service availability issues"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "pod_cpu_usage metric showed abnormal patterns for redis-cart-0 with 200% p99 change ratio",
+        "instruction": "Check pod_cpu_usage metrics for all pods during fault timeframe, looking for significant deviations"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "client_error_ratio spiked from 0.0 to 19.29 for cartservice-0 with 200% p99 change ratio",
+        "instruction": "Check client_error_ratio metrics for all services, particularly focusing on services calling emailservice"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "error_ratio spiked from 0.0 to 19.29 for cartservice-0 with 200% p99 change ratio",
+        "instruction": "Check error_ratio metrics for all services to identify widespread error patterns"
+      }
+    ]
+  }
+}

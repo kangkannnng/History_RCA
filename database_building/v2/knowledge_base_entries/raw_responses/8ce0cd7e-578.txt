@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "8ce0cd7e-578",
+    "fault_type": "Database_Internal_State_Fault",
+    "symptom_vector": "Frontend services return HTTP 500 errors, product catalog queries experience significant latency increase (8-11s normal to 12-14s anomaly), TiDB query failure rate spikes, cascading service failures.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB PD组件区域(Region)健康度异常及Leader分布问题，导致数据库超时错误并引发上游服务级联故障。",
+        "reasoning_chain": [
+            "Step 1: 在异常事件时间窗口内，从Log数据中观察到大量一致的错误消息，关键词为“Error 9001 (HY000): PD server timeout: start timestamp may fall behind safe point”。这些错误同时出现在productcatalogservice和frontend服务中，表明底层数据库连接或查询发生超时。",
+            "Step 2: 从Metric数据中发现，tidb-tidb组件的关键指标出现显著异常：failed_query_ops从0激增至96，同时memory_usage从正常的981MB中位数下降到异常的491MB中位数。这表明数据库层面正在经历查询失败和资源使用模式的异常变化。",
+            "Step 3: 通过Trace数据分析确认了故障的传播路径：productcatalogservice调用TiDB的GetProduct操作，其平均响应时间(rrt_max)从正常的8-11秒增加到异常的12-14秒。同时，这些调用因相同的PD timeout错误而大量失败（状态码2），错误向上传播导致frontend服务返回HTTP 500错误。",
+            "Step 4: 综合以上三点证据（相同的PD timeout错误日志、数据库查询失败与内存指标异常、服务调用链的延迟增加与错误传播），可以推导出根因在于底层的TiDB PD（Placement Driver）组件。PD负责管理TiDB集群的元数据和Region调度，其超时（“start timestamp may fall behind safe point”）通常与Region健康状态（如abnormal_region_count, region_health, leader_count）异常相关，这直接导致了上游依赖它的服务（如productcatalogservice）查询失败，进而引发级联故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "PD server timeout, Error 9001 (HY000), start timestamp may fall behind safe point",
+                "expected_pattern": "Contains error",
+                "instruction": "在productcatalogservice和frontend服务的日志中，搜索包含‘PD server timeout’、‘Error 9001’或‘start timestamp may fall behind safe point’关键词的错误条目。其大量出现是数据库层面问题的直接体现。"
+            },
+            {
+                "modality": "Metric",
+                "target": "failed_query_ops, memory_usage (tidb-tidb组件)",
+                "expected_pattern": "Sudden spike",
+                "instruction": "检查TiDB数据库组件的failed_query_ops指标，确认其在故障期间是否从0或基线值突然飙升（如本案例中从0增至96）。同时观察memory_usage指标，检查其是否出现与基线相比的显著下降或异常波动。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice->TiDB调用链的rrt_max或延迟",
+                "expected_pattern": "Latency increase",
+                "instruction": "分析productcatalogservice调用TiDB数据库（操作名如GetProduct）的追踪数据。重点关注rrt_max或平均延迟，对比故障期间与正常基线的值，确认是否存在显著的延迟增加（如从8-11秒增至12-14秒），并检查该调用链的错误状态码是否与PD timeout相关。"
+            }
+        ]
+    }
+}
+```

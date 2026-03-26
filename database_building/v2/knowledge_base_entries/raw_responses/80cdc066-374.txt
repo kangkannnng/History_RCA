@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "80cdc066-374",
+    "fault_type": "network_packet_corruption",
+    "symptom_vector": "Network connectivity timeouts (i/o timeout, timed out waiting for server handshake), RPC call failures (status codes 13, 14), latency spikes in downstream services (checkoutservice rrt increased from 7695.97 to 925703.24), HTTP 500 errors at frontend layer",
+    "expert_knowledge": {
+        "root_cause_desc": "网络数据包损坏导致shippingservice连接超时，引发checkoutservice下单流程级联故障",
+        "reasoning_chain": [
+            "Step 1: 观察到frontend服务的日志中出现大量'rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout\"'和'timed out waiting for server handshake'错误，表明与shippingservice(10.233.27.213:50051)的网络连接存在严重问题",
+            "Step 2: 分析trace数据发现checkoutservice调用shippingservice/GetQuote的延迟从正常的9.3ms激增至26.9秒（2877倍增长），且出现270次连接超时错误（状态码14），同时checkoutservice自身的rrt_max从238719.0增加到20119674.0（84倍增长），表明网络连接问题是导致下游服务延迟的根本原因",
+            "Step 3: 确认metric数据显示shippingservice-0的rrt从1097.03增加到1305.38，rrt_max从2142.0增加到1986.0，同时frontend服务的error_ratio从0.0增加到0.32，server_error_ratio从0.0增加到0.32，这种网络连接超时模式与数据包损坏的典型特征一致"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout",
+                "expected_pattern": "Contains error messages indicating network connection failures and i/o timeouts",
+                "instruction": "在frontend服务的日志中搜索包含'transport: Error while dialing'、'i/o timeout'和'timed out waiting for server handshake'的错误信息，这些是网络连接问题的直接证据"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->shippingservice calls (hipstershop.ShippingService/GetQuote)",
+                "expected_pattern": "Extreme latency increase (from ~9ms to ~26.9s) and high occurrence of status codes 13 (Internal) and 14 (Unavailable)",
+                "instruction": "检查trace数据中checkoutservice调用shippingservice的GetQuote操作，关注延迟时间从正常到异常的剧烈变化以及状态码13和14的出现频率"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max for shippingservice and checkoutservice",
+                "expected_pattern": "Significant increase in response time metrics (rrt从1097.03增加到1305.38，rrt_max从2142.0增加到1986.0 for shippingservice; rrt从7695.97增加到925703.24 for checkoutservice)",
+                "instruction": "对比故障期间与正常期间shippingservice和checkoutservice的rrt和rrt_max指标，观察是否存在显著增加（特别是数量级的变化）"
+            }
+        ]
+    }
+}
+```

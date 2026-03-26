@@ -1,0 +1,33 @@
+{
+  "uuid": "046aefa7-170",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "high CPU utilization, CPU saturation, CPU overload, CPU usage spike, cpu stress",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice 组件因 pod_cpu_usage 异常飙升导致 CPU 压力测试故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 shippingservice 所有 Pod (shippingservice-0, shippingservice-1, shippingservice-2) 的 pod_cpu_usage 指标从 0.0 异常增加到 0.4，变化率达到 200%",
+      "Step 2: 分析 shippingservice 组件的 pod_processes 指标同时从 1.0 增加到 12.0，变化率 169%，表明进程数量异常增加",
+      "Step 3: 确认 shippingservice 的服务响应时间指标 rrt_max 从 3920.0 飙升到 95670.0，服务性能严重下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase from baseline (0.0 to 0.4 with 200% change rate)",
+        "instruction": "检查 shippingservice 所有 Pod 的 pod_cpu_usage 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormal increase from 1.0 to 12.0 (169% change rate)",
+        "instruction": "检查 shippingservice Pod 的 pod_processes 指标是否异常增加，表明进程泄漏或异常 fork"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Significant spike in response time (from 3920.0 to 95670.0 with 184% change rate)",
+        "instruction": "检查 shippingservice 的 rrt_max 指标是否出现异常飙升，反映服务性能下降"
+      }
+    ]
+  }
+}

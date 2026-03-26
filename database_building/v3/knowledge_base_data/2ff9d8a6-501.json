@@ -1,0 +1,57 @@
+{
+  "uuid": "2ff9d8a6-501",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06 节点因 node_memory_usage_rate 异常导致内存压力",
+    "reasoning_chain": [
+      "Step 1: 观察到 node_memory_usage_rate 指标在故障期间异常，表明节点内存使用率问题",
+      "Step 2: 分析 aiops-k8s-06 节点上运行的 frontend-1 和 currencyservice-1 等服务出现性能异常",
+      "Step 3: 确认故障特征与节点内存压力一致，包括延迟异常和错误传播"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies, request_proportion_anomalies",
+        "expected_pattern": "调用链延迟异常和请求比例异常",
+        "instruction": "检查 checkoutservice, frontend, productcatalogservice, shippingservice 相关调用链是否存在延迟异常和请求比例异常"
+      },
+      {
+        "modality": "Log",
+        "target": "context, canceled",
+        "expected_pattern": "包含 context canceled 错误",
+        "instruction": "在日志中搜索 context canceled 关键词，检查是否存在上下文取消错误"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "HTTP 响应状态码 302",
+        "instruction": "检查日志中是否出现 HTTP 302 状态码"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "包含 request error 错误信息",
+        "instruction": "搜索日志中的 request error 关键词"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc, error",
+        "expected_pattern": "包含 RPC 错误",
+        "instruction": "检查日志中是否存在 rpc error 相关错误"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total, node_disk_read_time_seconds_total",
+        "expected_pattern": "节点磁盘读取指标异常",
+        "instruction": "检查 node_disk_read_bytes_total 和 node_disk_read_time_seconds_total 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes, node_memory_usage_rate",
+        "expected_pattern": "节点内存可用字节数和内存使用率异常",
+        "instruction": "检查 node_memory_MemAvailable_bytes 和 node_memory_usage_rate 指标是否显示内存压力"
+      }
+    ]
+  }
+}

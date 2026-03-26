@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "448bc5e0-559",
+    "fault_type": "metric",
+    "symptom_vector": "Severe latency spike in cartservice and redis operations (HMSET/HGET increased by 41x/15x), elevated p99 response times (rrt_max) in multiple services.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点内存资源压力导致运行其上的服务（如Redis）性能严重劣化，进而引发上层调用链的级联延迟。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中，观察到节点`aiops-k8s-05`的`node_memory_usage_rate`指标模式发生显著变化。其p99值从正常期的53.06%急剧下降至故障期的29.72%（变化率0.56）。这种内存使用率的剧烈波动或下降，结合故障描述中‘内存耗尽’、‘内存压力’等关键词，是内存资源出现问题的强有力指标。",
+            "Step 2: 检查运行在问题节点`aiops-k8s-05`上的Pod。根据`node_pod_mapping`，该节点上运行着`cartservice-2`、`paymentservice-1`等Pod。虽然直接的Redis Pod (`redis-cart-0`) 运行在`aiops-k8s-08`上，但节点内存问题可以影响该节点上所有Pod的性能，并可能通过服务间依赖产生间接影响。",
+            "Step 3: 在Trace数据中，观测到最严重的性能瓶颈是`cartservice`对`redis`的调用。`HMSET`操作延迟从1.6秒激增至66秒（41倍），`HGET`从1.7秒增至26.4秒（15倍）。此现象与节点内存资源紧张导致Redis（或依赖Redis的cartservice）处理能力骤降的假设相符。这种底层存储的极端延迟，直接导致了上层`cartservice`、`checkoutservice`乃至`frontend`的响应时间（rrt_max, rrt）p99值出现数倍至数十倍的增长，形成完整的故障传播链。同时，Log数据中未发现错误日志，这符合资源瓶颈（而非应用逻辑错误）导致性能劣化的特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "数值发生剧烈波动或异常变化（如p99值大幅下降可能预示内存使用模式突变或内存压力后的释放），尤其是当目标节点承载关键服务的Pod时。",
+                "instruction": "检查目标故障节点（如aiops-k8s-05）的`node_memory_usage_rate`指标，重点关注其中位数（median）和p99值在故障前后的对比。即使中位数变化不大，p99值的剧烈变动也意味着内存使用模式发生了重大改变，这可能与内存压力、泄漏或回收事件相关。"
+            },
+            {
+                "modality": "Trace",
+                "target": "cartservice->redis (HMSET/HGET)",
+                "expected_pattern": "调用延迟（`anomaly_avg_duration`对比`normal_avg_duration`）出现极端增长（例如10倍以上）。这是底层存储或依赖服务性能崩溃的直接证据。",
+                "instruction": "在Trace数据中，筛选出从`cartservice` Pod到`redis`服务的调用链（操作名包含HMSET/HGET）。计算并对比其正常与异常期间的平均延迟。若发现延迟激增一个数量级以上，则可定位此为性能瓶颈点。"
+            },
+            {
+                "modality": "Log",
+                "target": "error, exception, OOM, timeout",
+                "expected_pattern": "无相关错误日志或异常事件。",
+                "instruction": "在指定故障时间范围内，搜索所有Pod的日志，查找与内存错误（如Out of Memory）、Redis连接/操作超时、或服务严重异常相关的关键字。如果日志分析返回‘未发现错误日志’，这本身是一个重要特征，表明问题可能源于资源或性能瓶颈，而非应用层的代码错误或异常抛出。"
+            }
+        ]
+    }
+}
+```

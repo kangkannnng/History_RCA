@@ -1,0 +1,63 @@
+{
+  "uuid": "a7ed866b-406",
+  "fault_type": "request_error_ratio",
+  "symptom_vector": "target port misconfiguration causing connection refused errors and service unavailability",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 服务因目标端口配置错误导致 request/response 指标异常，出现大量连接拒绝错误",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 服务的 error_ratio 和 server_error_ratio 指标从 0.0 飙升至 0.32，表明请求错误率异常升高",
+      "Step 2: 分析 checkoutservice 组件的调用链，发现 101 次 'connection refused' 错误，具体为连接 10.233.61.165:5050 被拒绝",
+      "Step 3: 确认 frontend 日志中大量出现 'transport: Error while dialing dial tcp 10.233.61.165:5050: connect: connection refused' 错误信息，指向端口配置问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "HTTP 302 状态码出现频率异常",
+        "instruction": "在 frontend 服务日志中搜索 'http.resp.status' 字段，检查 302 状态码的出现频率和模式"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "包含 'request error' 关键词的错误日志",
+        "instruction": "搜索所有包含 'request error' 关键词的日志条目，分析错误模式和频率"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "RPC 调用失败的错误信息",
+        "instruction": "检查日志中所有包含 'rpc' 和 'error' 关键词的错误记录"
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "连接建立失败的 transport 错误",
+        "instruction": "搜索包含 'transport', 'Error', 'while', 'dialing' 关键词的连接错误日志"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "服务不可用的错误信息",
+        "instruction": "检查所有包含 'unavailable' 关键词的日志，分析服务不可用原因"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "请求量或请求成功率异常变化",
+        "instruction": "分析 checkoutservice 相关的 request 指标，检查请求量、成功率等异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "响应时间或响应状态异常",
+        "instruction": "检查 checkoutservice 的 response 相关指标，包括响应时间、状态码分布等"
+      },
+      {
+        "modality": "Metric",
+        "target": "port",
+        "expected_pattern": "端口相关指标异常",
+        "instruction": "检查与端口连接、端口状态相关的监控指标"
+      }
+    ]
+  }
+}

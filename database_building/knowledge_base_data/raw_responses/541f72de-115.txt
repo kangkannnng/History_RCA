@@ -1,0 +1,58 @@
+```json
+{
+    "uuid": "541f72de-115",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "Network packet corruption and data corruption causing bit errors on network and corrupted packets",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [frontend, productcatalogservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty components are [frontend, productcatalogservice] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [Rpc, error, code, canceled, desc, context canceled] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [unavailable] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [checkoutservice, frontend] in Trace (From GT key_observations)",
+            "Step 5: Check Observation - Found keywords [client_error, client_error_ratio, error, error_ratio] in Metric (From GT key_observations)",
+            "Step 6: Check Observation - Found keywords [request, response] in Metric (From GT key_observations)",
+            "Step 7: Check Observation - Found keywords [rrt, rrt_max] in Metric (From GT key_observations)",
+            "Step 8: Derive Root Cause - Based on above network-related features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Rpc, error, code, canceled, desc, context canceled",
+                "expected_pattern": "Multiple frontend instances report 'rpc error: code = Canceled desc = context canceled' errors when calling productcatalogservice",
+                "instruction": "Search for keyword 'rpc error: code = Canceled desc = context canceled' in logs from frontend pods"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "'transport is closing' error appears in logs indicating service unavailability",
+                "instruction": "Search for keyword 'transport is closing' or 'Unavailable' in frontend logs"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice, frontend",
+                "expected_pattern": "Trace data shows frontend->checkoutservice calls with increased latency",
+                "instruction": "Check trace data for frontend to checkoutservice calls with abnormal duration"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error, client_error_ratio, error, error_ratio",
+                "expected_pattern": "client_error_ratio and error_ratio metrics show significant increases during fault period",
+                "instruction": "Check metric values for client_error_ratio and error_ratio for frontend and productcatalogservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "Request count for productcatalogservice drops dramatically (6765→132, change rate 192%)",
+                "instruction": "Check request metric for productcatalogservice instances showing abnormal decrease"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "rrt_max shows extreme increase (5000x to 30000x) for frontend->productcatalogservice calls",
+                "instruction": "Check rrt_max metric for frontend to productcatalogservice calls showing abnormal latency"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,27 @@
+{
+  "uuid": "985de575-334",
+  "fault_type": "metric",
+  "symptom_vector": "Service latency spike (especially for cartservice), degradation of application performance, elevated node-level resource utilization.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 `aiops-k8s-07` 磁盘使用率急剧升高，导致运行于该节点上的容器（如 cartservice-0）性能下降，进而引发上游服务调用链延迟。",
+    "reasoning_chain": [
+      "Step 1: 在 Metric 数据中，观察到节点 `aiops-k8s-07` 的 `node_filesystem_usage_rate` 中位数从 49.57% 上升至 75.38%，涨幅显著（41.32%），表明该节点文件系统接近饱和。",
+      "Step 2: 根据 `node_pod_mapping` 分析，节点 `aiops-k8s-07` 上运行着 `cartservice-0` 等多个应用容器。同时，Trace 数据也显示，部署在该节点上的 `cartservice-0` 实例，其处理的 `POST /hipstershop.CartService/GetCart` 请求平均延迟从正常的 2.46 秒激增至 10.40 秒（约4.2倍）。",
+      "Step 3: 综合观察，节点级磁盘资源瓶颈与应用服务性能劣化（cartservice 延迟增加）在实体（节点 aiops-k8s-07）和时间上高度重合。此外，系统日志中未发现服务级错误信息，进一步将问题指向底层基础设施（如节点磁盘IO）的性能问题，而非应用逻辑错误。节点 `aiops-k8s-03` 和 `aiops-k8s-01` 内存可用性的提升，也暗示了可能存在工作负载迁移或调度行为，这与节点资源压力的场景相符。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden spike and sustain at a high level (e.g., >70%)",
+        "instruction": "检查所有K8s节点的 `node_filesystem_usage_rate` 指标，重点关注短时间内（如15分钟）急剧上升并持续维持在高位（如>70%）的节点。"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice",
+        "expected_pattern": "Latency increase for operations handled by pods located on the suspect node",
+        "instruction": "对于被标记为可疑的节点（如 aiops-k8s-07），分析其 `node_pod_mapping`，并交叉验证 Trace 数据中，运行于该节点上的 `cartservice` 或其他关键业务服务的 Pod 实例，其处理的请求平均延迟（anomaly_avg_duration）是否显著高于正常值。"
+      }
+    ]
+  }
+}

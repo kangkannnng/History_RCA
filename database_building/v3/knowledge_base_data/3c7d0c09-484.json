@@ -1,0 +1,39 @@
+{
+  "uuid": "3c7d0c09-484",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault leading to file system call errors and increased application latency",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 组件因 io_util 指标异常导致的底层存储IO故障，进而影响了 region_pending 与 raft_apply_wait 等相关指标。",
+    "reasoning_chain": [
+      "Step 1: 在 metric 数据分析中，观察到与存储性能强相关的 `io_util` 指标在故障期间出现显著变化，该指标关联的组件正是 `tidb-tikv`。",
+      "Step 2: 分析 `tidb-tikv` 组件，其 `io_util` 的 `p99_change_ratio` 为 0.5828，是 metric 数据中唯一与底层存储IO直接相关的异常指标。",
+      "Step 3: 结合故障时间段内，日志分析未发现明确错误记录，以及 trace 数据显示了上游应用（如 cartservice）因依赖存储操作而出现的高延迟连锁反应，推断根因是 tidb-tikv-0 的底层 IO 性能瓶颈。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "p99_change_ratio > 0，指标值显著高于基线水平",
+        "instruction": "检查 tidb-tikv 组件的 io_util 指标（IO使用率）在故障时间段内是否持续偏高或出现异常飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "指标值异常升高，表明有数据 Region 处于等待处理状态",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 指标，确认是否有大量 Region 因 IO 瓶颈而堆积。"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "查询吞吐量可能下降或出现波动",
+        "instruction": "检查 tidb 相关服务的 qps 指标，观察是否因底层存储 IO 问题而出现性能下降。"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "等待应用 Raft 日志的延迟时间显著增加",
+        "instruction": "检查 tidb-tikv 组件的 raft_apply_wait 指标，确认 Raft 日志应用是否因 IO 延迟而受阻。"
+      }
+    ]
+  }
+}

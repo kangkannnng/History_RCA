@@ -1,0 +1,51 @@
+{
+  "uuid": "fbd6edf4-579",
+  "fault_type": "region_pending, io_util, raft_apply_wait, qps, grpc_qps, memory_usage, tidb, io",
+  "symptom_vector": "Database performance bottleneck and upstream service latency, characterized by filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, qps, grpc_qps, memory_usage, tidb, io] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth). Verified in Full Context metric data under service_name 'tidb-tikv'.",
+      "Step 2: Check Observation - Found keyword [region_pending] in [Metric] (From GT key_observations). Verified in Full Context: 'region_pending: normal_median=11139.0, fault_median=1078.0, median_change_ratio=1.647'.",
+      "Step 3: Derive Root Cause - Based on the observed surge in region_pending (164.7% increase) indicating database queue backlog, determined cause is [region_pending, io_util, raft_apply_wait, qps, grpc_qps, memory_usage, tidb, io] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Value shows a 164.7% increase (median_change_ratio=1.647), indicating severe queue backlog.",
+        "instruction": "Search for metric 'region_pending' under service 'tidb-tikv' and check if its median_change_ratio is significantly positive."
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Abnormal change in query per second metrics, potentially linked to the region_pending backlog.",
+        "instruction": "Search for metrics related to 'qps' or 'grpc_qps' for service 'tidb-tikv'."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "High or abnormal I/O utilization, consistent with an 'io fault' category.",
+        "instruction": "Search for metric 'io_util' for service 'tidb-tikv' or its host node."
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "Increased latency in Raft apply operations.",
+        "instruction": "Search for metric 'raft_apply_wait' for service 'tidb-tikv'."
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Abnormal memory usage pattern for the tidb-tikv component.",
+        "instruction": "Search for metric 'memory_usage' for service 'tidb-tikv'."
+      },
+      {
+        "modality": "Log",
+        "target": "filesystem call error, read operation error, write operation error, permission denied error, file descriptor error",
+        "expected_pattern": "Log entries containing these error descriptions, as per fault_description.",
+        "instruction": "Search logs for the component 'tidb-tikv' or its pods for keywords from fault_description: 'filesystem call error', 'read operation error', 'write operation error', 'permission denied error', 'file descriptor error'."
+      }
+    ]
+  }
+}

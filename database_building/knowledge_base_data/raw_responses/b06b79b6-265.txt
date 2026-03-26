@@ -1,0 +1,41 @@
+{    "uuid": "b06b79b6-265",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "High CPU utilization, saturation, overload, spike, or stress leading to service performance degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component shippingservice-0 experienced pod_cpu_usage fault, with CPU usage surging from 0.0 to 0.4 during the anomaly period.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is shippingservice-0 (From Ground Truth instance field).",
+            "Step 2: Check Observation - Found keyword pod_cpu_usage in Metric data, showing a surge from 0.0 to 0.4 with a change rate of 2.0 (From GT key_observations and Full Context metric data).",
+            "Step 3: Check Observation - Found keyword pod_processes in Metric data, showing an abnormal increase from 1.0 to 9.0 with a change rate of 1.6 (From GT key_observations and Full Context metric data).",
+            "Step 4: Check Observation - Found keyword rrt_max in Metric data, showing a spike from 2992.0 to 92137.5 with a change rate of 1.8742 (From GT key_observations and Full Context metric data).",
+            "Step 5: Check Observation - Found keyword rrt in Metric data, showing an increase from 869.51 to 7024.16 with a change rate of 1.5594 (From GT key_observations and Full Context metric data).",
+            "Step 6: Derive Root Cause - Based on the correlation of high CPU usage, increased processes, and spiked response times, determined the cause is pod_cpu_usage (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Value surged from 0.0 to 0.4 with a change rate of 2.0, as recorded in the metric data for pod shippingservice-0.",
+                "instruction": "Search for metric pod_cpu_usage for pod shippingservice-0 and verify abnormal increase during 2025-06-13T13:11:19Z to 2025-06-13T13:29:19Z."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value increased from 1.0 to 9.0 with a change rate of 1.6, as recorded in the metric data for pod shippingservice-0.",
+                "instruction": "Search for metric pod_processes for pod shippingservice-0 and check for significant process count rise during the anomaly period."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Value spiked from 2992.0 to 92137.5 with a change rate of 1.8742, as recorded in the metric data for service shippingservice-0.",
+                "instruction": "Search for metric rrt_max for service shippingservice-0 and confirm drastic response time increase."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Value increased from 869.51 to 7024.16 with a change rate of 1.5594, as recorded in the metric data for service shippingservice-0.",
+                "instruction": "Search for metric rrt for service shippingservice-0 and verify elevated response time."
+            }
+        ]
+    }
+}

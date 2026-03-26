@@ -1,0 +1,28 @@
+{
+  "uuid": "aa53ee7c-259",
+  "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+  "symptom_vector": "High JVM latency and response delay observed in adservice, leading to elevated request latency and slow JVM responses.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice-0] experienced [adservice-getRandomAds-latency, rrt, rrt_max] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice-0] (From Ground Truth).",
+      "Step 2: Check Observation - Found evidence of JVM latency injection in [Log] data: Byteman injected delay rule 'AdService-getRandomAds-latency-1749798653' into the getRandomAds method of adservice-0 (Inferred from fault_description: 'high JVM latency', 'JVM response delay').",
+      "Step 3: Check Observation - Confirmed [rrt] and [rrt_max] anomalies in [Metric] data for component [adservice-0]: rrt increased from 1865.17ms to 4853.2ms (88.95% change), rrt_max increased from 5187.0ms to 39007.5ms (153.05% change).",
+      "Step 4: Derive Root Cause - Based on the combined features of JVM latency injection (Log) and significant rrt/rrt_max degradation (Metric), determined cause is [adservice-getRandomAds-latency, rrt, rrt_max] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Byteman, AdService-getRandomAds-latency",
+        "expected_pattern": "Log entries from pod 'adservice-0' containing keywords 'Byteman', 'AdService-getRandomAds-latency', and 'getRandomAds', indicating a latency rule injection.",
+        "instruction": "Search for keyword 'Byteman' AND 'AdService-getRandomAds-latency' in Logs from pod 'adservice-0'."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Metric data for service 'adservice', pod 'adservice-0' showing a significant increase in the median values of 'rrt' and 'rrt_max' during the fault window.",
+        "instruction": "Check if metric 'rrt' AND 'rrt_max' for pod 'adservice-0' show a median change ratio significantly greater than zero."
+      }
+    ]
+  }
+}

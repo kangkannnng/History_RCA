@@ -1,0 +1,45 @@
+{
+  "uuid": "b9319370-341",
+  "fault_type": "pod_processes",
+  "symptom_vector": "High latency spike, cascading request failures, connection refused errors, elevated error ratios.",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice 的 Pod 进程异常，导致其核心接口 GetProduct 响应延迟从毫秒级飙升至数十秒，引发上游服务（frontend, recommendationservice, checkoutservice）大面积的超时与级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在 metric 数据中观察到 productcatalogservice-0 和 productcatalogservice-1 的 pod_cpu_usage 在故障期间从 0% 上升至 0.4%，同时该服务所有实例的 client_error_ratio 和 error_ratio 异常上升，p99 值达到 24%-30%，表明该服务内部处理已出现异常。",
+      "Step 2: 在 log 数据中观察到大量来自 frontend 服务的错误日志，核心错误信息为 ‘could not retrieve product: rpc error: code = Canceled desc = context canceled’ 以及一条关键的 ‘transport: Error while dialing dial tcp 10.233.54.177:3550: connect: connection refused’。这些日志表明 frontend 调用 productcatalogservice 时遭遇了超时（context canceled）以及直接的连接拒绝（connection refused），后者强烈暗示 productcatalogservice 的进程可能处于异常状态，无法接受新的连接。",
+      "Step 3: 在 trace 数据中得到决定性证据：productcatalogservice 的 GetProduct 接口调用，其平均延迟（anomaly_avg_duration）从正常的 11-12 毫秒飙升至 56-57 秒，延迟增加超过 5000 倍。同时，状态码为 ‘context canceled’ 和 ‘transport is closing’ 的调用大量出现。这证实了由于 productcatalogservice 自身的严重性能劣化（由进程异常引起），导致其上游所有依赖服务（frontend, recommendationservice, checkoutservice）的调用链大规模失败，错误最终以 HTTP 500 形式暴露给用户。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "hipstershop.ProductCatalogService/GetProduct",
+        "expected_pattern": "Sudden spike in anomaly_avg_duration (e.g., from ms to tens of seconds) and high occurrence of status_code '1' (context canceled).",
+        "instruction": "检查从 frontend、checkoutservice、recommendationservice 调用到 productcatalogservice 的 GetProduct 接口的追踪数据，重点关注平均响应时间（anomaly_avg_duration）是否出现极端飙升（例如，从毫秒级到秒级），以及状态码（status_code）中 'context canceled' (通常对应码为1) 的出现频次。"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused",
+        "expected_pattern": "Contains error messages indicating connection establishment failure to productcatalogservice endpoints.",
+        "instruction": "在故障时间窗口内，搜索包含 'connection refused' 以及指向 productcatalogservice IP/端口（如示例中的 10.233.54.177:3550）的日志条目，这通常是进程不可用的直接证据。"
+      },
+      {
+        "modality": "Log",
+        "target": "context canceled",
+        "expected_pattern": "High frequency of 'rpc error: code = Canceled desc = context canceled' in logs from services calling productcatalogservice (like frontend).",
+        "instruction": "分析 frontend、recommendationservice 等上游服务的错误日志，统计包含 'context canceled' 关键字的日志条数。高频出现表明对 productcatalogservice 的调用因超时被大量取消。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Abnormal increase or drop in CPU usage for productcatalogservice pods compared to baseline.",
+        "instruction": "对比故障时段与正常时段，检查 productcatalogservice 各 Pod 的 pod_cpu_usage 指标。异常升高可能意味着进程陷入死循环等异常；骤降或归零可能意味着进程崩溃。需要结合具体数值和变化趋势判断。"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio, error_ratio",
+        "expected_pattern": "Significant rise (e.g., from 0% to >20%) in error ratios for productcatalogservice instances.",
+        "instruction": "检查 productcatalogservice 所有实例在故障期间的 client_error_ratio 和 error_ratio 指标，确认其 P99 值是否相较于正常基线（通常为0%）有显著提升。这反映了该服务自身产生的错误比例。"
+      }
+    ]
+  }
+}

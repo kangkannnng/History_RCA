@@ -1,0 +1,66 @@
+```json
+{
+    "uuid": "8c1e8ce9-237",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "JVM CPU spike and overload with high CPU usage saturation",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-0 组件因 Byteman chaos agent 压力注入导致 pod_cpu_usage 指标异常飙升193.44%，引发JVM CPU过载",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 的 pod_cpu_usage 指标从正常中位数0.01飙升至故障中位数0.6，变化率193.44%",
+            "Step 2: 分析 adservice-0 的 rrt 和 rrt_max 指标同时显著恶化，分别增加146.87%和130.3%，表明服务响应时间严重退化",
+            "Step 3: 日志中发现 adservice-0 存在大量 Byteman chaos agent 压力注入记录，包括 Rule.execute for AdService--stress-1749715369 和 Agent failed to start 异常",
+            "Step 4: Trace数据确认 frontend 调用 AdService/GetAds 操作延迟从正常平均5549.49ms增加到异常平均51315.32ms，延迟增加9.25倍，显示级联影响"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike from baseline (193.44% increase)",
+                "instruction": "检查 adservice-0 的 pod_cpu_usage 指标是否异常飙升，重点关注变化率是否超过阈值"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Significant increase in response time (146.87% increase)",
+                "instruction": "检查 adservice-0 的 rrt 指标是否显著恶化"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Maximum response time degradation (130.3% increase)",
+                "instruction": "检查 adservice-0 的 rrt_max 指标是否出现异常峰值"
+            },
+            {
+                "modality": "Log",
+                "target": "adservice--stress",
+                "expected_pattern": "Contains stress injection keywords like AdService--stress-1749715369",
+                "instruction": "在 adservice-0 的日志中搜索 stress 相关关键词，特别是 Byteman chaos agent 压力注入规则"
+            },
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "Contains RPC deadline exceeded errors",
+                "instruction": "搜索包含 deadlineexceeded 关键词的日志，检查是否有调用超时"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Contains Java InvocationTargetException",
+                "instruction": "在 adservice-0 日志中搜索 invocationtargetexception 异常"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Contains Byteman agent transformation related logs",
+                "instruction": "搜索 transformlistener 相关日志，检查 Byteman 代理活动"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Significant latency increase in frontend->frontend calls to AdService/GetAds",
+                "instruction": "分析 Trace 数据中的延迟异常，特别是 frontend 调用 AdService/GetAds 操作的延迟变化"
+            }
+        ]
+    }
+}
+```

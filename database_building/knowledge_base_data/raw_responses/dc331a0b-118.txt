@@ -1,0 +1,33 @@
+{    "uuid": "dc331a0b-118",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "Component frontend and recommendationservice experienced rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty components are frontend and recommendationservice (From Ground Truth instance list).",
+            "Step 2: Check Observation - Found keyword frontend in Trace data, showing latency anomalies for frontend service (From GT key_observations trace keyword).",
+            "Step 3: Check Observation - Found keywords rrt and rrt_max in Metric data, indicating abnormalities in round-trip time metrics (From GT key_observations metric keywords).",
+            "Step 4: Derive Root Cause - Based on trace latency anomalies and metric surges, determined cause is issues with rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets (From GT key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Latency spike observed in traces from frontend to recommendationservice, e.g., normal avg duration ~120-140ms increased to ~730-735ms (From Full Context trace data).",
+                "instruction": "Search for keyword 'frontend' in trace data during 2025-06-07T08:10:37Z to 2025-06-07T08:27:37Z to identify latency anomalies in calls involving frontend service."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "rrt metric shows significant increase, e.g., for recommendationservice-2, from 4014.78ms to 225851.24ms (193.01% change) (From Full Context metric data).",
+                "instruction": "Check rrt metric values for services, especially recommendationservice, during the anomaly period 2025-06-07T08:10:37Z to 2025-06-07T08:27:37Z."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "rrt_max metric shows extreme surge, e.g., for recommendationservice-2, from 12932.5ms to 804041ms (193.67% change) (From Full Context metric data).",
+                "instruction": "Check rrt_max metric values for services during the fault time 2025-06-07T08:10:37Z to 2025-06-07T08:27:37Z."
+            }
+        ]
+    }
+}

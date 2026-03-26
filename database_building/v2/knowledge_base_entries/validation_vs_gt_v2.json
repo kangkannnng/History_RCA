@@ -1,0 +1,182 @@
+{
+  "summary": {
+    "total": 3,
+    "valid": 2,
+    "invalid": 1,
+    "missing_gt": 0,
+    "valid_rate": 0.6666666666666666,
+    "min_score_threshold": 0.6,
+    "score_distribution": {
+      "0.9-1.0": 0,
+      "0.8-0.9": 0,
+      "0.7-0.8": 2,
+      "0.6-0.7": 0,
+      "0.5-0.6": 1,
+      "<0.5": 0
+    },
+    "average_scores": {
+      "total": 0.705952380952381,
+      "metrics_coverage": 0.75,
+      "description_similarity": 0.0,
+      "observation_coverage": 0.8095238095238094
+    }
+  },
+  "results": {
+    "0a9fce75-340": {
+      "uuid": "0a9fce75-340",
+      "overall_valid": true,
+      "checks": {
+        "instance_match": {
+          "passed": true,
+          "required": true,
+          "message": "✓ 组件匹配: ['tidb-pd-0', 'tidb-pd']"
+        },
+        "key_metrics": {
+          "passed": true,
+          "required": false,
+          "coverage": 1.0,
+          "details": [
+            "  ✓ abnormal_region_count",
+            "  ✓ region_health",
+            "  ✓ leader_count",
+            "  ✓ tidb-pd"
+          ]
+        },
+        "fault_description": {
+          "passed": false,
+          "required": false,
+          "similarity": 0.0,
+          "details": [
+            "  ✗ 'pod crash' (相似度: 0.00)",
+            "  ✗ 'pod terminated unexpectedly' (相似度: 0.00)",
+            "  ✗ 'container exit' (相似度: 0.00)",
+            "  ✗ 'pod failure' (相似度: 0.00)"
+          ]
+        },
+        "observation_coverage": {
+          "passed": true,
+          "required": false,
+          "coverage": 1.0,
+          "details": [
+            "  ✓ [Log] failure",
+            "  ✓ [Log] timeout",
+            "  ✓ [Metric] abnormal_region_count",
+            "  ✓ [Metric] leader_count",
+            "  ✓ [Metric] region_health"
+          ]
+        }
+      },
+      "scores": {
+        "metrics_coverage": 1.0,
+        "description_similarity": 0.0,
+        "observation_coverage": 1.0,
+        "total": 0.7999999999999999
+      }
+    },
+    "17ed37a5-494": {
+      "uuid": "17ed37a5-494",
+      "overall_valid": true,
+      "checks": {
+        "instance_match": {
+          "passed": true,
+          "required": true,
+          "message": "✓ 组件匹配: ['tidb-tikv-0', 'tidb-tikv']"
+        },
+        "key_metrics": {
+          "passed": true,
+          "required": false,
+          "coverage": 1.0,
+          "details": [
+            "  ✓ qps",
+            "  ✓ grpc_qps",
+            "  ✓ region_pending",
+            "  ✓ io_util",
+            "  ✓ tidb-tikv"
+          ]
+        },
+        "fault_description": {
+          "passed": false,
+          "required": false,
+          "similarity": 0.0,
+          "details": [
+            "  ✗ 'pod crash' (相似度: 0.00)",
+            "  ✗ 'pod terminated unexpectedly' (相似度: 0.00)",
+            "  ✗ 'container exit' (相似度: 0.00)",
+            "  ✗ 'pod failure' (相似度: 0.00)"
+          ]
+        },
+        "observation_coverage": {
+          "passed": true,
+          "required": false,
+          "coverage": 1.0,
+          "details": [
+            "  ✓ [Log] failure",
+            "  ✓ [Metric] grpc_qps",
+            "  ✓ [Metric] qps",
+            "  ✓ [Metric] io_util",
+            "  ✓ [Metric] region_pending"
+          ]
+        }
+      },
+      "scores": {
+        "metrics_coverage": 1.0,
+        "description_similarity": 0.0,
+        "observation_coverage": 1.0,
+        "total": 0.7999999999999999
+      }
+    },
+    "b9e3efbd-357": {
+      "uuid": "b9e3efbd-357",
+      "overall_valid": true,
+      "checks": {
+        "instance_match": {
+          "passed": true,
+          "required": true,
+          "message": "✓ 组件匹配: ['tidb-tikv-0', 'tidb-tikv']"
+        },
+        "key_metrics": {
+          "passed": true,
+          "required": false,
+          "coverage": 0.25,
+          "details": [
+            "  ✗ qps",
+            "  ✗ grpc_qps",
+            "  ✗ io_util",
+            "  ✓ tidb-tikv"
+          ]
+        },
+        "fault_description": {
+          "passed": false,
+          "required": false,
+          "similarity": 0.0,
+          "details": [
+            "  ✗ 'pod crash' (相似度: 0.00)",
+            "  ✗ 'pod terminated unexpectedly' (相似度: 0.00)",
+            "  ✗ 'container exit' (相似度: 0.00)",
+            "  ✗ 'pod failure' (相似度: 0.00)"
+          ]
+        },
+        "observation_coverage": {
+          "passed": false,
+          "required": false,
+          "coverage": 0.42857142857142855,
+          "details": [
+            "  ✓ [Log] failure",
+            "  ✓ [Log] unavailable",
+            "  ✗ [Metric] grpc_qps",
+            "  ✗ [Metric] qps",
+            "  ✗ [Metric] io_util",
+            "  ✗ [Metric] cpu_usage",
+            "  ✓ [Metric] memory_usage"
+          ]
+        }
+      },
+      "scores": {
+        "metrics_coverage": 0.25,
+        "description_similarity": 0.0,
+        "observation_coverage": 0.42857142857142855,
+        "total": 0.5178571428571429
+      }
+    }
+  }
+}

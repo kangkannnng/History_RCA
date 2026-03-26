@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "09b7c00b-344",
+    "fault_type": "pod_processes",
+    "symptom_vector": "database error with FailedPrecondition and cart storage access failure",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 组件因 pod_processes 异常变化（从1.0到2.0）导致Redis连接失败，无法访问购物车存储",
+        "reasoning_chain": [
+            "Step 1: 观察到 cartservice-0/1/2 三个实例的 pod_processes p99 值均从1.0变为2.0，变化率均为0.6667，表明Pod进程状态异常",
+            "Step 2: 分析 cartservice 日志发现 'FailedPrecondition' 和 'Can't access cart storage' 错误，以及Redis连接尝试记录",
+            "Step 3: 确认 checkoutservice-0 的 rrt_max 指标飙升4.2倍，frontend服务出现大量HTTP 500错误，均为cartservice故障的上游传播表现"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "p99值从1.0变为2.0，变化率0.6667",
+                "instruction": "检查 cartservice 所有实例的 pod_processes 指标是否出现异常变化，特别是p99值从1.0变为2.0"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "CPU使用率波动异常",
+                "instruction": "检查 cartservice 实例的 pod_cpu_usage 指标是否出现异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "响应时间异常增加",
+                "instruction": "检查与 cartservice 相关的请求响应时间指标是否异常"
+            },
+            {
+                "modality": "Log",
+                "target": "FailedPrecondition",
+                "expected_pattern": "包含 FailedPrecondition 错误码",
+                "instruction": "在 cartservice 日志中搜索 FailedPrecondition 关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "HTTP响应状态码302",
+                "instruction": "检查日志中是否出现HTTP 302状态码"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "包含request error错误信息",
+                "instruction": "在日志中搜索request error关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "包含rpc error错误信息",
+                "instruction": "在日志中搜索rpc error关键词"
+            },
+            {
+                "modality": "Trace",
+                "target": "cartservice调用关系",
+                "expected_pattern": "cartservice调用链缺失或异常",
+                "instruction": "检查trace数据中cartservice的调用关系是否缺失或出现异常延迟"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,21 @@
+{
+  "uuid": "ef2a4fbb-87",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload with high CPU usage and performance degradation across multiple services",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-03 节点因 node_cpu_usage_rate 指标飙升103%导致CPU资源竞争，影响该节点上多个服务的性能",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-03 节点的 node_cpu_usage_rate 指标中位数从29.34%飙升至92.01%，变化率高达103%",
+      "Step 2: 分析 aiops-k8s-03 节点上部署的多个服务（recommendationservice-0、frontend-0、cartservice-2等）同时出现性能降级",
+      "Step 3: 确认Trace数据中该节点上多个服务的调用链延迟异常，且Log分析未发现错误日志，符合节点级资源竞争导致的性能问题特征"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Median change ratio > 100% (from 29.34% to 92.01%)",
+        "instruction": "检查 aiops-k8s-03 节点的 node_cpu_usage_rate 指标是否出现显著飙升，重点关注中位数变化率是否超过100%"
+      }
+    ]
+  }
+}

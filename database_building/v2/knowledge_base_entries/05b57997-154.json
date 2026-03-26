@@ -1,0 +1,27 @@
+{
+  "uuid": "05b57997-154",
+  "fault_type": "网络包损坏（packet corruption）",
+  "symptom_vector": "Severe latency spike on checkoutservice, RPC connection & handshake timeouts to cartservice, elevated error rates on dependent frontend and other services.",
+  "expert_knowledge": {
+    "root_cause_desc": "底层网络包损坏导致cartservice通信异常，并引发上游checkoutservice严重性能劣化。",
+    "reasoning_chain": [
+      "Step 1: 观察到来自所有frontend Pod的日志报告了指向cartservice（IP: 10.233.46.196:7070）的一致性错误，包括'i/o timeout'和'timed out waiting for server handshake'，这表明cartservice存在连接或服务层面的问题。",
+      "Step 2: 在指标数据中，发现checkoutservice-2的响应时间（rrt）和最大响应时间（rrt_max）出现极端飙升（中位数增长近200倍），远超其他所有服务，成为最显著的性能瓶颈。与此同时，所有frontend Pod的响应时间与错误率也同步显著升高，这符合cartservice不可用导致上游服务调用失败并积压的逻辑。",
+      "Step 3: 结合故障特征（标准答案）中指出的'packet corruption'以及关联的pod网络收发指标（pod_network_receive_bytes等），推断根本原因是节点或Pod间的网络链路出现数据包损坏。这首先导致cartservice对下游的RPC连接超时或握手失败（反映在日志中），进而引起严重依赖它的checkoutservice处理请求时出现灾难性的延迟（反映在指标中），最终故障向上传播至frontend等更广泛的服务。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "cartservice",
+        "expected_pattern": "Contains connection/timeout errors like 'Error while dialing', 'i/o timeout', 'timed out waiting for server handshake'",
+        "instruction": "在故障时间窗口内，搜索所有服务（尤其是frontend和checkoutservice）的日志，查找任何包含'cartservice'、'cart failure'以及网络连接错误（如timeout, handshake, Unavailable, Canceled）关键词的报错条目。检查这些错误的来源、频率和错误模式的一致性。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Sudden and extreme spike, far exceeding normal baseline and other services.",
+        "instruction": "优先对比故障期间与基线期间所有服务的响应时间（rrt）和最大响应时间（rrt_max）的中位数与P99值。识别出变化率最高的服务及其具体Pod，这通常是故障的核心影响点或源头。"
+      }
+    ]
+  }
+}

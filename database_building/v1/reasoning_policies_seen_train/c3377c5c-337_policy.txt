@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Repeated "context deadline exceeded" errors in frontend service logs when attempting to retrieve ads, with messages indicating RPC timeouts.
+- Metric anomaly pattern: Sharp increase in response time metrics (rrt and rrt_max) for adservice, with values spiking up to 90 times normal, and a significant drop in request and response counts.
+- Trace anomaly pattern: Traces reveal adservice calls experiencing extreme latency, increasing from an average of 5.5 seconds to over 500 seconds, accompanied by numerous timeout status codes.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Trace data shows adservice call latency increased by 90 times, with over 1300 "context deadline exceeded" errors – this directly indicates severe service degradation and unresponsiveness.
+- Evidence 2: Logs consistently report RPC timeouts when frontend services call adservice, with error messages like "failed to get ads," pointing to adservice being unable to respond within deadlines.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Other services such as PaymentService and CartService show increased latency – these are likely downstream effects or collateral damage due to adservice issues, as their delays are less severe and correlated with adservice failures.
+- Evidence 4: Node memory metrics indicate resource constraints on some nodes, but the adservice degradation is disproportionately extreme and specific, suggesting it is not primarily caused by general resource scarcity.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the massive latency spike and numerous timeout errors in adservice calls, we suspect a critical failure in the adservice component causing it to be unresponsive."
+
+Step 2: Verification or elimination
+"If this were caused by general network issues, we would expect uniform latency increases across all service calls; however, actual observation shows adservice calls are disproportionately affected with 90x latency increase, while other services show minor delays. This rules out widespread network problems as the root cause."
+
+Step 3: Convergence to conclusion
+"The combination of trace data showing adservice latency explosion and logs confirming timeout errors indicates that adservice experienced a severe performance breakdown, leading to cascading failures in dependent services."
+
+[Conclusion]
+"The root cause is a severe degradation in adservice performance, making it unable to respond within expected timeframes, which propagated errors to frontend services and caused broader system impact."
+
+[Next Action]
+- "Verify whether adservice internal logs indicate process crashes or resource exhaustion."
+- "Check for abnormal patterns in adservice metrics such as CPU or memory usage during the fault period."

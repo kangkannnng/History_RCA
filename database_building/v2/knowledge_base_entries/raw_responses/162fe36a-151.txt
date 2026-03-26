@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "162fe36a-151",
+    "fault_type": "pod_termination",
+    "symptom_vector": "Network packet transmission and reception dropped to zero for productcatalogservice and upstream services; upstream service latency or errors due to unavailability of product catalog data.",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice Pod被强制终止，导致服务进程退出，网络活动停止。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据观察到，productcatalogservice-0的`pod_network_transmit_packets`和`pod_network_receive_packets`指标值在故障期间从正常中位数（约115和103）骤降至0，变化率为200%，这表明该Pod的网络活动已完全停止。",
+            "Step 2: 观察到多个上游服务（如frontend-0, frontend-1等）的网络包收发指标也同时降为0，表明由于productcatalogservice的不可用，其调用方的网络活动也出现了异常。",
+            "Step 3: 综合检查Log和Trace数据，该时间段内未发现相关的错误日志或调用链数据。网络指标的归零，同时缺乏任何进程活动指标（如CPU使用率）及错误日志，这种模式高度符合Pod被外部强制终止（如kill或eviction）的特征，而非应用内部错误导致的崩溃。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "productcatalogservice-0:pod_network_transmit_packets, pod_network_receive_packets",
+                "expected_pattern": "Sudden drop to zero (0) from a non-zero baseline, with a high change rate (e.g., 200%).",
+                "instruction": "检查productcatalogservice Pod的网络包收发指标。若在短时间内从正常水平突然降至0，且无恢复迹象，是Pod进程停止的直接信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "productcatalogservice-0:pod_network_transmit_bytes, pod_network_receive_bytes",
+                "expected_pattern": "Sudden drop to zero (0) from a non-zero baseline.",
+                "instruction": "检查productcatalogservice Pod的网络字节传输指标。与包指标结合，确认网络活动完全停止，而不仅仅是流量减少。"
+            }
+        ]
+    }
+}
+```

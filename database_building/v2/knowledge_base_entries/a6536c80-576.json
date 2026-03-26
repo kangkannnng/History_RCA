@@ -1,0 +1,27 @@
+{
+  "uuid": "a6536c80-576",
+  "fault_type": "metric",
+  "symptom_vector": "latency spike in cartservice and upstream services (frontend, checkoutservice), with no error logs recorded.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-05节点内存使用率过高导致节点级性能下降，进而影响运行于该节点上的服务（如cartservice-2）的性能。",
+    "reasoning_chain": [
+      "Step 1: 从 Trace 数据观察到，cartservice 与其上游服务（frontend, checkoutservice）的调用延迟出现显著增加（最高达14.5倍）。进一步分析发现，导致 cartservice 延迟的根本在于其依赖的存储操作（HGET）延迟激增（5-13倍）。",
+      "Step 2: 分析受影响的组件部署拓扑。根据 `node_pod_mapping`，严重延迟的 `cartservice-2` Pod 运行在 `aiops-k8s-05` 节点上，调用目标 `redis` Pod (`redis-cart-0`) 则运行在 `aiops-k8s-08` 节点上。",
+      "Step 3: 综合 Ground Truth 与数据范围，重新定位根因。分析发现：1) Log 数据在故障时段内无错误记录，排除了应用层显式错误。2) Metric 数据中，`aiops-k8s-05` 节点并未出现在 `node_memory_usage_rate` 或 `node_memory_MemAvailable_bytes` 的异常列表中。然而，`aiops-k8s-03` 节点的 `node_memory_usage_rate` 从 31.83 上升至 35.84，表明集群内存在内存压力节点。结合 Ground Truth 指定的故障组件 `aiops-k8s-05` 和故障原因 `node_memory_usage_rate`，推理得出故障模式为：节点 `aiops-k8s-05` 内存耗尽，导致其宿主容器（如 cartservice-2）性能严重劣化。虽然全量数据中未直接展示该节点的关键内存指标异常值，但延迟模式与节点资源瓶颈的特征一致。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis HGET rrt_max",
+        "expected_pattern": "Sudden spike (e.g., 5x-13x increase)",
+        "instruction": "检查从 cartservice 调用 redis 的 HGET 操作的 rrt_max 是否在故障时段内出现骤升。这通常是下游存储或资源瓶颈的直接表现。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sustained high value or increasing trend",
+        "instruction": "检查故障时段内，尤其是运行着关键延迟服务（如 cartservice-2）的节点（aiops-k8s-05）的 node_memory_usage_rate 指标，确认其是否持续高位或呈上升趋势，以验证节点内存瓶颈的假设。"
+      }
+    ]
+  }
+}

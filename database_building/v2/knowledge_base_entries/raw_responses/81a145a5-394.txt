@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "81a145a5-394",
+    "fault_type": "metric",
+    "symptom_vector": "error_ratio spike observed on multiple frontend pods; cascading internal service errors reported in traces; client-facing 500 errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "由于目标端口配置错误，导致对paymentservice的连接被拒绝。",
+        "reasoning_chain": [
+            "Step 1: 观察到多个frontend实例的metric指标 error_ratio 和 server_error_ratio 从0.0飙升至0.3以上（中位数），表明存在广泛的用户请求失败。",
+            "Step 2: 分析相关日志，发现所有失败请求的错误信息均高度一致，核心内容为“dial tcp 10.233.55.4:50051: connect: connection refused”，指示了具体的故障目标和类型（连接被拒绝）。",
+            "Step 3: 检查Trace数据，确认失败调用链为 frontend -> checkoutservice -> paymentservice，并且在paymentservice调用节点存在大量状态码为14（UNAVAILABLE）、内容为“connection refused”的错误，将故障根因精准定位至paymentservice的端口不可达。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Sudden spike from baseline (e.g., 0.0) to a high value (>0.3) across multiple frontend service pods.",
+                "instruction": "检查frontend服务的error_ratio指标。确认是否在故障时间段内，有多个frontend pod的该指标发生了从正常基线（通常接近0）到高值（例如>0.3）的突然跃升。"
+            },
+            {
+                "modality": "Log",
+                "target": "connection refused",
+                "expected_pattern": "Logs contain repeated 'connect: connection refused' errors mentioning a specific IP:Port (e.g., 10.233.55.4:50051). The logs are likely from upstream services (e.g., frontend, checkoutservice).",
+                "instruction": "搜索包含关键词 'connection refused' 的日志。重点检查上游调用方服务（如frontend, checkoutservice）的日志，看是否存在指向特定目标IP和端口（如10.233.55.4:50051）的连接拒绝错误。"
+            },
+            {
+                "modality": "Trace",
+                "target": "status_code & status_message for paymentservice calls",
+                "expected_pattern": "Trace data shows a high count of calls to paymentservice with status code indicating failure (e.g., 14 for gRPC UNAVAILABLE) and status message containing 'connection refused'.",
+                "instruction": "分析调用链路（Trace）数据。筛选出调用方为checkoutservice、被调用方为paymentservice的链路。检查这些链路的错误状态码（Status Code）和错误信息（Status Message），确认是否存在大量因连接拒绝（connection refused）而失败的情况。"
+            }
+        ]
+    }
+}
+```

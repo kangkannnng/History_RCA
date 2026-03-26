@@ -1,0 +1,47 @@
+{
+  "uuid": "251c4f53-179",
+  "fault_type": "client_error,client_error_ratio,error,error_ratio,pod_processes,request,response",
+  "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [cartservice] experienced [client_error,client_error_ratio,error,error_ratio,pod_processes,request,response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [cartservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [client_error, client_error_ratio, error, error_ratio] in Metric (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [request, response] in Metric (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on pod kill fault category and missing pod_processes metrics, determined cause is [client_error,client_error_ratio,error,error_ratio,pod_processes,request,response]"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Metric value drops to zero indicating pod termination",
+        "instruction": "Search for metric [pod_processes] for cartservice pods during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error, client_error_ratio",
+        "expected_pattern": "Error metrics spike during pod termination",
+        "instruction": "Check if [client_error] or [client_error_ratio] metrics show anomalies for cartservice"
+      },
+      {
+        "modality": "Metric",
+        "target": "error, error_ratio",
+        "expected_pattern": "General error metrics increase",
+        "instruction": "Search for [error] or [error_ratio] metrics related to cartservice"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Request/response patterns change during pod kill",
+        "instruction": "Analyze [request] and [response] metrics for cartservice during fault period"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Abnormal request distribution patterns",
+        "instruction": "Check trace data for [request_proportion_anomalies] involving frontend->cartservice calls"
+      }
+    ]
+  }
+}

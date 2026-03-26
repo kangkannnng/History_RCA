@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "7e54232b-275",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "Severe latency spike in core transaction endpoint (PlaceOrder), causing cascading delays in downstream services (shipping, cart, email).",
+    "expert_knowledge": {
+        "root_cause_desc": "检查服务(checkoutservice-0)的Pod因CPU使用率激增和进程数异常变化导致性能瓶颈。",
+        "reasoning_chain": [
+            "Step 1: 从指标数据分析中，观察到 `checkoutservice-0` 的 `pod_cpu_usage` 从基准的0.0显著上升至故障期的0.2（变化率2.0），同时 `pod_processes` 数值从1.0变为8.0（变化率1.5556）。这种组合模式（CPU使用率上升 + 进程数剧增）是Pod发生重启或内部进程异常的有力指示。",
+            "Step 2: 从追踪数据分析中，确认`checkoutservice`的核心接口 `CheckoutService/PlaceOrder` 的 `rrt_max` 从143518ms激增至1615180ms，延迟增长了11.25倍，成为系统最严重的性能瓶颈。该服务的延迟同时导致了 `shippingservice`, `cartservice`, `emailservice` 等下游服务的连锁延迟，形成了清晰的故障传播链。",
+            "Step 3: 结合日志分析未发现任何错误日志的结果，可以排除代码逻辑错误或显式异常抛出的可能性，进一步将怀疑范围收束到由资源（CPU）压力或Pod生命周期异常引发的性能退化问题。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike or sustained high value",
+                "instruction": "检查故障时间段内，目标Pod（尤其是核心服务Pod）的`pod_cpu_usage`指标是否出现显著增长（例如，变化率 > 1.0）。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden increase or decrease from baseline (e.g., from 1 to >1)",
+                "instruction": "检查目标Pod的`pod_processes`指标是否在故障期间发生突变，该指标异常变化常与Pod重启、崩溃或进程异常拉起有关，是故障的重要前置信号。"
+            },
+            {
+                "modality": "Trace",
+                "target": "CheckoutService/PlaceOrder.rrt_max",
+                "expected_pattern": "Significant increase in response time (e.g., >10x)",
+                "instruction": "定位由前端发起的核心交易链路（如PlaceOrder），分析其最大响应时间(`rrt_max`)是否出现数量级增长，并观察是否引发了对下游服务的级联延迟效应。"
+            },
+            {
+                "modality": "Log",
+                "target": "ERROR logs",
+                "expected_pattern": "Absence of error logs",
+                "instruction": "在故障Pod中搜索ERROR级别的应用日志。如果未能发现相关错误日志，而同时存在严重的性能指标异常（延迟、CPU），则故障原因更可能指向资源瓶颈或基础设施问题，而非应用代码错误。"
+            }
+        ]
+    }
+}
+```

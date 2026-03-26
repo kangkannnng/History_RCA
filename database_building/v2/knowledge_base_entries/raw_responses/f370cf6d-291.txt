@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "f370cf6d-291",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "High CPU usage on JVM pods, severe response time degradation (rrt/rrt_max spike), error ratios increased in downstream services",
+    "expert_knowledge": {
+        "root_cause_desc": "Byteman故障注入工具触发的stress压力测试导致AdService服务JVM CPU使用率飙升",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到adservice所有pod的pod_cpu_usage中位数从0.0上升至0.6（200%增长），同时adservice-1的rrt中位数从3225.93上升至13403.61（122.4%增长），表明CPU和响应时间同时出现严重异常",
+            "Step 2: 在Log数据中发现adservice所有实例均出现大量Byteman故障注入日志，包括关键词'AdService--stress-1749913849'、'StressHelper'、'Byteman'，以及线程创建日志'Starting thread AdService--stress-1749913849X'，表明正在进行压力测试",
+            "Step 3: 结合Metric显示的CPU使用率飙升与Log中的故障注入证据，确认异常由Byteman触发的stress测试直接导致，该测试创建多个线程消耗CPU资源，引发JVM性能问题"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike from near-zero baseline to high values (e.g., from 0.0 to >0.5), observed across multiple pods of the same service",
+                "instruction": "检查adservice相关pod的CPU使用率指标，查看是否在异常时间段内出现从低基线值突然飙升到高值的模式（如从0.0升至0.6），并且该现象在服务的多个实例中同时出现"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Significant increase in median response time and maximum response time, with growth rates exceeding 50%",
+                "instruction": "检查adservice的响应时间指标（rrt和rrt_max），确认中位数和最大值是否在异常时间段内出现显著增长（如rrt中位数增长122%），并与CPU使用率异常时间窗口对齐"
+            },
+            {
+                "modality": "Log",
+                "target": "AdService--stress, Byteman, StressHelper",
+                "expected_pattern": "Log entries containing explicit fault injection keywords (AdService--stress, Byteman, StressHelper), along with thread creation/execution messages for stress testing",
+                "instruction": "搜索adservice日志中是否包含Byteman故障注入相关的关键词，特别是'AdService--stress-'规则名称、'StressHelper'类名、线程创建消息（Creating thread/Starting thread/Running thread），这些是故障注入的直接证据"
+            },
+            {
+                "modality": "Log",
+                "target": "InvocationTargetException, attempting to load Byteman agent more than once",
+                "expected_pattern": "Exception logs indicating Byteman agent loading failures or conflicts",
+                "instruction": "检查adservice日志中是否存在Byteman代理加载异常，如'InvocationTargetException'或'attempting to load Byteman agent more than once'，这进一步证实了故障注入活动"
+            }
+        ]
+    }
+}
+```

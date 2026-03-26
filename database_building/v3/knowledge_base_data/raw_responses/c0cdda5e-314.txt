@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "c0cdda5e-314",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "high disk utilization on node aiops-k8s-05 leading to service latency increase",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-05 的 node_filesystem_usage_rate 指标异常飙升（25.14%→65.59%）导致磁盘压力，进而影响其上运行的关键服务性能。",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-05 节点的 node_filesystem_usage_rate 指标中位数从 25.14% 急剧飙升至 65.59%，变化率高达 89.16%，P99值也从 35.93% 飙升至 95.46%，表明节点磁盘空间迅速耗尽。",
+            "Step 2: 分析 aiops-k8s-05 节点上运行的 pod 列表，发现 currencyservice-0、paymentservice-1、cartservice-1 等关键服务位于该节点，其性能极易受底层节点资源问题影响。",
+            "Step 3: 结合 trace 数据，发现系统中存在服务调用延迟异常（frontend-0 调用 ProductCatalogService 的延迟从 1956ms 增至 4832ms），这可能由节点资源压力导致的服务间接性能下降引发。Metric 数据也显示，位于 aiops-k8s-05 节点上的 currencyservice-2 的 rrt_max P99 值从 17.5s 激增至 99.2s，进一步佐证了节点故障与相关服务性能问题的强关联性。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "数值出现大幅、快速的增长（例如，变化率 > 50%），且达到或接近高水位线（如 >80%）",
+                "instruction": "检查所有节点的 node_filesystem_usage_rate 指标。重点关注该指标中位数（或均值）及 P99 值在故障期间相较于正常基线是否出现显著、快速的增长。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt (or rrt_max)",
+                "expected_pattern": "特定服务调用链的响应时间（rrt）或最大响应时间（rrt_max）出现显著增加",
+                "instruction": "分析 trace 数据，找出所有出现响应时间延迟异常的调用链。特别关注与故障节点（通过 node_pod_mapping 关联）上的服务相关的调用。"
+            }
+        ]
+    }
+}
+```

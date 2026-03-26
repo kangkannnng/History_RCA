@@ -1,0 +1,48 @@
+```json
+{
+    "uuid": "68727566-367",
+    "fault_type": "request_response_port",
+    "symptom_vector": "Service port mismatch causing connection refused errors and upstream service failures.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [paymentservice] experienced [request, response, port] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [paymentservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [request] in [Trace] and [Log] (From GT key_observations). In Trace data, operations like 'hipstershop.PaymentService/Charge' represent requests. In Log data, messages contain 'request error'. This indicates request handling failure.",
+            "Step 3: Check Observation - Found keyword [response] in [Trace] and [Log] (From GT key_observations). In Trace data, status code '14' and message 'connection refused' indicate failed responses. In Log data, the error chain ending in 'connection refused' indicates unavailable response.",
+            "Step 4: Derive Root Cause - Based on the above features where requests fail to get responses due to a port connection issue, determined cause is [request, response, port] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "request",
+                "expected_pattern": "Trace operations (e.g., 'hipstershop.PaymentService/Charge') targeting the paymentservice component show failure statuses.",
+                "instruction": "Search for traces where the child_pod/service_name is 'paymentservice' and check the operation_name and status_code fields for failures."
+            },
+            {
+                "modality": "Log",
+                "target": "request",
+                "expected_pattern": "Log messages from frontend services contain the phrase 'request error' in the context of failing to call paymentservice.",
+                "instruction": "Search for keyword 'request error' in log messages, particularly from services calling paymentservice."
+            },
+            {
+                "modality": "Trace",
+                "target": "response",
+                "expected_pattern": "Trace status messages for calls to paymentservice contain 'connection refused' indicating no successful response.",
+                "instruction": "Search for status_code '14' and status_message containing 'connection refused' in traces where the target is paymentservice."
+            },
+            {
+                "modality": "Log",
+                "target": "response",
+                "expected_pattern": "Log error messages end with 'connection refused', indicating the expected response from the target port was not received.",
+                "instruction": "Search for the exact error phrase 'connect: connection refused' in log messages."
+            },
+            {
+                "modality": "Log/Trace",
+                "target": "port",
+                "expected_pattern": "The specific port '50051' is mentioned in connection refused errors within both Log and Trace data.",
+                "instruction": "Search for the port number '50051' in error messages from Log and Trace data."
+            }
+        ]
+    }
+}
+```

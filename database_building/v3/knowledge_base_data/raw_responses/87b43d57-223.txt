@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "87b43d57-223",
+    "fault_type": "jvm_exception (adservice-getrandomads-exception)",
+    "symptom_vector": "JVM exception thrown in application, runtime error with exception stack trace, leading to rpc error propagation",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 组件因 Byteman agent injection errors 导致 `adservice-getrandomads-exception` 异常大量触发，引发服务故障",
+        "reasoning_chain": [
+            "Step 1: 从日志数据中观察到 adservice-0 实例出现高频 `Rule.execute called for AdService-getRandomAds-exception-1749665406_39:0` 记录（出现1426次），以及 `Exception in thread \"grpc-default-executor-24206\" java.lang.Error: Injected error` 和 `caught ThrowException` 等关键字，表明存在注入的JVM异常。",
+            "Step 2: 分析 adservice 其他实例（adservice-1, adservice-2）的日志，同样发现 `Agent failed to start!`、`InvocationTargetException` 和 `Byteman agent` 相关错误，说明这是跨实例的Byteman代理配置或加载问题。",
+            "Step 3: 结合指标数据，确认 adservice 的 `pod_cpu_usage` 无剧烈变化，且上下游 frontend 服务日志中出现大量 `failed to get ads: rpc error: code = Unknown` 错误，印证了根因在 adservice 的JVM异常导致其RPC服务失效，而非底层资源瓶颈。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getrandomads-exception|Injected error|grpc-default-executor|ThrowException|caught",
+                "expected_pattern": "高频出现（如上千次）包含特定异常规则执行、注入错误、线程异常的关键字",
+                "instruction": "在 adservice 所有实例的日志中搜索与 'adservice-getrandomads-exception'、'Injected error'、'grpc-default-executor'、'ThrowException' 相关的条目，确认是否存在大量、高频的JVM异常触发记录。"
+            },
+            {
+                "modality": "Log",
+                "target": "Byteman agent|InvocationTargetException|Transformer|Agent failed to start",
+                "expected_pattern": "出现 Byteman 代理相关错误，如启动失败、重复加载、类转换异常等",
+                "instruction": "检查 adservice 日志中是否存在 'Byteman agent'、'InvocationTargetException'、'Transformer'、'Agent failed to start' 等关键词，用于确认JVM字节码注入工具是否出现故障。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "adservice 实例的CPU使用率未出现异常尖峰，变化平缓",
+                "instruction": "检查 adservice 各个pod实例的 `pod_cpu_usage` 指标在故障期间的变化情况，确认故障非由CPU资源耗尽引起。"
+            }
+        ]
+    }
+}
+```

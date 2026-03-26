@@ -1,0 +1,77 @@
+```json
+{
+    "uuid": "0419ba04-373",
+    "fault_type": "request",
+    "symptom_vector": "target port misconfig causing connection refused errors and service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice 组件因端口配置错误导致请求连接被拒绝，表现为 request 和 response 指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务调用 currencyservice 时出现大量 connection refused 错误，错误信息显示尝试连接 10.233.39.78:7000 被拒绝",
+            "Step 2: 分析 currencyservice-2 的 pod_cpu_usage 指标从 0.04 降至 0.0，同时 rrt_max 从 14360.0 降至 4256.0，表明该 Pod 可能停止服务或配置错误",
+            "Step 3: 确认 trace 数据显示所有 frontend 节点调用 CurrencyService/GetSupportedCurrencies 都失败，状态码 14，错误信息为 'connection refused'，异常频次高达 2226-1709 次"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies,request_proportion_anomalies",
+                "expected_pattern": "CurrencyService调用失败，状态码14，connection refused错误",
+                "instruction": "检查 frontend->currencyservice 的调用链，查看是否存在 latency_anomalies 和 request_proportion_anomalies，重点关注 CurrencyService/GetSupportedCurrencies 操作的状态码和错误信息"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP响应状态码异常",
+                "instruction": "在 frontend 日志中搜索 http.resp.status 字段，检查是否有异常的302或其他状态码"
+            },
+            {
+                "modality": "Log",
+                "target": "Internal",
+                "expected_pattern": "包含Internal错误描述",
+                "instruction": "在日志中搜索包含 'Internal' 关键词的错误信息，特别是与货币转换相关的错误"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "请求错误信息",
+                "instruction": "搜索包含 'request error' 的日志条目，分析错误详情"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc,error",
+                "expected_pattern": "RPC调用错误",
+                "instruction": "检查日志中所有包含 'rpc' 和 'error' 关键词的条目，特别是与currencyservice相关的调用"
+            },
+            {
+                "modality": "Log",
+                "target": "transport,Error,while,dialing",
+                "expected_pattern": "传输层拨号错误",
+                "instruction": "搜索包含 'transport: Error while dialing' 的完整错误信息，分析连接失败的具体原因"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "服务不可用错误",
+                "instruction": "检查日志中所有包含 'unavailable' 关键词的错误，特别是与currencyservice相关的"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "请求量异常变化",
+                "instruction": "检查 currencyservice 的 request 指标，查看故障期间是否有显著下降或异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "响应量异常变化",
+                "instruction": "检查 currencyservice 的 response 指标，查看故障期间是否有与request指标匹配的异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "port",
+                "expected_pattern": "端口相关指标异常",
+                "instruction": "检查与端口相关的指标，如连接数、连接成功率等，确认端口配置问题"
+            }
+        ]
+    }
+}
+```

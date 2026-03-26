@@ -1,0 +1,27 @@
+{
+  "uuid": "f9b9169c-407",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload with high CPU usage and CPU saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-07 节点因 node_cpu_usage_rate 异常导致节点CPU压力",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-07 节点的 node_cpu_usage_rate 指标在故障期间出现异常",
+      "Step 2: 分析该节点上运行的 cartservice-0 和 frontend-1 之间的调用链显示 AddItem 操作延迟从3998.32ms增加到35018.5ms（增长8.75倍）",
+      "Step 3: 确认故障期间日志中未发现错误记录，排除应用层错误，但节点级CPU压力导致服务性能下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Frontend服务调用cartservice时出现显著延迟增长",
+        "instruction": "检查frontend服务到cartservice的调用链中是否存在request_proportion_anomalies，特别是AddItem操作的延迟异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "CPU使用率异常升高或饱和",
+        "instruction": "检查aiops-k8s-07节点的node_cpu_usage_rate指标是否在故障期间出现异常升高"
+      }
+    ]
+  }
+}

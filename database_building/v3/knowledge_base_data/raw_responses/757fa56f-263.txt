@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "757fa56f-263",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "high CPU utilization, CPU saturation, CPU overload with response time degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "recommendationservice 组件因 pod_cpu_usage 异常飙升导致 CPU 过载，引发服务响应时间恶化",
+        "reasoning_chain": [
+            "Step 1: 观察到 recommendationservice 所有3个Pod的 pod_cpu_usage 指标从正常值（0.0-0.03）飙升至0.4，变化率高达1.7209-2.0",
+            "Step 2: 分析 recommendationservice 组件的 pod_processes 指标从1.0异常增加到12.0，表明进程数异常增多",
+            "Step 3: 确认 recommendationservice 的 rrt_max 指标激增24倍，从22437.0增至2450581.5，且上游 frontend 服务的响应时间也显著恶化"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike from baseline (0.0-0.03 to 0.4)",
+                "instruction": "检查 recommendationservice 所有Pod的 pod_cpu_usage 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abnormal increase from 1.0 to 12.0",
+                "instruction": "检查 recommendationservice Pod的 pod_processes 指标是否从1.0异常增加到12.0"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Significant increase (24x) in maximum response time",
+                "instruction": "检查 recommendationservice 的 rrt_max 指标是否激增，并验证上游 frontend 服务的响应时间是否也受影响"
+            }
+        ]
+    }
+}
+```

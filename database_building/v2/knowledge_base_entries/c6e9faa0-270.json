@@ -1,0 +1,33 @@
+{
+  "uuid": "c6e9faa0-270",
+  "fault_type": "memory_metrics",
+  "symptom_vector": "Latency spike in currencyservice, Pod restart detected via process count change, error logs indicating module load failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Pod currencyservice-2 因内存相关原因（表现为pod_memory_working_set_bytes异常）发生重启，进程数变化导致服务中断与延迟增加。",
+    "reasoning_chain": [
+      "Step 1: 通过 Metric 数据观察到 currencyservice-2 的 `pod_processes` p99值从1.0变为2.0（变化率66.67%），这是Pod发生重启的明确信号。同时，该Pod的 `rrt` (响应时间中位数) 上升了44.01%，`rrt_max` 上升了37.54%，表明重启事件导致了服务性能下降。",
+      "Step 2: 虽然 Ground Truth 中指示的根本原因指标 `pod_memory_working_set_bytes` 在当前采集的异常指标列表中未直接列出，但 Metric 数据中关联节点 `aiops-k8s-08` 的 `node_memory_MemAvailable_bytes` 可用内存显著减少（变化率22.65%），而 currencyservice-2 恰好运行在同一节点 `aiops-k8s-07` 上，暗示可能存在节点级别的内存压力背景。",
+      "Step 3: 通过 Log 数据观察到 currencyservice-2 在故障期间产生了 `Cannot find module '@opentelemetry/plugin-http'` 和 `Cannot find module '@opentelemetry/plugin-grpc-js'` 的错误。这类依赖加载失败的错误，可能是由于Pod在重启（可能由内存不足触发）后应用初始化失败导致的，形成了故障的直接表象与最终影响。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "对于 Pod 级别指标，p99值突然从1.0增加到2.0（或更大的整数增量），这强烈暗示了进程重启、容器重启或Pod重启事件。",
+        "instruction": "检查目标Pod（如currencyservice-2）的`pod_processes`指标的p99或p95等分位数在故障时间窗口前后是否发生整数级的跳变（如1->2, 2->3）。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Pod/Service级别的响应时间（rrt）与最大响应时间（rrt_max）同时出现显著上升（例如 >30%），通常与重启导致的服务短暂不可用、请求堆积或重启后性能初始化缓慢有关。",
+        "instruction": "当检测到Pod进程数异常时，关联检查该Pod所属服务的响应时间指标（rrt, rrt_max）是否在对应时间段出现同步的显著增长。"
+      },
+      {
+        "modality": "Log",
+        "target": "Cannot find module",
+        "expected_pattern": "日志中包含 'Cannot find module' 或 'could not load' 等关键词的错误信息，表明应用在启动或运行时依赖缺失或加载失败。",
+        "instruction": "在发生重启的Pod（如currencyservice-2）的日志中，搜索 'load', 'module', 'not found', 'error' 等关键词，以识别重启后应用是否因配置或环境问题而启动失败。"
+      }
+    ]
+  }
+}

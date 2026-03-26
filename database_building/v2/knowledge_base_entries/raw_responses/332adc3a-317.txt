@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "332adc3a-317",
+    "fault_type": "storage_io_performance",
+    "symptom_vector": "Latency spike in upstream services (productcatalogservice, cartservice), abnormal region_pending drop and io_util increase in storage layer",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB存储层IO性能问题导致region_pending异常，进而引发上游服务延迟升高",
+        "reasoning_chain": [
+            "Step 1: 观察到tidb-tikv组件的region_pending指标中位数从10467大幅下降至739（变化率1.7362），同时io_util的P99值从0.1上升至0.35（变化率1.1131），表明存储层出现严重的IO性能问题",
+            "Step 2: 分析依赖存储层的服务指标，发现productcatalogservice-1的rrt_max从13969.5升至20026.0（变化率0.3563），cartservice-1的rrt_max从5950.0升至9999.0（变化率0.5077），这些服务的响应时间恶化与存储层异常时间窗口一致，符合依赖传导模式",
+            "Step 3: 结合故障模式分析，region_pending的急剧下降通常表示存储调度阻塞或IO瓶颈，io_util的升高进一步证实了存储IO压力，最终确认为存储层IO性能问题导致的级联故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "中位数大幅下降（从10467降至739），变化率超过1.7",
+                "instruction": "检查tidb-tikv组件的region_pending指标，关注其中位数在故障期间是否出现急剧下降，这是存储层调度问题的关键信号"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "P99值显著上升（从0.1升至0.35），变化率超过1.1",
+                "instruction": "检查tidb-tikv组件的io_util指标，观察其P99百分位在故障期间是否持续升高，确认存储IO压力"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "上游服务（如productcatalogservice-1、cartservice-1）的rrt_max指标同时期显著上升",
+                "instruction": "检查依赖tidb-tikv的服务的rrt_max指标，验证是否存在与存储层异常时间窗口一致的响应时间恶化，确认故障传导关系"
+            }
+        ]
+    }
+}
+```

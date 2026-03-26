@@ -1,0 +1,28 @@
+{
+  "uuid": "f99b1645-137",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-05] experienced [node_memory_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-05] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric data with abnormal values (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [node_memory_MemAvailable_bytes] in Metric data showing memory reduction (From GT key_observations)",
+      "Step 4: Derive Root Cause - Based on memory usage rate anomaly and available memory reduction, determined cause is [node_memory_usage_rate] fault (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Metric shows p99 value increased from 56.21 to 84.37 (40.07% change) during fault period",
+        "instruction": "Check if metric [node_memory_usage_rate] for node [aiops-k8s-05] shows abnormal increase during 2025-06-08T03:10:21Z to 2025-06-08T03:21:21Z"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Metric shows available memory decreasing for multiple nodes including aiops-k8s-05",
+        "instruction": "Search for metric [node_memory_MemAvailable_bytes] to verify memory availability reduction on node [aiops-k8s-05]"
+      }
+    ]
+  }
+}

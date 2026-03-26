@@ -1,0 +1,33 @@
+{
+  "uuid": "1fbef130-185",
+  "fault_type": "metric",
+  "symptom_vector": "Observed severe latency spikes (rrt_max increases exceeding 100%) in multiple downstream services including cartservice, shippingservice, and emailservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "K8s节点aiops-k8s-03因CPU使用率急剧飙升至92.81%，导致节点资源耗尽，进而引发运行于该节点上的多个服务出现性能严重下降。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中发现节点`aiops-k8s-03`的核心指标`node_cpu_usage_rate`中位数从正常期的26.58%飙升至故障期的92.81%，变化率高达110.95%，表明该节点CPU资源已严重过载。",
+      "Step 2: 通过节点-Pod映射关系确认，`aiops-k8s-03`上运行着`shippingservice-2`, `recommendationservice-1`, `adservice-0`, `paymentservice-1`, `cartservice-0`, `frontend-0`等多个服务Pod，这些服务均暴露在资源瓶颈的风险下。",
+      "Step 3: 结合Trace数据验证，发现多个服务的`rrt_max`（P99响应时间）出现剧烈增长，例如`cartservice-1`增长130.73%，`shippingservice-1`增长113.59%。这些异常服务虽不全在问题节点上，但延迟模式与节点资源耗尽引发的级联性能问题特征相符。同时，日志数据中未发现明确的程序错误，进一步支持了问题根源是底层资源枯竭而非应用层逻辑错误的假设。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike or sustained high level (e.g., >80%)",
+        "instruction": "检查疑似问题节点（如`aiops-k8s-03`）的`node_cpu_usage_rate`指标，对比故障时段与正常基线的中位数或P99值，计算变化率。重点关注是否出现超过50%的剧烈增长并持续高位。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Significant increase in P99 latency across multiple services",
+        "instruction": "当发现节点资源异常后，检查运行在该节点上的服务（可通过`node_pod_mapping`获取列表）的`rrt_max`指标。同时，也需关注调用链中与该节点服务有依赖关系的上下游服务，观察是否出现广泛的、显著的P99延迟增长。"
+      },
+      {
+        "modality": "Log",
+        "target": "Out of memory",
+        "expected_pattern": "Contains error keywords related to resource exhaustion",
+        "instruction": "在系统/内核日志中搜索与资源耗尽相关的关键词，如'Out of memory', 'CPU throttling', 'resource limit'等。注意：若未发现此类错误日志，但Metric和Trace证据充分，则更符合纯资源竞争导致的性能问题特征。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Service logs contain repeated error messages with database region unavailability codes, such as specific error numbers indicating data access failures.
+- Metric anomaly pattern: Database-related metrics show severe degradation, including spikes in query latency and declines in storage health indicators.
+- Trace anomaly pattern: Distributed traces reveal that service calls experience extreme delays and fail with error codes pointing to underlying data layer issues, with effects propagating through service dependencies.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Log entries consistently show database error codes related to region unavailability across multiple services - this matters because it directly implicates the data persistence layer as the source of failures.
+- Evidence 2: Storage health metrics indicate a deterioration in database node status, such as increased counts of unhealthy stores - this confirms an infrastructure-level problem affecting data accessibility.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Elevated error ratios and response times in application services like product catalog and frontend - this is a consequence, as these services depend on the failing database layer.
+- Evidence 4: Performance degradation in checkout and shipping services - this can be deprioritized because it aligns with the cascade effect from the primary database issue.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the uniform database error logs and declining storage health metrics, we suspect a core issue in the data storage infrastructure that is preventing normal data region operations."
+
+Step 2: Verification or elimination
+"If this were caused by network connectivity problems between services, we would expect intermittent timeouts or connection errors without specific database codes; however, actual observation shows persistent database-specific errors across traces and logs; this rules out network-level issues as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of direct evidence from database error logs and systemic performance collapse in dependent services indicates a root cause in the data persistence layer's region management, leading to widespread service unavailability."
+
+[Conclusion]
+"The root cause is a failure in the database's region handling mechanism that disrupted data access, causing cascading failures in dependent application services."
+
+[Next Action]
+- "Verify whether additional database audit logs contain entries around the incident start time to pinpoint triggering events"
+- "Check for correlation between storage health metric anomalies and the timing of error log spikes to strengthen causal linkage"

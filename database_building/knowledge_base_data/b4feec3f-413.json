@@ -1,0 +1,55 @@
+{
+  "uuid": "b4feec3f-413",
+  "fault_type": "request response port",
+  "symptom_vector": "Checkoutservice experiencing target port misconfiguration leading to service unavailability, request-response failures, and connection errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice] experienced [request, response, port] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [request error] in Log (From GT key_observations, observed in log entries with 'message: \"request error\"' in Full Context).",
+      "Step 3: Check Observation - Found keyword [rpc error] in Log (observed in error messages like 'rpc error: code = Unavailable' in Full Context).",
+      "Step 4: Check Observation - Found keyword [transport Error while dialing] in Log (observed in connection refused errors with 'transport: Error while dialing dial tcp 10.233.61.165:5050' in Full Context).",
+      "Step 5: Check Observation - Found keyword [unavailable] in Log (observed in RPC status 'code = Unavailable' in Full Context).",
+      "Step 6: Check Observation - Found keyword [request response] in Metric (related to metrics like 'rrt' and 'rrt_max' showing anomalies in Full Context, e.g., checkoutservice-1 rrt_max change).",
+      "Step 7: Derive Root Cause - Based on above features, including port reference in dialing errors, determined cause is [request, response, port] misconfiguration."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "HTTP response status 302 indicating redirection (not observed in provided Full Context, but part of GT evidence).",
+        "instruction": "Search for keyword 'http.resp.status' with value '302' in logs."
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log entries with 'message: \"request error\"' present in filtered logs (e.g., from frontend pods).",
+        "instruction": "Search for keyword 'request error' in logs."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Error messages containing 'rpc error' (e.g., 'failed to complete the order: rpc error: code = Unavailable').",
+        "instruction": "Search for keyword 'rpc error' in logs."
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "Connection errors with 'transport: Error while dialing' and port reference (e.g., 'dial tcp 10.233.61.165:5050').",
+        "instruction": "Search for keyword 'transport: Error while dialing' in logs."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "RPC status code 'Unavailable' in error descriptions (e.g., 'code = Unavailable').",
+        "instruction": "Search for keyword 'unavailable' in logs."
+      },
+      {
+        "modality": "Metric",
+        "target": "request response",
+        "expected_pattern": "Metrics such as 'rrt' or 'rrt_max' showing abnormal values (e.g., checkoutservice-1 rrt_max median change ratio 0.1168).",
+        "instruction": "Check metric data for request-response time indicators like 'rrt' and 'rrt_max'."
+      }
+    ]
+  }
+}

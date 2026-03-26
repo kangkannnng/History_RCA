@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "8ce0cd7e-578",
+    "fault_type": "abnormal_region_count",
+    "symptom_vector": "Pod failure with cascading database query timeouts causing service errors",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-pd-0/tidb-pd 组件因 abnormal_region_count、leader_count 等关键指标异常，引发 PD server timeout，导致数据库查询失败和级联服务影响",
+        "reasoning_chain": [
+            "Step 1: 观察到关键日志中大量出现 'Error 9001 (HY000): PD server timeout: start timestamp may fall behind safe point'，表明底层数据库组件响应超时。",
+            "Step 2: 分析指标数据发现 tidb-tidb 组件的 failed_query_ops 从 0 激增至 96，memory_usage 从 981MB 下降至 491MB，证明数据库层正承受巨大压力，这与 'abnormal_region_count' 等 region 健康度指标恶化的预期相符。",
+            "Step 3: 追踪数据显示 productcatalogservice->TiDB 调用链失败，延迟（rrt_max）从 8-11s 增加至 12-14s，错误向上游的 frontend 等服务传播，最终确认根因为 tidb-pd 组件的故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "failure|timeout",
+                "expected_pattern": "日志中出现 'failure', 'timeout', 'Error 9001 (HY000)', 'PD server timeout' 等关键词",
+                "instruction": "检查 tidb-pd 组件的日志，搜索包含 'failure', 'timeout' 及 'PD server timeout' 的错误信息。"
+            },
+            {
+                "modality": "Metric",
+                "target": "abnormal_region_count|leader_count|region_health",
+                "expected_pattern": "region 相关健康度指标（如 abnormal_region_count、leader_count、region_health）出现异常飙升或恶化",
+                "instruction": "检查 tidb-pd 组件的 'abnormal_region_count'、'leader_count'、'region_health' 等指标是否有异常变化，这是其健康状态的关键体现。"
+            },
+            {
+                "modality": "Metric",
+                "target": "failed_query_ops|memory_usage",
+                "expected_pattern": "数据库查询失败率（failed_query_ops）突然增加，同时伴随内存使用量（memory_usage）的显著变化",
+                "instruction": "检查 tidb-tidb 或 tidb-pd 组件的 'failed_query_ops' 和 'memory_usage' 指标，寻找数据库负载压力增大的证据。"
+            }
+        ]
+    }
+}
+```

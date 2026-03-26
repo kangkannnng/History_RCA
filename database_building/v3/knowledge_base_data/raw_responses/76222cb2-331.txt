@@ -1,0 +1,95 @@
+```json
+{
+    "uuid": "76222cb2-331",
+    "fault_type": "pod_processes_timeout",
+    "symptom_vector": "method error, code error, runtime panic with timeout and pod processes anomalies",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice 组件因代码错误导致 RangeError: Maximum call stack size exceeded 运行时异常，引发 timeout 指标飙升和 pod_processes 异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 currencyservice 日志中出现大量 'conversion request failed: RangeError: Maximum call stack size exceeded' 错误，表明存在代码递归调用栈溢出",
+            "Step 2: 分析 currencyservice-2 的 timeout 指标从 0.0 飙升至 7890.0，显示服务完全不可用",
+            "Step 3: 确认 Trace 数据中 CurrencyService/Convert 操作的 rrt_max 从正常 2.3-2.9秒激增至 564-708秒，同时出现 'transport is closing' 错误"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "RangeError: Maximum call stack size exceeded",
+                "expected_pattern": "Contains 'conversion request failed: RangeError: Maximum call stack size exceeded' error messages",
+                "instruction": "在 currencyservice 组件的日志中搜索 'RangeError: Maximum call stack size exceeded' 关键词，确认是否存在递归调用栈溢出错误"
+            },
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "Contains 'rpc error: code = Canceled desc = context canceled' error messages",
+                "instruction": "在 frontend 和 checkoutservice 日志中搜索 'context canceled' 关键词，确认是否因下游服务不可用导致请求取消"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status 302",
+                "expected_pattern": "HTTP response status code 302",
+                "instruction": "检查日志中是否存在 HTTP 302 状态码，确认是否有重定向异常"
+            },
+            {
+                "modality": "Log",
+                "target": "Internal",
+                "expected_pattern": "Contains 'Internal' error messages",
+                "instruction": "搜索日志中 'Internal' 关键词，确认是否存在内部服务错误"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "Contains 'request error' messages",
+                "instruction": "搜索 'request error' 关键词，确认请求失败情况"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "Contains 'rpc error' messages",
+                "instruction": "搜索 'rpc error' 关键词，确认 RPC 调用失败情况"
+            },
+            {
+                "modality": "Metric",
+                "target": "timeout",
+                "expected_pattern": "Sudden increase from baseline (0.0 to high value)",
+                "instruction": "检查 currencyservice 组件的 timeout 指标是否从正常值 0.0 突然飙升至异常水平"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Abnormal CPU usage pattern",
+                "instruction": "检查 currencyservice 组件的 pod_cpu_usage 指标是否存在异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abnormal process count or state",
+                "instruction": "检查 currencyservice 组件的 pod_processes 指标是否存在异常"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "CurrencyService/Convert operation latency spike (2000x increase)",
+                "instruction": "分析 Trace 数据中 CurrencyService/Convert 操作的延迟是否异常飙升（从正常2-3秒激增至500+秒）"
+            },
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Abnormal proportion of failed requests",
+                "instruction": "检查 Trace 数据中失败请求的比例是否异常"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice",
+                "expected_pattern": "CheckoutService/PlaceOrder operation failures",
+                "instruction": "分析 checkoutservice 的 PlaceOrder 操作是否因依赖 currencyservice 而失败"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Frontend HTTP 500 errors",
+                "instruction": "检查 frontend 服务是否出现大量 HTTP 500 错误"
+            }
+        ]
+    }
+}
+```

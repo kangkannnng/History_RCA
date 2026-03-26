@@ -1,0 +1,47 @@
+{
+  "uuid": "6e08f907-417",
+  "fault_type": "node memory stress",
+  "symptom_vector": "Node memory exhaustion and saturation leading to high memory usage and potential memory leak",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-08] experienced [node memory stress] fault, characterized by memory exhaustion and saturation.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [frontend] in Trace data with latency anomalies (From GT key_observations: trace subtype latency_anomalies keyword frontend)",
+      "Step 3: Check Observation - Found keyword [http.resp.status] and [302] in Log data (From GT key_observations: log keyword http.resp.status, 302)",
+      "Step 4: Check Observation - Found keyword [node_disk_read_bytes_total] and [node_disk_read_time_seconds_total] in Metric data (From GT key_observations: metric keyword node_disk_read_bytes_total, node_disk_read_time_seconds_total)",
+      "Step 5: Derive Root Cause - Based on memory-related symptoms and disk I/O metrics indicating memory pressure, determined cause is [node memory stress] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Frontend services show latency anomalies in trace data",
+        "instruction": "Search for keyword 'frontend' in trace data and check for latency anomalies (anomaly_avg_duration significantly higher than normal_avg_duration)"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "HTTP response status codes in log entries",
+        "instruction": "Search for keyword 'http.resp.status' in log data to identify HTTP status patterns"
+      },
+      {
+        "modality": "Log",
+        "target": "302",
+        "expected_pattern": "HTTP 302 status codes (redirects) appearing in logs",
+        "instruction": "Search for status code '302' in log entries to identify redirect patterns"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total",
+        "expected_pattern": "Node disk read bytes metric showing abnormal patterns",
+        "instruction": "Check metric [node_disk_read_bytes_total] for abnormal increases indicating disk I/O due to memory pressure"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_time_seconds_total",
+        "expected_pattern": "Node disk read time metric showing increased latency",
+        "instruction": "Check metric [node_disk_read_time_seconds_total] for abnormal increases indicating disk I/O latency due to memory pressure"
+      }
+    ]
+  }
+}

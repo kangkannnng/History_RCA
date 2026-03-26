@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "5a573d9d-212",
+    "fault_type": "性能降级与错误率飙升",
+    "symptom_vector": "Significant latency spike in checkoutservice and frontend services, accompanied by high rates of client errors (HTTP 500, connection timeouts) and gRPC Unavailable/Canceled status codes.",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice发生网络连接故障（表现为连接超时与握手失败），导致依赖它的checkoutservice请求延迟激增并大量失败，进而引发前端服务错误。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据中观察到 cartservice-1 的 `rrt_max` (P99) 从正常的 37.7秒 激增至 22501秒，增长约2750倍，同时其 `client_error_ratio` (P99) 从0%飙升至47.65%，表明cartservice自身或其网络存在严重问题。",
+            "Step 2: 分析Log数据，发现大量来自frontend的错误日志，其根本原因链均指向调用cartservice时失败，具体错误信息为 `transport: Error while dialing dial tcp 10.233.46.196:7070: i/o timeout` 和 `timed out waiting for server handshake`，这证实了cartservice(IP: 10.233.46.196, Port: 7070)存在网络可达性或服务响应问题。",
+            "Step 3: 结合Trace数据，确认故障传播路径为 cartservice → checkoutservice → frontend。`checkoutservice->cartservice` 的调用（如 `hipstershop.CartService/GetCart`）延迟从正常的约8秒增长至异常时的约2243万秒，且伴随大量gRPC状态码为14(Unavailable)和1(Canceled)的错误。这验证了cartservice的不可用是导致上游checkoutservice性能灾难性下降的直接原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max, client_error_ratio",
+                "expected_pattern": "Sudden and extreme spike (e.g., 1000x+ increase) in P99 values, particularly for services downstream in the dependency chain.",
+                "instruction": "Focus on the service with the earliest and most severe latency (`rrt_max`) spike and concurrent high client-side error ratio (`client_error_ratio`). This often pinpoints the root cause component where the failure originates."
+            },
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing, i/o timeout, timed out waiting for server handshake",
+                "expected_pattern": "Concentrated error logs from multiple upstream services all pointing to connection failures (timeout, handshake failure) when trying to reach a specific downstream service endpoint (IP:Port).",
+                "instruction": "Search for recurring network-level error messages that specify a target IP and port. The service at that endpoint is likely the root cause of the connectivity issue."
+            },
+            {
+                "modality": "Trace",
+                "target": "Operation latency (e.g., hipstershop.CartService/GetCart), Status codes (e.g., 14-UNAVAILABLE)",
+                "expected_pattern": "Drastic increase in call duration from a service to its dependency, coupled with a high frequency of failure status codes (like UNAVAILABLE) for those calls.",
+                "instruction": "Analyze distributed traces to identify the specific downstream call where latency becomes abnormal and errors start. The callee service in that span is a strong candidate for the root cause."
+            }
+        ]
+    }
+}
+```

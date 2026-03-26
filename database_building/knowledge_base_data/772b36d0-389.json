@@ -1,0 +1,71 @@
+{
+  "uuid": "772b36d0-389",
+  "fault_type": "qps grpc_qps region_pending io_util tidb-tikv",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv-0, tidb-tikv] experienced [qps, grpc_qps, region_pending, io_util, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv-0, tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [failure] in Log (From GT key_observations: log keyword 'failure')",
+      "Step 3: Check Observation - Found keyword [unavailable] in Log (From GT key_observations: log keyword 'unavailable')",
+      "Step 4: Check Observation - Found keyword [productcatalogservice] in Trace (From GT key_observations: trace keyword 'productcatalogservice')",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [qps, grpc_qps, region_pending, io_util, tidb-tikv] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'failure' keyword appear in system logs during fault period",
+        "instruction": "Search for keyword 'failure' in all logs during 2025-06-19T22:10:08Z to 2025-06-19T22:22:08Z"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries containing 'unavailable' keyword appear with high frequency, especially 'Region is unavailable' errors",
+        "instruction": "Search for keyword 'unavailable' in logs, particularly in productcatalogservice logs where 'Error 9005 (HY000): Region is unavailable' appears 120 times"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Trace data shows productcatalogservice calls experience extreme latency anomalies (4000x increase) and request proportion anomalies",
+        "instruction": "Analyze trace data for productcatalogservice operations, check for latency spikes from 9681.24ms to 39880928.62ms and status code 2 errors with 'Region is unavailable' message"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "GRPC queries per second metric shows abnormal patterns during fault period",
+        "instruction": "Check grpc_qps metrics for tidb-tikv component during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Queries per second metric shows degradation or abnormal patterns",
+        "instruction": "Check qps metrics for database-related services during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization metric shows abnormal patterns indicating storage performance issues",
+        "instruction": "Check io_util metrics for storage components during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Region pending metric shows abnormal values indicating database region unavailability",
+        "instruction": "Check region_pending metrics for TiDB components during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU usage metric shows abnormal patterns during fault period",
+        "instruction": "Check cpu_usage metrics for tidb-tikv and related components"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage metric shows abnormal patterns, potentially indicating resource exhaustion",
+        "instruction": "Check memory_usage metrics, particularly for tidb-tidb which shows 22.28% decrease from 601MB to 481MB"
+      }
+    ]
+  }
+}

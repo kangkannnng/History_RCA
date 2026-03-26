@@ -1,0 +1,39 @@
+{
+  "uuid": "bb585575-589",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "Node CPU overload, high CPU usage, CPU saturation, CPU spike, and CPU stress on the node.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-08] experienced [node_cpu_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [node_cpu_usage_rate] in Metric data (From GT key_observations).",
+      "Step 3: Derive Root Cause - Based on the abnormal spike in the key metric, determined cause is [node_cpu_usage_rate] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "The metric value for node 'aiops-k8s-08' shows a median increase from 33.0% to 89.16% (91.94% change ratio).",
+        "instruction": "Search for metric 'node_cpu_usage_rate' where node_name is 'aiops-k8s-08' and verify the median value increased significantly during the fault window."
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "Log entries containing the keyword 'http.resp.status' with value '302'.",
+        "instruction": "Search for keyword 'http.resp.status' and value '302' in Log data within the fault time window."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Abnormal pattern in the network receive packets metric for the node.",
+        "instruction": "Check if metric 'node_network_receive_packets_total' for node 'aiops-k8s-08' shows an anomalous pattern."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_transmit_packets_total",
+        "expected_pattern": "Abnormal pattern in the network transmit packets metric for the node.",
+        "instruction": "Check if metric 'node_network_transmit_packets_total' for node 'aiops-k8s-08' shows an anomalous pattern."
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "abb62970-110",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "JVM CPU spike in adservice with elevated response time",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 因 pod_cpu_usage 指标异常飙升引发故障，原因为注入的 AdService--stress 混沌测试规则",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice 的 pod_cpu_usage 指标从 0.0 或 0.01 突然飙升至 0.6（变化率 193%-200%）",
+            "Step 2: 分析 adservice 实例的日志，发现高频出现的 AdService--stress 规则执行记录，以及 Byteman、chaos_mesh、InvocationTargetException、Transformer 等与混沌测试注入相关的关键词",
+            "Step 3: 确认 Trace 数据中 frontend 调用 adservice 的 rrt_max 指标从约 5.5ms 增加至 30-38ms，证实了 adservice 性能下降导致的级联影响"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike from baseline (e.g., 0.0 -> 0.6)",
+                "instruction": "检查 adservice pod 的 pod_cpu_usage 指标是否存在突然且大幅度的飙升"
+            },
+            {
+                "modality": "Log",
+                "target": "adservice--stress|invocationtargetexception|transformlistener",
+                "expected_pattern": "Contains keywords related to chaos testing injection and execution failure",
+                "instruction": "在 adservice 实例的日志中搜索 AdService--stress、InvocationTargetException、TransformListener 等关键词，确认是否存在混沌测试注入活动"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Increased latency in calls to adservice (e.g., hipstershop.AdService/GetAds)",
+                "instruction": "检查调用链数据，确认前端（frontend）调用 adservice 的操作（如 GetAds）是否出现响应时间（rrt_max）显著增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Significant increase in max response time for services dependent on adservice",
+                "instruction": "检查 adservice 以及相关下游服务（如 cartservice）的 rrt_max 指标是否出现恶化"
+            }
+        ]
+    }
+}
+```

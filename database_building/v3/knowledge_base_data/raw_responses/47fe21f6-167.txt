@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "47fe21f6-167",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown with application runtime error and exception stack trace",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-0 组件因 Byteman agent 注入的 AdService-getRandomAds-exception-1749460243 规则导致 Java 异常，触发 adservice-getrandomads-exception 指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 的 error_ratio 和 client_error_ratio 指标 p99 值从 0.22 上升到 0.53，变化率 80.35%",
+            "Step 2: 分析 adservice-0 的日志中发现 Byteman agent 规则 AdService-getRandomAds-exception-1749460243 被触发，出现 'java.lang.Error: Injected error' 异常",
+            "Step 3: 确认 frontend 服务调用 adservice 时出现 'failed to get ads: rpc error: code = Unknown desc' 错误，形成级联故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getrandomads-exception",
+                "expected_pattern": "Contains Byteman agent rule execution and Java exception",
+                "instruction": "在 adservice-0 的日志中搜索 AdService-getRandomAds-exception-1749460243 规则执行记录和 Java 异常"
+            },
+            {
+                "modality": "Log",
+                "target": "Caught|throwexception",
+                "expected_pattern": "Contains exception handling or throw statements",
+                "instruction": "检查 adservice 日志中是否包含异常捕获或抛出记录"
+            },
+            {
+                "modality": "Log",
+                "target": "grpc-default-executor",
+                "expected_pattern": "Exception in grpc thread context",
+                "instruction": "搜索 grpc-default-executor 线程中的异常信息"
+            },
+            {
+                "modality": "Log",
+                "target": "injected|error",
+                "expected_pattern": "Contains injected error keywords",
+                "instruction": "查找包含 'injected error' 关键词的日志条目"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Java reflection invocation failure",
+                "instruction": "检查 InvocationTargetException 相关的异常堆栈"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Byteman transformation activity",
+                "instruction": "查找 Byteman agent 的 Transformer 相关日志"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error|error",
+                "expected_pattern": "Error ratio spike from baseline",
+                "instruction": "检查 adservice-0 的 client_error_ratio 和 error_ratio 指标是否异常上升"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "Network traffic pattern changes",
+                "instruction": "监控 adservice pod 的网络收发指标变化模式"
+            }
+        ]
+    }
+}
+```

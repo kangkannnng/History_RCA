@@ -1,0 +1,27 @@
+{
+  "uuid": "25231384-574",
+  "fault_type": "metric",
+  "symptom_vector": "Severe latency spike in productcatalogservice GetProduct interface (6.9-18.4x increase) and significant increase in TiDB region_pending metric.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB-TiKV组件性能因所在节点（aiops-k8s-05）内存资源耗尽而急剧下降，导致数据库region处理积压并引发上游服务延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中发现`tidb-tikv`的`region_pending`指标中位数从9566.5骤增至1279.0，变化率达152.83%，表明数据库层面出现严重的region处理延迟或积压。",
+      "Step 2: 同时，Metric数据显示承载TiDB实例的节点`aiops-k8s-05`的`node_memory_usage_rate`从30.15%飙升至64.45%，可用内存从11.46GB降至5.72GB。这表明节点内存资源严重不足，直接影响该节点上运行的数据层服务的性能。",
+      "Step 3: 在Trace数据中观察到，依赖TiDB数据库的`productcatalogservice`的`GetProduct`接口延迟异常增加，从正常的平均8-11秒上升到故障时段的69-211秒。结合故障模式（数据库问题优先归因于数据库组件），此服务延迟是下游TiDB性能问题的直接表现，而非独立原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden spike (e.g., >100% change ratio) in median or p99 values, especially for TiDB components.",
+        "instruction": "检索TiDB相关组件（tidb-tikv，tidb-tidb等）的`region_pending`指标，检查其在故障窗口内的中位数或p99值是否出现大幅异常增长，这通常指示数据库处理瓶颈或资源问题。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Significant increase (e.g., >50% change ratio) and reaching high usage levels, correlated with the nodes hosting the suspected root cause component.",
+        "instruction": "定位疑似故障组件（如tidb-tikv）所在的宿主机节点，检查该节点的`node_memory_usage_rate`及`node_memory_MemAvailable_bytes`指标，观察是否存在内存使用率激增和可用内存锐减的情况，以识别资源瓶颈。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "uuid": "a87be781-351",
+  "fault_type": "io fault",
+  "symptom_vector": "IO fault with filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [io fault] fault, accompanied by [region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [region_pending] in Metric data showing P99 from 22737.25 to 1293.32 (From GT key_observations and Full Context metric data)",
+      "Step 3: Check Observation - Found keyword [cpu_usage] in Metric data showing P99 from 0.11 to 0.58 (362% increase) (From GT key_observations and Full Context metric data)",
+      "Step 4: Check Observation - Found keyword [productcatalogservice] in Trace data showing latency spikes 900x (From GT key_observations and Full Context trace data)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [io fault] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "P99 value changed from 22737.25 to 1293.32 for tidb-tikv component",
+        "instruction": "Search for metric [region_pending] for component [tidb-tikv] and check P99 value changes"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "P99 value changed from 0.11 to 0.58 (362% increase) for tidb-tikv component",
+        "instruction": "Search for metric [cpu_usage] for component [tidb-tikv] and check P99 value changes"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Latency anomalies with 900x spike in rrt_max for productcatalogservice operations",
+        "instruction": "Search for trace keyword [productcatalogservice] and check latency anomalies in call chains"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization metrics showing abnormal patterns",
+        "instruction": "Search for metric [io_util] in the available metric names list"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "Raft apply wait metrics showing abnormal patterns",
+        "instruction": "Search for metric [raft_apply_wait] in the available metric names list"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage metrics showing abnormal patterns",
+        "instruction": "Search for metric [memory_usage] in the available metric names list"
+      }
+    ]
+  }
+}

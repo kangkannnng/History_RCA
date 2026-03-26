@@ -1,0 +1,42 @@
+{
+    "uuid": "6e8c4acb-219",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "High network latency, increased round-trip time, network delay spikes, elevated transmission delay, and elevated round-trip duration affecting service performance.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component currencyservice experienced rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is currencyservice (From Ground Truth instance, and it appears in Full Context metric and trace data).",
+            "Step 2: Check Observation - Found keyword frontend in Trace data showing latency anomalies in frontend calls to CurrencyService (e.g., frontend-0 to frontend-0 for Convert operation with anomaly_avg_duration 1881553.00ms vs normal 2350.85ms).",
+            "Step 3: Check Observation - Found keyword rrt in Metric data with extreme increases (e.g., currencyservice-0 rrt increased from 1163.6 to 889972.84, 99.48% increase).",
+            "Step 4: Check Observation - Found keyword rrt_max in Metric data with severe degradation (e.g., currencyservice-0 rrt_max increased from 3810.5 to 2407203.5, 99.37% increase).",
+            "Step 5: Check Observation - Found keyword request in Metric data with changes noted (e.g., productcatalogservice-0 request metric changed from normal_median 3724.5 to fault_median 1331.5).",
+            "Step 6: Derive Root Cause - Based on above features, determined cause is rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "frontend calls to CurrencyService show high latency increase in Convert and GetSupportedCurrencies operations (e.g., anomaly_avg_duration ~800x normal).",
+                "instruction": "Search for keyword 'frontend' in trace data for calls to CurrencyService during the anomaly period (2025-06-11T14:10:53Z to 2025-06-11T14:24:53Z)."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "rrt metric showing over 99% increase in currencyservice pods (e.g., currencyservice-0 rrt from 1163.6 to 889972.84).",
+                "instruction": "Check metric 'rrt' for currencyservice pods (currencyservice-0, currencyservice-1) from normal to fault median values."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "rrt_max metric showing extreme values in currencyservice and frontend pods (e.g., currencyservice-0 rrt_max from 3810.5 to 2407203.5).",
+                "instruction": "Check metric 'rrt_max' for services like currencyservice and frontend during the anomaly period."
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "request metric changes noted in services such as productcatalogservice (e.g., productcatalogservice-0 request median decreased from 3724.5 to 1331.5).",
+                "instruction": "Check metric 'request' for various services to observe traffic changes during the anomaly."
+            }
+        ]
+    }
+}

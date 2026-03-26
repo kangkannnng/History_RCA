@@ -1,0 +1,33 @@
+{
+  "uuid": "009be6db-313",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Latency spike (up to 786x) in cartservice operations, increased server error ratio in frontend services, and HTTP 500 errors observed from user requests.",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 组件自身进程异常，导致无法访问后端存储，并引发上游服务级联故障。",
+    "reasoning_chain": [
+      "Step 1: 指标数据分析发现 cartservice 多个实例 (cartservice-0, cartservice-1, cartservice-2) 的 pod_cpu_usage 在故障期间持续维持在接近 0% 的极低水平，这与正常服务应有CPU消耗的模式不符，强烈暗示进程可能已处于停滞或非活动状态。",
+      "Step 2: 日志数据分析发现，故障期间 cartservice 组件自身直接报告了超过 137 次关键错误，内容为 `Error status code 'FailedPrecondition' with detail 'Can't access cart storage.' raised.`。这表明错误源自主机自身，而非依赖的下游存储（如 redis）不可达。",
+      "Step 3: 追踪数据确认，故障的核心延迟源头位于 cartservice 自身的操作。例如，cartservice-2 处理的 GetCart 操作延迟从正常的 ~2ms 激增至超过 1.5 秒（786倍）。调用链分析显示问题从 cartservice 向上游（checkoutservice, frontend）传播，下游 redis 的延迟(35x)是 cartservice 进程故障后连接/请求处理异常的结果，而非根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden drop and sustained near-zero value for the suspected service pods.",
+        "instruction": "检查故障时间窗口内，疑似组件（如 cartservice）的 pod_cpu_usage 指标。寻找从正常基线水平（如 0.13）急剧下降并持续接近于零（如 0.0）的模式，这通常是进程崩溃、挂起或无法调度的强烈信号。"
+      },
+      {
+        "modality": "Log",
+        "target": "FailedPrecondition",
+        "expected_pattern": "Contains error messages indicating internal service state issues (e.g., 'Can't access cart storage.') originating from the service itself, not connection timeouts to dependencies.",
+        "instruction": "在疑似根因组件（如 cartservice）的日志中搜索 'FailedPrecondition' 等错误码。重点关注错误描述是否指向服务自身的内部状态异常（如无法访问其管理的存储），而不是网络或下游依赖问题。大量重复的此类错误是服务进程健康问题的直接证据。"
+      },
+      {
+        "modality": "Trace",
+        "target": "POST /hipstershop.CartService/GetCart",
+        "expected_pattern": "Extreme latency increase (e.g., 100x+) at the service's own endpoint, becoming the primary bottleneck in the call chain.",
+        "instruction": "分析从上游服务（如 checkoutservice）到疑似故障组件（如 cartservice）的调用链。确认延迟剧增的源头是否明确位于该组件的入口操作（如 GetCart）。对比其异常延迟倍数与其下游依赖（如 redis）的延迟倍数，如果前者远高于后者，则问题更可能在组件自身。"
+      }
+    ]
+  }
+}

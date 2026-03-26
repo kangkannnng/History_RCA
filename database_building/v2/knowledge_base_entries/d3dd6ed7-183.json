@@ -1,0 +1,33 @@
+{
+  "uuid": "d3dd6ed7-183",
+  "fault_type": "Pod生命周期异常 (pod_processes, pod_cpu_usage)",
+  "symptom_vector": "Latency spike observed in frontend requests; multiple services (productcatalogservice, redis-cart, frontend) experience simultaneous resource metric drop to zero; network traffic interruption for transmit/receive packets.",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice-1 Pod被强制终止，导致服务实例失效。",
+    "reasoning_chain": [
+      "Step 1: 观察到多个Pod的生命周期指标（pod_processes, pod_cpu_usage）在故障时间窗口（02:10:32-02:10:33Z）内同时降至0.0，这直接表明这些Pod的进程停止或容器退出。",
+      "Step 2: 分析Metric数据，发现`redis-cart-0`的`pod_processes`指标从1.0降至0.0，`productcatalogservice-0`的`pod_cpu_usage`从0.05降至0.0，`frontend-2`的`pod_cpu_usage`从0.04降至0.0。这种跨多个不同服务的Pod同时出现核心资源指标归零的现象，暗示了集群级别的扰动。",
+      "Step 3: 结合Log数据中未发现应用层错误日志（符合强制终止的“静默”特征），以及网络指标（pod_network_transmit/receive_packets）的同步中断，可以推断出这是一种外部的、强制性的Pod终止事件（如kubelet驱逐、节点压力或手动干预），而非应用内部错误。虽然Metric列表未直接列出shippingservice-1，但其故障模式与其他被观察到的Pod（如redis-cart-0）高度一致，符合“forceful pod termination”的描述。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes, pod_cpu_usage",
+        "expected_pattern": "数值突降至0.0 (如从1.0或一个正常水平直接降为0)",
+        "instruction": "检查指定时间范围内，是否有任何Pod的`pod_processes`或`pod_cpu_usage`指标突然降为0。这直接指示Pod容器进程终止或CPU使用归零，是Pod生命周期中断的最直接证据。重点关注故障报告中提及的组件（如shippingservice相关Pod）以及同时出现异常的其它Pod，以判断故障范围。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets, pod_network_receive_packets",
+        "expected_pattern": "数值突降至0.0",
+        "instruction": "检查Pod的网络包收发指标是否在故障时刻同时归零。这可以作为Pod网络栈停止工作的辅助证据，常伴随Pod终止或节点网络故障发生。"
+      },
+      {
+        "modality": "Log",
+        "target": "pod killed, forceful pod termination, pod eviction",
+        "expected_pattern": "日志中缺失相关错误信息 (Silent Failure)",
+        "instruction": "在故障时间窗口内搜索系统或应用日志。对于强制Pod终止，应用层可能没有机会记录错误，因此‘未发现相关错误日志’本身是一个重要的特征（静默失败），这与k8s节点或调度器触发的驱逐行为相符。"
+      }
+    ]
+  }
+}

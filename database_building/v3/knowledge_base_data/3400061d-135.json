@@ -1,0 +1,57 @@
+{
+  "uuid": "3400061d-135",
+  "fault_type": "client_error_ratio",
+  "symptom_vector": "pod crash with connection refused errors and error ratio spike",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice 组件因连接拒绝导致 client_error_ratio 和 error_ratio 指标异常飙升，引发 pod failure",
+    "reasoning_chain": [
+      "Step 1: 观察到所有 frontend 实例的 client_error_ratio 和 error_ratio 指标从 0% 飙升至 10% 左右，同时 request 和 response 流量下降约 70%",
+      "Step 2: 分析 Trace 数据发现 frontend->recommendationservice 调用出现 803 次连接拒绝错误，错误码 14，指向 recommendationservice 的 10.233.43.10:8080 地址",
+      "Step 3: 确认 Log 中 frontend 服务报告 'transport: Error while dialing dial tcp 10.233.43.10:8080: connect: connection refused'，表明 recommendationservice 无法建立连接"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Connection|refused",
+        "expected_pattern": "Contains connection refused error messages",
+        "instruction": "在 frontend 和 recommendationservice 的日志中搜索 'connection refused' 关键词"
+      },
+      {
+        "modality": "Log",
+        "target": "Error|while|dialing",
+        "expected_pattern": "Contains transport dialing failure messages",
+        "instruction": "检查日志中是否存在 'Error while dialing' 相关的传输层连接错误"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Contains service unavailable status",
+        "instruction": "搜索日志中 'unavailable' 关键词，确认服务不可用状态"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Abnormal memory usage pattern",
+        "instruction": "检查 recommendationservice 的 pod_memory_working_set_bytes 指标是否存在异常内存使用"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+        "expected_pattern": "Network traffic anomalies",
+        "instruction": "分析 recommendationservice 的网络指标，包括接收/发送字节数和包数是否存在异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "Sudden increase from baseline",
+        "instruction": "检查 frontend 服务的 client_error_ratio 指标是否从正常值突然飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "Error rate spike",
+        "instruction": "监控所有相关服务的 error_ratio 指标是否出现异常峰值"
+      }
+    ]
+  }
+}

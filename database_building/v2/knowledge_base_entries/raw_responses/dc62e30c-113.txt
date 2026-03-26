@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "dc62e30c-113",
+    "fault_type": "rrt/rrt_max异常",
+    "symptom_vector": "Severe latency spike in Redis operations leading to cascading timeouts and high error rates in upstream services (cartservice, frontend).",
+    "expert_knowledge": {
+        "root_cause_desc": "Redis服务性能严重劣化，根本原因指向底层的网络数据包损坏，导致操作响应时间激增和级联超时。",
+        "reasoning_chain": [
+            "Step 1: 观察到 Metric 数据中 redis-cart-0 的 rrt 从 213.79ms 飙升至 137271.06ms (变化率199.38%)，rrt_max 从 8309ms 飙升至 944910.5ms。这是系统中最严重的性能指标异常，表明 Redis 服务本身是问题焦点。",
+            "Step 2: 分析 Log 数据，发现大量来自 frontend 和 cartservice 的 `RedisTimeoutException` 错误，明确指向 redis-cart:6379。错误详情显示 HGET 等操作耗时 5-6 秒，超过客户端 5000ms 的超时设置，与 Metric 中的高延迟数据吻合。",
+            "Step 3: 确认 Trace 数据，发现 Redis 的 HGET 操作平均耗时从正常的约 1.7秒 增加到异常的约 5.8秒 (增加3375倍)，是所有调用链路中最下游且延迟最严重的环节。这导致依赖它的 cartservice 以及更上游的 frontend、checkoutservice 出现连锁高延迟和错误。基于指标、日志和链路在时序和因果关系上的一致性，推断根本原因位于 Redis 服务或其底层依赖（如网络）。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max for service `redis` and pod `redis-cart-0`",
+                "expected_pattern": "Sudden spike and sustained high values (e.g., increase by orders of magnitude).",
+                "instruction": "查询并对比故障时段与基线时段的 `redis-cart-0` 的 `rrt` (请求响应时间) 和 `rrt_max` 指标。确认是否存在数倍乃至数百倍的增长。"
+            },
+            {
+                "modality": "Log",
+                "target": "`RedisTimeoutException`, `timeout is 5000ms`, `HGET`, `HMSET`",
+                "expected_pattern": "Log entries containing these keywords, with elapsed times close to or exceeding 5000ms, and originating from services that depend on redis (e.g., cartservice, frontend).",
+                "instruction": "在故障时间窗口内，搜索包含 `RedisTimeoutException`、`timeout` 以及 Redis 命令（如 `HGET`）的错误日志。重点检查日志中 `elapsed` 字段的数值，确认是否普遍接近或超过 5000ms。"
+            },
+            {
+                "modality": "Trace",
+                "target": "Span operation name `HGET` for service `redis`",
+                "expected_pattern": "Dramatic increase in duration (e.g., from seconds to tens or hundreds of seconds) for the HGET operation.",
+                "instruction": "分析调用链路，定位服务为 `redis`、操作名为 `HGET` 的 span。对比故障时段与正常时段的平均持续时间，确认其是否出现数量级级别的增长，并检查其是否为问题调用链的最末端。"
+            }
+        ]
+    }
+}
+```

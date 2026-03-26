@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "d3bd27f3-90",
+    "fault_type": "rrt_max",
+    "symptom_vector": "network corruption between services causing connection timeouts and extreme latency spikes",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 和 shippingservice 之间的网络损坏导致 rrt_max 指标激增和TCP连接超时",
+        "reasoning_chain": [
+            "Step 1: 观察到调用链 checkoutservice->shippingservice/GetQuote 的 rrt_max 从正常 9.3秒激增至 2831万秒，延迟倍数达3027倍，表明两个服务间通信出现极端延迟。",
+            "Step 2: 分析日志发现 checkoutservice 的调用日志及前端日志中反复出现 'transport: Error while dialing dial tcp ...: i/o timeout' 和 'timed out waiting for server handshake' 等网络连接错误，明确指向 checkoutservice 到 shippingservice 的TCP连接层面故障。",
+            "Step 3: 确认故障影响范围，由于 checkoutservice 和 shippingservice 之间的网络损坏，导致依赖此调用的前端 PlaceOrder 流程 rrt_max 同步激增，并向上游传播 'shipping quote failure' 错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->shippingservice/GetQuote",
+                "expected_pattern": "latency spike of 1000x or more",
+                "instruction": "检查调用链数据，分析从 checkoutservice 到 shippingservice 的 GetQuote 操作，其平均耗时或 rrt_max 是否出现极端激增（例如从数秒激增至数千万秒）。"
+            },
+            {
+                "modality": "Log",
+                "target": "Error while dialing|i/o timeout|timed out waiting for server handshake",
+                "expected_pattern": "Contains TCP connection error messages",
+                "instruction": "在 checkoutservice 和 frontend 服务的日志中搜索包含 'Error while dialing', 'i/o timeout' 或 'timed out waiting for server handshake' 关键词的错误日志，这些是网络连接失败的典型证据。"
+            },
+            {
+                "modality": "Log",
+                "target": "failure|unavailable|canceled",
+                "expected_pattern": "Contains service failure or unavailability errors",
+                "instruction": "在相关服务的日志中搜索 'failure', 'unavailable', 'context canceled' 等关键词，以识别服务调用失败的现象。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Sudden and extreme increase from baseline",
+                "instruction": "检查 checkoutservice 和 shippingservice 的 rrt_max (最大响应时间) 指标，是否在故障期间出现从毫秒/秒级别到数十万/百万秒级别的异常飙升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Significant increase in average response time",
+                "instruction": "检查 checkoutservice 的 rrt (平均响应时间) 指标，确认是否出现数量级增长。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_transmit_bytes|pod_network_receive_packets|pod_network_transmit_packets",
+                "expected_pattern": "Abnormal pattern or drop in network traffic",
+                "instruction": "检查 checkoutservice 和 shippingservice 对应 Pod 的网络接收/发送字节数和包数指标，网络损坏可能导致流量异常下降或出现错误包。"
+            }
+        ]
+    }
+}
+```

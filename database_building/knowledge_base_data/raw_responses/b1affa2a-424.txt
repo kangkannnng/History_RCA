@@ -1,0 +1,30 @@
+```json
+{
+    "uuid": "b1affa2a-424",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, saturation, high memory usage, leak, or stress.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-08] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in [Metric] data for node [aiops-k8s-08] (From GT key_observations).",
+            "Step 3: Check Observation - Found keyword [node_memory_MemAvailable_bytes] in [Metric] data for node [aiops-k8s-08] (From GT key_observations).",
+            "Step 4: Derive Root Cause - Based on the abnormal memory metric features, determined cause is [node_memory_usage_rate] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "The metric `node_memory_usage_rate` for node `aiops-k8s-08` shows an abnormal change from a normal median of 73.51% to a fault median of 64.65%.",
+                "instruction": "Search for metric `node_memory_usage_rate` where `node_name` is `aiops-k8s-08` and check its median and p99 values during the fault window."
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "The metric `node_memory_MemAvailable_bytes` for node `aiops-k8s-08` shows an abnormal increase from a normal median of 7897206784.0 bytes to a fault median of 10880892928.0 bytes.",
+                "instruction": "Search for metric `node_memory_MemAvailable_bytes` where `node_name` is `aiops-k8s-08` and check its median and p99 values during the fault window."
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "87b43d57-223",
+    "fault_type": "应用异常",
+    "symptom_vector": "Latency spike in Redis operations; RPC errors in frontend related to adservice calls; JVM exceptions in adservice.",
+    "expert_knowledge": {
+        "root_cause_desc": "AdService因Byteman代理注入错误导致应用异常，引发下游RPC调用失败。",
+        "reasoning_chain": [
+            "Step 1: 从日志数据中观察到adservice-0实例在故障期间产生了大量特定关键词的日志条目，如'Rule.execute called for AdService-getRandomAds-exception-1749665406_39:0'(1426次)、'java.lang.Error: Injected error'(1426次)和'AdService-getRandomAds-exception-1749665406 execute()'(1426次)。同时，所有三个frontend实例均报告了大量'rpc error'和'failed to get ads'日志，错误源头指向adservice。这些是表征应用内部异常的清晰证据。",
+            "Step 2: 检查Metric数据，旨在寻找其他潜在根因的资源瓶颈证据。发现Redis的`pod_cpu_usage`指标在故障期间变化率(median_change_ratio和p99_change_ratio)为0.0，表明Redis本身未出现显著的CPU资源消耗异常，排除了Redis作为原始性能瓶颈或根因的可能性。",
+            "Step 3: 分析Trace数据，发现确实存在Redis操作（如HMSET）延迟剧增的链路异常。然而，结合Step 2的Metric证据（Redis无CPU瓶颈），此延迟可被解释为一种由上游服务（adservice）故障引发的级联效应，而非根因。完整的证据链表明：Log中清晰的adservice应用异常（Byteman注入错误）是故障的起始点，直接导致了frontend的RPC失败，并可能间接影响了下游Redis链路的表现。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Rule.execute called for AdService-getRandomAds-exception",
+                "expected_pattern": "High frequency occurrence (e.g., >1000 times) during fault window",
+                "instruction": "在故障时间窗口内，搜索adservice服务日志，检查是否高频出现'Rule.execute called for AdService-getRandomAds-exception'或'Injected error'等表明Byteman规则注入和执行异常的关键词。这是指向应用代码级错误的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Change ratio close to 0.0 for suspected component (e.g., Redis)",
+                "instruction": "对比故障期间与正常基线期间，检查被怀疑为根因的组件（如本例中的Redis）的`pod_cpu_usage`指标的中位数(median)和P99分位数的变化率(change_ratio)。若变化率极小（如接近0.0），则表明该组件本身并非资源瓶颈，有助于排除其作为根因。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max of Redis operations (e.g., HMSET, HGET)",
+                "expected_pattern": "Significant increase in average duration (e.g., 10x+ times normal) for operations accessing the suspected downstream component.",
+                "instruction": "分析调用链路(Trace)数据，聚焦于访问被怀疑为根因的下游组件（如Redis）的操作（例如HMSET， HGET）。比较故障期间与正常期间的平均耗时(avg_duration)。若下游组件操作出现数十倍乃至更高的延迟增长，但其自身资源指标（如CPU）无异常，则该延迟很可能是上游根因故障的级联效应。"
+            }
+        ]
+    }
+}
+```

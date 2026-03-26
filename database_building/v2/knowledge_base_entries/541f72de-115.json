@@ -1,0 +1,33 @@
+{
+  "uuid": "541f72de-115",
+  "fault_type": "network_packet_corruption",
+  "symptom_vector": "Service Unavailability, RPC Timeout Errors (context canceled/transport is closing), Severe Latency Spike (30000x increase), Client/Server Error Ratio Increase",
+  "expert_knowledge": {
+    "root_cause_desc": "网络层数据包损坏，导致 productcatalogservice 响应延迟急剧上升、连接中断，进而引起 frontend 服务大量RPC超时错误与整体服务不可用。",
+    "reasoning_chain": [
+      "Step 1: 在 Metric 数据中，观察到 productcatalogservice 的 request 数量急剧下降（例如 productcatalogservice-1 从 6765 降至 132，变化率 192%），同时其 pod_cpu_usage 下降至 0。这表明该服务的处理能力或可用性出现严重问题。",
+      "Step 2: 在 Log 数据中，发现所有 frontend 实例均报告大量指向 productcatalogservice 的 RPC 调用失败，错误信息为 \"rpc error: code = Canceled desc = context canceled\" 及 \"transport is closing\"。这表明下游服务 productcatalogservice 的连接或响应出现异常，导致上游调用被取消。",
+      "Step 3: 在 Trace 数据中，确认了 frontend 调用 productcatalogservice 的延迟极端恶化，如 GetProduct 操作的平均耗时从正常的 ~11.2ms 激增至故障期的 ~56,375ms，延迟增长超过 5000 倍，部分调用链的 rrt_max 增长达 30000 倍。这种极端的、不稳定的延迟模式，结合故障描述中的信息，指向底层网络问题（如数据包损坏）而非单纯的应用层故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Sudden spike or abnormal fluctuation in packet counts, or mismatch between bytes sent and received indicating retransmissions/drops/corruption",
+        "instruction": "检查 productcatalogservice 及其所在节点的网络指标。重点查看上述网络收发字节数和包数在故障时间段是否出现突发波动、丢包率是否异常升高，或是否存在发送/接收数据量不匹配的情况（暗示数据包损坏或丢失）。"
+      },
+      {
+        "modality": "Log",
+        "target": "context canceled, transport is closing, unavailable",
+        "expected_pattern": "Contains error",
+        "instruction": "在 frontend 和 productcatalogservice 的日志中，搜索 'context canceled', 'transport is closing', 'unavailable' 等关键词。确认错误日志的时间分布是否与故障时间窗口吻合，并注意是否有关于网络连接重置、流错误或 I/O 错误的底层信息。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Sudden spike (e.g., >1000x increase)",
+        "instruction": "分析从 frontend 到 productcatalogservice 的调用链路（特别是 GetProduct, ListProducts 操作）。重点检查 rrt_max 指标，确认其是否在故障期间出现远超正常范围的极端峰值（例如数千倍的增长），并且该高延迟是持续且波动的。"
+      }
+    ]
+  }
+}

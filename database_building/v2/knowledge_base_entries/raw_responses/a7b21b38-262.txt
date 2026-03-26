@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "a7b21b38-262",
+    "fault_type": "metric",
+    "symptom_vector": "Error ratio spike to 2.12 across multiple upstream services, accompanied by HTTP 500 errors and RPC connection refused messages.",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice 实例不可用导致上游依赖服务出现级联故障",
+        "reasoning_chain": [
+            "Step 1: 观察到多个上游服务（frontend、checkoutservice）的 server_error_ratio 和 error_ratio 指标从0突增至2.12，表明服务处于完全不可用或严重错误状态。",
+            "Step 2: 分析 Log 数据，发现 frontend 和 checkoutservice 中的错误日志均指向对 shippingservice 的 RPC 调用失败，具体错误信息为 'transport: Error while dialing dial tcp 10.233.27.213:50051: connect: connection refused'，这明确了网络连接失败的根源在 shippingservice 的 50051 端口。",
+            "Step 3: 结合 Trace 数据分析，确认所有调用链中涉及 shippingservice (hipstershop.ShippingService/GetQuote) 的请求均失败，且状态码为14 (UNAVAILABLE)，与日志中的 connection refused 错误一致。这表明 shippingservice 的不可用是其上游服务产生错误的直接原因，构成了清晰的故障传播路径。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "error_ratio / server_error_ratio",
+                "expected_pattern": "从正常基线（通常接近0）急剧上升到理论最大值2.0附近，表明服务几乎全部请求失败。",
+                "instruction": "立即检查 frontend, checkoutservice 等用户流量入口或关键链路服务的错误率（error_ratio / server_error_ratio）指标。如果发现一个或多个服务的该指标从接近0陡增至接近2.0，则表明存在服务级故障。"
+            },
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing dial tcp [ip]:[port]: connect: connection refused",
+                "expected_pattern": "日志中出现大量格式为 'transport: Error while dialing dial tcp [IP地址]:[端口号]: connect: connection refused' 的错误消息。",
+                "instruction": "在出现错误率飙升的服务日志中，搜索 'connection refused' 和 'Error while dialing' 关键词。定位到具体的、被拒绝连接的目标服务地址（IP:Port）。这个地址即为根因故障组件或其所在的Pod。"
+            },
+            {
+                "modality": "Trace",
+                "target": "调用链状态码与耗时异常",
+                "expected_pattern": "以故障服务为下游的调用链（Span）状态码出现大量失败（如状态码14 UNAVAILABLE），且调用耗时可能出现异常（骤降，因为快速失败）。",
+                "instruction": "在分布式追踪系统中，查询指向（在日志中发现的）故障服务地址的调用链。确认这些调用链是否出现大量失败状态码。同时，确认失败是由直接下游服务的连接问题引发，而非更间接的原因。"
+            }
+        ]
+    }
+}
+```

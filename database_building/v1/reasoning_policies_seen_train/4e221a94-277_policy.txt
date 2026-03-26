@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Frontend logs show connection refused errors when attempting to reach a specific service endpoint, with messages indicating transport layer failures during dialing attempts.
+- Metric anomaly pattern: The pod_processes metric for one instance shows a change in its p99 value from 1.0 to 2.0, indicating a shift in process count distribution during the anomaly period.
+- Trace anomaly pattern: Distributed traces reveal failed service calls with "connection refused" status codes and a significant increase in latency for operations that depend on the unavailable service.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: The pod_processes metric for the specific instance changed its p99 value, which signals an alteration in the process lifecycle state. This matters because such a change often precedes or coincides with a service becoming unreachable.
+- Evidence 2: Logs from dependent services explicitly record "connection refused" errors when trying to connect to the instance's network address and port. This matters because it directly confirms the instance is not accepting connections, supporting the hypothesis of an interruption.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Multiple downstream services experienced increased error ratios and latency spikes. This is a consequence, not a cause, as these services were failing requests that depended on the unavailable upstream instance.
+- Evidence 4: Logs from the affected instance itself show module loading errors. This can be deprioritized because while it may be related to the startup process, the primary symptom observed system-wide is connection refusal, not faulty operation.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the observed change in the process count metric for the instance and the simultaneous appearance of connection refused errors targeting it, we suspect an interruption in the instance's process lifecycle has left it in a state where it cannot accept incoming network connections."
+
+Step 2: Verification or elimination
+"If this were caused by a general network partition or a load balancer misconfiguration, we would expect connection errors to be more widespread or affect multiple instances uniformly. However, actual observation shows errors are isolated to one specific instance's IP and port, and the process metric change is unique to that instance. This rules out broader infrastructure issues and points to a problem local to the instance."
+
+Step 3: Convergence to conclusion
+"The combination of the isolated process lifecycle change and the targeted connection failures indicates that the instance experienced a process interruption event. This event caused it to become unresponsive to network requests, creating a bottleneck that propagated failures and increased latency through dependent services."
+
+[Conclusion]
+"The root cause is a process lifecycle interruption in a critical service instance, which rendered it unable to serve network requests. This single point of failure then caused cascading performance degradation and errors in upstream services that relied on it."
+
+[Next Action]
+- Verify whether system events or orchestration logs show an automatic restart or termination signal for the affected instance around the anomaly start time.
+- Check for patterns in the instance's own standard output or error logs from immediately before the connection errors began, which might clarify the reason for the process state change.

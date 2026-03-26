@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "a0e512ba-384",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload, node high CPU usage, node CPU saturation, node CPU spike, node cpu stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-07] experienced [node_cpu_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-07] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [node_cpu_usage_rate] in Metric data with abnormal values (From GT key_observations)",
+            "Step 3: Derive Root Cause - Based on above features, determined cause is [node_cpu_usage_rate] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "node_cpu_usage_rate metric shows abnormal increase from 17.95% to 90.7% with change rate 1.3392 for node aiops-k8s-07",
+                "instruction": "Search for metric [node_cpu_usage_rate] in metric data and check if value exceeds threshold for node aiops-k8s-07"
+            }
+        ]
+    }
+}
+```

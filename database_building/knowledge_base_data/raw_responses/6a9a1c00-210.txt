@@ -1,0 +1,58 @@
+```json
+{
+    "uuid": "6a9a1c00-210",
+    "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+    "symptom_vector": "High JVM latency, JVM response delay, elevated request latency, JVM slow response.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice] experienced [adservice-getRandomAds-latency, rrt, rrt_max] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [adservice-getRandomAds-latency] in Log (From GT key_observations). Evidence: Log entries 'AdService-getRandomAds-latency-1749618636 execute()' (2369 occurrences) and 'Rule.execute called for AdService-getRandomAds-latency-1749618636_33:0' (2369 occurrences) from pod adservice-0.",
+            "Step 3: Check Observation - Found keyword [deadlineexceeded] in Log (From GT key_observations). Evidence: Log entries 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded' from frontend pods, with 2359 total occurrences of 'context deadline exceeded' status in trace data for AdService calls.",
+            "Step 4: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations). Evidence: Log entries 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' from adservice pods (adservice-0, adservice-1, adservice-2).",
+            "Step 5: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations). Evidence: Log entries 'org.jboss.byteman.agent.Transformer : inserted trigger for AdService-getRandomAds-latency-1749618636' and related Byteman agent transformation logs from adservice pods.",
+            "Step 6: Check Observation - Found keyword [frontend] in Trace (From GT key_observations). Evidence: Trace data shows latency anomalies for calls from frontend pods (frontend-0, frontend-1, frontend-2) to AdService, with average duration spiking from ~5.5s to ~500s (90x increase).",
+            "Step 7: Check Observation - Found keyword [response] in Metric (From GT key_observations). Evidence: Metric data shows significant anomalies in response time metrics (rrt and rrt_max) for frontend services, which are downstream consumers of adservice. Example: frontend-0 rrt increased from 12084.98 to 36509.29.",
+            "Step 8: Derive Root Cause - Based on the combined features (JVM agent errors, extreme latency spikes, and timeout errors), determined cause is [adservice-getRandomAds-latency, rrt, rrt_max] as per Ground Truth key_metrics."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "Log entries containing the string 'AdService-getRandomAds-latency' from adservice pods, indicating rule execution or agent activity.",
+                "instruction": "Search for keyword 'AdService-getRandomAds-latency' in logs from service 'adservice'."
+            },
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "Error logs containing 'DeadlineExceeded' or 'context deadline exceeded', particularly from services calling adservice (e.g., frontend).",
+                "instruction": "Search for keyword 'DeadlineExceeded' or phrase 'context deadline exceeded' in all logs."
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Java exception logs containing 'InvocationTargetException' from adservice pods.",
+                "instruction": "Search for keyword 'InvocationTargetException' in logs from service 'adservice'."
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Log entries related to Byteman agent transformation (e.g., containing 'Transformer', 'Byteman agent') from adservice pods.",
+                "instruction": "Search for keywords 'Transformer' or 'Byteman agent' in logs from service 'adservice'."
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace spans showing calls from 'frontend' service/pods to 'AdService' with abnormally high latency or error status.",
+                "instruction": "In trace data, filter for operations where parent service is 'frontend' and child service is 'AdService', check for latency anomalies and error statuses."
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Abnormal values or spikes in response time metrics (e.g., rrt, rrt_max) for services impacted by the adservice fault, particularly frontend.",
+                "instruction": "Check metric data for services like 'frontend' and 'adservice' for anomalies in metrics 'rrt' and 'rrt_max'."
+            }
+        ]
+    }
+}
+```

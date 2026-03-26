@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "52c080d4-556",
+    "fault_type": "region_pending",
+    "symptom_vector": "IO performance degradation with region_pending drop and latency spikes",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv/tidb-tikv-0 因 region_pending 指标异常下降，引发存储层IO性能瓶颈，并导致依赖它的 productcatalogservice 响应时间激增",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标从正常中位数10086大幅下降至故障中位数710（变化率1.74），同时 cpu_usage 的P99分位数上升93%，表明存储层出现严重性能问题",
+            "Step 2: 分析调用链发现，依赖 tidb-tikv 的 productcatalogservice 响应时间激增10-19倍，从正常平均约10秒增至异常时段的101-194秒，这与 region_pending 性能瓶颈导致的延迟传导相符",
+            "Step 3: 确认日志中没有相关错误记录，这符合底层IO性能瓶颈而非应用层代码错误的特征，从而将根本原因定位到 tidb-tikv-0 的存储层"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden and significant drop from baseline (e.g., from 10086 to 710)",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否发生大幅异常下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "High or abnormal spike indicating disk bottleneck",
+                "instruction": "检查 tidb-tikv 组件或所在节点的 io_util 指标，确认是否存在IO使用率异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "Increased latency in applying Raft logs",
+                "instruction": "检查 tidb-tikv 的 raft_apply_wait 指标是否出现延迟增长"
+            },
+            {
+                "modality": "Metric",
+                "target": "snapshot_apply_count",
+                "expected_pattern": "Abnormal activity or count related to snapshots",
+                "instruction": "检查 tidb-tikv 的 snapshot_apply_count 指标，确认快照应用是否出现异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Abnormal memory usage pattern that may correlate with IO bottlenecks",
+                "instruction": "检查 tidb-tikv 组件的 memory_usage 指标，分析其变化是否与IO问题相关"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Severe latency increase (e.g., 10-19x) in services dependent on tidb-tikv (e.g., productcatalogservice)",
+                "instruction": "分析调用链数据，寻找是否存在依赖 tidb-tikv 的上游服务（如 productcatalogservice）出现严重延迟异常的链路"
+            }
+        ]
+    }
+}
+```

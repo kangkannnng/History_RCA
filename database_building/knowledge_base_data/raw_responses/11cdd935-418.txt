@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "11cdd935-418",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Database error with forced SQLException in DB connection method, causing inability to access cart storage, leading to runtime panic and code errors",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [cartservice] experienced [pod_processes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [cartservice] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [FailedPrecondition] in Log (From GT key_observations) - appears 481 times in cartservice-2 logs with 'Can't access cart storage'",
+            "Step 3: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations) - frontend services show HTTP 500 errors in trace data",
+            "Step 4: Check Observation - Found keyword [request error] in Log (From GT key_observations) - appears in frontend logs with 'failed to add to cart' messages",
+            "Step 5: Check Observation - Found keyword [rpc, error] in Log (From GT key_observations) - appears in frontend logs with 'rpc error: code = FailedPrecondition'",
+            "Step 6: Check Observation - Found keyword [request, response] in Metric (From GT key_observations) - error_ratio and server_error_ratio metrics show abnormal increases",
+            "Step 7: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations) - cartservice-2 pod_cpu_usage p99 increased from 0.03 to 0.14 (change rate 1.2962)",
+            "Step 8: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations) - cartservice-1 and cartservice-2 pod_processes increased from 1.0 to 2.0 (p99 change rate 0.6667)",
+            "Step 9: Derive Root Cause - Based on pod_processes changes indicating pod restarts combined with database access errors, determined cause is [pod_processes] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "FailedPrecondition",
+                "expected_pattern": "Error status code 'FailedPrecondition' with detail 'Can't access cart storage.' appears 481 times in cartservice-2 logs",
+                "instruction": "Search for keyword 'FailedPrecondition' in cartservice logs to confirm database access errors"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "HTTP status code 500 appears in frontend trace data (frontend-0: 115 times, frontend-1: 143 times, frontend-2: 209 times)",
+                "instruction": "Check trace data for HTTP status codes, particularly 500 errors in frontend services"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "'request error' appears in frontend logs with 'failed to add to cart: rpc error: code = FailedPrecondition desc = Can't access cart storage.'",
+                "instruction": "Search for 'request error' in frontend logs to identify failed cart operations"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc, error",
+                "expected_pattern": "'rpc error' appears in frontend logs with FailedPrecondition code and cart storage access issues",
+                "instruction": "Search for 'rpc error' in logs to identify gRPC communication failures"
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "error_ratio and server_error_ratio metrics show significant increases (frontend-0: 0.0→0.66, frontend-1: 0.0→0.67, frontend-2: 0.0→0.72)",
+                "instruction": "Check error_ratio and server_error_ratio metrics for abnormal increases during fault period"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "cartservice-2 pod_cpu_usage p99 increased from 0.03 to 0.14 (change rate 1.2962)",
+                "instruction": "Monitor pod_cpu_usage metric for cartservice instances, particularly p99 values"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "cartservice-1 and cartservice-2 pod_processes increased from 1.0 to 2.0 (p99 change rate 0.6667)",
+                "instruction": "Check pod_processes metric for cartservice instances to detect pod restarts"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,47 @@
+{
+    "uuid": "5c4502b0-551",
+    "fault_type": "region_pending, io_util, raft_apply_wait, tidb, io fault",
+    "symptom_vector": "IO fault manifesting as filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, tidb, io] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field, and it appears in Full Context metric data as service_name 'tidb-tikv').",
+            "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data showing latency anomalies (e.g., in Full Context, trace data indicates average duration for productcatalogservice operations increased from ~10s to 38-118s).",
+            "Step 3: Check Observation - Found keyword [region_pending] in Metric data with abnormal surge (e.g., in Full Context, metric data shows region_pending median increased from 8977.5 to 1666.0, change rate 1.37x, and P99 from 11819.25 to 1936.56, change rate 1.44x).",
+            "Step 4: Check Observation - Found keyword [io_util] in Metric data with changes (e.g., in Full Context, metric data shows io_util P99 increased from 0.09 to 0.22).",
+            "Step 5: Derive Root Cause - Based on the presence of these keywords and their anomalies in Full Context, determined the cause is [region_pending, io_util, raft_apply_wait, tidb, io] fault as per key_metrics from Ground Truth."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice",
+                "expected_pattern": "Latency anomalies observed in trace data for productcatalogservice operations, with increased average duration from normal ~10s to anomaly 38-118s.",
+                "instruction": "Search for keyword 'productcatalogservice' in trace data and check for significant increases in operation duration during the fault window."
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Abnormal surge in region_pending metric values, with median change rate of 1.37x and P99 change rate of 1.44x.",
+                "instruction": "Check metric 'region_pending' for significant increases in values during the fault period from 2025-06-26T16:10:02Z to 2025-06-26T16:15:02Z."
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Changes in io_util metric values, with P99 increasing from 0.09 to 0.22.",
+                "instruction": "Monitor metric 'io_util' for anomalies such as elevated values during the fault timeframe."
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "Not observed in the provided Full Context metric data (available metrics include client_error_ratio, cpu_usage, error_ratio, io_util, pod_cpu_usage, region_pending, rrt, rrt_max).",
+                "instruction": "Search for metric 'raft_apply_wait' in the available metric names; if not present, it may not be collected in this dataset."
+            },
+            {
+                "modality": "Metric",
+                "target": "snapshot_apply_count",
+                "expected_pattern": "Not observed in the provided Full Context metric data (available metrics do not include snapshot_apply_count).",
+                "instruction": "Search for metric 'snapshot_apply_count' in the available metric names; if absent, consider it not captured in this analysis."
+            }
+        ]
+    }
+}

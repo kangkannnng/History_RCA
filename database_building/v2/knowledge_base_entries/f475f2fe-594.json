@@ -1,0 +1,39 @@
+{
+  "uuid": "f475f2fe-594",
+  "fault_type": "io fault",
+  "symptom_vector": "Upstream application services (e.g., frontend, productcatalogservice) experiencing significant latency increase (rrt_max up to 5.2x). The database storage layer component (tidb-tikv) shows abnormal pending region count and elevated CPU usage, with underlying I/O performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiKV存储层I/O性能瓶颈，导致region处理堆积，进而引发上游依赖服务响应延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到tidb-tikv的`region_pending`指标发生剧变，故障期中位数（718.0）相比正常期中位数（10603.5）变化率达174.63%，同时`cpu_usage`增长25%。这两个指标的联动异常是存储层性能瓶颈的典型信号。",
+      "Step 2: 检查Log数据，发现在故障时间段内未检测到任何错误日志。这排除了因应用代码错误或配置问题导致故障的可能性，符合由底层资源（如I/O）性能静默退化引发上层延迟的特征。",
+      "Step 3: 分析Trace数据，发现直接依赖数据库的上游服务productcatalogservice的`GetProduct`接口延迟显著增加（例如从frontend-2到productcatalogservice-0的调用，延迟从9.99秒激增至51.89秒，约5.2倍）。调用链的延迟模式与存储层瓶颈的影响路径一致，形成了完整的证据链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden and significant change (e.g., >100% increase) in median value during fault period.",
+        "instruction": "Check the `region_pending` metric for tidb-tikv components. A sharp increase or decrease in the median value from the normal baseline is a key indicator of storage layer processing backlog."
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Concurrent increase (e.g., >20%) during the same fault period.",
+        "instruction": "Verify if the `cpu_usage` for the same tidb-tikv component shows a correlated increase. Elevated CPU usage alongside region_pending change suggests the bottleneck is resource-intensive."
+      },
+      {
+        "modality": "Log",
+        "target": "logs from tidb-tikv and upstream services (e.g., productcatalogservice)",
+        "expected_pattern": "Absence of explicit application-level error logs (e.g., 'permission denied', 'connection failed') during the fault window.",
+        "instruction": "Search for any error-level logs in the fault time range. The lack of clear error messages supports the hypothesis of a silent performance degradation rather than a functional failure."
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max for calls from frontend to productcatalogservice (GetProduct)",
+        "expected_pattern": "Spike in latency (e.g., 2x to 5x increase) for database-dependent service endpoints.",
+        "instruction": "Identify service calls that are downstream dependencies of the suspected faulty component (tidb-tikv). A latency spike in these calls, especially for read/write operations, confirms the propagation of the bottleneck."
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "uuid": "162fe36a-151",
+  "fault_type": "client_error",
+  "symptom_vector": "pod killed or forcefully terminated, leading to client error ratio spikes and network communication disruption",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice 组件发生 Pod Kill 事件，导致其 client_error 等相关指标异常及网络流量归零",
+    "reasoning_chain": [
+      "Step 1: 观察到 productcatalogservice-0 的 pod_network_transmit_packets 和 pod_network_receive_packets 指标在故障期间从正常中位数（115.13和102.78）突降至0，变化率达200%，表明其网络通信完全中断",
+      "Step 2: 分析 productcatalogservice-0 的 pod_network_transmit_bytes 和 pod_network_receive_bytes 指标同样归零，进一步确认了网络层面的服务中断，这与 Pod 被终止后的状态一致",
+      "Step 3: 结合故障描述与关键指标列表，推断此次网络中断是 productcatalogservice 发生 pod kill、pod eviction 等事件导致的结果，并可能引发其上游服务的 client_error 或 error_ratio 升高"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "client_error, client_error_ratio, error, error_ratio",
+        "expected_pattern": "Sudden increase or spike from baseline",
+        "instruction": "检查 productcatalogservice 及其相关调用方（如 frontend）的 client_error、client_error_ratio、error、error_ratio 等错误率指标是否在故障时间点出现激增"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets, pod_network_receive_packets",
+        "expected_pattern": "Drop to zero or near-zero level",
+        "instruction": "检查 productcatalogservice-0 的 pod_network_transmit_packets 和 pod_network_receive_packets 指标是否在故障期间归零，表示网络活动停止"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Sudden drop in volume or rate",
+        "instruction": "检查 productcatalogservice 的请求（request）和响应（response）相关指标（如QPS、延迟）是否出现断崖式下跌"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Process count dropping to zero or abnormal state",
+        "instruction": "检查 productcatalogservice-0 的 pod_processes 相关指标，确认容器内关键进程是否消失，这可能直接指示 Pod 终止"
+      }
+    ]
+  }
+}

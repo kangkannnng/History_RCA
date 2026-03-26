@@ -1,0 +1,27 @@
+{
+  "uuid": "38d69375-380",
+  "fault_type": "database_performance",
+  "symptom_vector": "Latency spike and request failure on database service; Pod crash events detected.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB组件内存使用异常飙升，导致Pod因资源不足被终止(OOM Kill)。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据分析观察到，`tidb-tidb`服务的`memory_usage`指标在故障期间中位数从479,252,480 Bytes急剧上升至855,060,480 Bytes，增长约56.33%，且故障P99值接近中位数，表明内存使用持续处于高位。",
+      "Step 2: 结合系统日志和故障描述（`pod crash`， `pod terminated unexpectedly`），但全量日志数据中未发现直接的OOM错误记录，表明Pod可能是被系统层面强制终止，此类事件通常在Pod级别的事件日志或系统内核日志中体现，而非应用日志。",
+      "Step 3: 综合分析Metric指标（内存飙升）与故障现象（Pod意外终止、容器退出），在排除日志中其他应用错误（如端口连接错误）为主要原因后，推断根本原因是`tidb-tidb`进程内存占用过高，触发系统OOM Killer或Kubernetes Pod驱逐策略，导致Pod反复重启，进而影响服务稳定性。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Sudden and sustained increase (>50% change rate from baseline median)",
+        "instruction": "查询故障时间段内，`tidb-tidb`服务（或类似关键数据库组件）的`memory_usage`指标。重点观察其中位数和P99值是否出现持续、大幅的增长，变化率是否超过50%。"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Contains error messages indicating abnormal termination (e.g., 'OOM', 'Killed', 'signal: killed', 'container exited', 'pod terminating')",
+        "instruction": "搜索故障时间段内与`tidb-tidb-0`等故障组件相关的Pod或容器日志，查找任何指示进程被强制终止、容器非正常退出、内存溢出或Pod被驱逐的关键词。"
+      }
+    ]
+  }
+}

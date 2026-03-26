@@ -1,0 +1,39 @@
+{
+  "uuid": "25368410-268",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "JVM CPU spike and overload with high CPU usage and saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 Byteman 故障注入工具异常导致 AdService--stress 高频执行142次，引发 pod_cpu_usage 飙升和资源竞争",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice 所有 Pod 的 pod_cpu_usage 指标从正常值（0.0-0.01）飙升至 0.6，CPU 使用率显著增加",
+      "Step 2: 分析 adservice 组件的 rrt 和 rrt_max 指标同时恶化，响应时间从 3422.89ms 上升到 16015.88ms，延迟增加约4.7倍",
+      "Step 3: 日志中发现 adservice-1 和 adservice-2 出现 Byteman Agent 启动失败和 AdService--stress-1749831003 规则执行142次的记录，确认是故障注入测试导致的资源竞争"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice--stress",
+        "expected_pattern": "高频执行记录（如142次）和线程创建信息",
+        "instruction": "在 adservice 服务的日志中搜索 AdService--stress 关键词，检查执行频率和线程创建情况"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "包含 InvocationTargetException 异常信息",
+        "instruction": "在 adservice 日志中搜索 InvocationTargetException 关键词，检查 Byteman Agent 启动异常"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "包含 Transformer 或 TriggerThread 相关的 Byteman 注入信息",
+        "instruction": "在 adservice 日志中搜索 transformlistener 或 Transformer 关键词，检查故障注入规则安装情况"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "从低值（0.0-0.01）突然飙升至异常水平（0.6）",
+        "instruction": "检查 adservice 所有 Pod 的 pod_cpu_usage 指标是否异常飙升，特别是 adservice-0、adservice-1、adservice-2"
+      }
+    ]
+  }
+}

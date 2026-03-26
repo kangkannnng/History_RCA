@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "e955714b-280",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload with high CPU usage and saturation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06 节点因 node_cpu_usage_rate 指标异常飙升导致CPU资源耗尽，引发全局性能下降",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-06 节点的 node_cpu_usage_rate 指标p99值从31.67%飙升至96.87%，变化率101.44%，表明CPU使用率接近饱和",
+            "Step 2: 分析该节点上运行的服务（productcatalogservice-0、checkoutservice-2、emailservice-2）均出现rrt_max指标显著恶化，符合节点级资源瓶颈特征",
+            "Step 3: 日志分析未发现应用级错误日志，进一步确认是资源瓶颈而非功能故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "P99值从31.67%飙升至96.87%，变化率超过100%",
+                "instruction": "检查 aiops-k8s-06 节点的 node_cpu_usage_rate 指标是否异常飙升，重点关注p99值变化"
+            }
+        ]
+    }
+}
+```

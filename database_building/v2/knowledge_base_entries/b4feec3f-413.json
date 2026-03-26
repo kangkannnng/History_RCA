@@ -1,0 +1,33 @@
+{
+  "uuid": "b4feec3f-413",
+  "fault_type": "Connection & Error",
+  "symptom_vector": "Frontend services experience a surge in HTTP 500 errors and high latency; downstream RPC calls to checkoutservice fail with 'connection refused' on a specific IP:Port (10.233.61.165:5050).",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 因目标端口配置错误（如服务端口不匹配、端口映射变更）导致服务完全不可达，进而引发前端服务连锁故障。",
+    "reasoning_chain": [
+      "Step 1: 从 Trace 数据观察到，所有前端服务实例（frontend-0, frontend-1, frontend-2）对 `hipstershop.CheckoutService/PlaceOrder` 的调用均失败，状态码为 14，错误消息明确指出连接被拒绝：'transport: Error while dialing dial tcp 10.233.61.165:5050: connect: connection refused'。这表明 checkoutservice 或其依赖的一个具体端点（10.233.61.165:5050）无法访问。",
+      "Step 2: 分析 Log 数据发现，所有前端服务的错误日志都包含相同的核心错误信息：'transport: Error while dialing dial tcp 10.233.61.165:5050: connect: connection refused'，并伴随 'rpc error' 和 'Unavailable' 状态。这印证了 Trace 的发现，且错误高度一致地指向同一个目标地址。",
+      "Step 3: 检查 Metric 数据，发现所有前端 Pod (frontend-0/1/2) 的 `error_ratio` 和 `server_error_ratio` 指标在故障期间从 0 飙升至 0.32-0.36 (变化率 2.0)，同时 checkoutservice-1 的 `rrt_max` 延迟出现异常。前端错误率的系统性飙升与下游 checkoutservice 调用完全失败有直接因果关系。综合三点证据，可推断 checkoutservice 因无法在配置的端口（5050）上接受连接而导致完全不可用，这是系统故障的根源。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "hipstershop.CheckoutService/PlaceOrder",
+        "expected_pattern": "Status code 14 (Unavailable) with error message containing 'connection refused' and a specific IP:Port (e.g., 10.233.61.165:5050)",
+        "instruction": "Scan trace spans for calls to checkoutservice (especially PlaceOrder). Look for spans with gRPC status code 14 and error details indicating a connection refusal to a specific network endpoint."
+      },
+      {
+        "modality": "Log",
+        "target": "\"transport: Error while dialing dial tcp\" AND \"connect: connection refused\"",
+        "expected_pattern": "Multiple log entries from upstream services (like frontend) containing the exact error phrase, pointing to a consistent target IP and port.",
+        "instruction": "Search error logs from services that depend on checkoutservice. Filter for logs containing 'connection refused' and 'dial tcp [IP]:[PORT]' patterns to identify the unreachable endpoint."
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio, server_error_ratio",
+        "expected_pattern": "Sudden and sustained increase from near-zero baseline to high values (e.g., >0.3) across multiple instances of the upstream service (e.g., all frontend pods).",
+        "instruction": "Compare the error_ratio and server_error_ratio metrics for services directly calling the suspected faulty component (checkoutservice) during the anomaly period versus normal baseline. A coordinated spike indicates dependency failure."
+      }
+    ]
+  }
+}

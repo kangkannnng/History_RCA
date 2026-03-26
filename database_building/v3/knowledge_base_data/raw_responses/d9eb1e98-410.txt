@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "d9eb1e98-410",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06 节点因 node_memory_usage_rate 异常导致内存压力，引发节点级故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-06 节点上运行的 productcatalogservice-1 服务调用链出现异常延迟，GetProduct 操作从正常 9.99s 增加到 21.51s（2.15倍）",
+            "Step 2: 分析节点级指标，发现 aiops-k8s-06 节点缺少关键内存指标 node_memory_usage_rate 和 node_memory_MemAvailable_bytes 的监控数据，而其他节点（如 aiops-k8s-03、aiops-k8s-05、aiops-k8s-07）均有完整内存指标",
+            "Step 3: 确认 aiops-k8s-06 节点上运行的关键服务（productcatalogservice-1、frontend-1、emailservice-2）性能异常与节点内存资源问题相关，且该节点在故障期间缺乏关键内存监控数据"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "High memory usage percentage or missing data",
+                "instruction": "检查 aiops-k8s-06 节点的 node_memory_usage_rate 指标是否异常升高或数据缺失"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Low available memory or missing data",
+                "instruction": "检查 aiops-k8s-06 节点的 node_memory_MemAvailable_bytes 指标是否异常降低或数据缺失"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP response status code 302",
+                "instruction": "在 aiops-k8s-06 节点相关服务的日志中搜索 HTTP 响应状态码 302 的记录"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Increased disk read activity",
+                "instruction": "检查 aiops-k8s-06 节点的 node_disk_read_bytes_total 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increased disk read time",
+                "instruction": "检查 aiops-k8s-06 节点的 node_disk_read_time_seconds_total 指标是否异常增加"
+            }
+        ]
+    }
+}
+```

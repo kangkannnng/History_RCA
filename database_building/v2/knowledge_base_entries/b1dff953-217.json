@@ -1,0 +1,21 @@
+{
+  "uuid": "b1dff953-217",
+  "fault_type": "metric",
+  "symptom_vector": "Node CPU usage spike from 18.97% to 89.48% (130% increase), leading to performance degradation of services running on the affected node",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-07的CPU使用率从正常值18.97%飙升至89.48%，变化率130%，表明节点CPU资源严重过载",
+    "reasoning_chain": [
+      "Step 1: 观察到Metric数据中node_cpu_usage_rate指标在aiops-k8s-07节点上从正常中位数18.97%飙升至故障期中位数89.48%，变化率高达130%",
+      "Step 2: 分析该节点上运行的服务Pod列表，包括shippingservice-1、frontend-1、emailservice-0、currencyservice-2和adservice-1，这些服务的性能可能受到节点资源瓶颈影响",
+      "Step 3: 确认其他节点CPU指标正常，且Trace数据显示该节点上的emailservice出现延迟异常下降（从699ms降至217ms），符合CPU竞争导致请求减少的特征"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike exceeding 80% with significant change ratio (>100%)",
+        "instruction": "检查所有节点的node_cpu_usage_rate指标，识别中位数从正常基准值显著上升（变化率>50%）且故障期值>80%的节点"
+      }
+    ]
+  }
+}

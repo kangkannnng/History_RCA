@@ -1,0 +1,39 @@
+{
+  "uuid": "3c7d0c09-484",
+  "fault_type": "region_pending, io_util, raft_apply_wait, qps, tidb, io",
+  "symptom_vector": "IO fault with filesystem call errors including read/write operation errors, permission denied errors, and file descriptor errors",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, qps, tidb, io] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [io_util] in Metric data with p99_change_ratio 0.5828 (From GT key_observations keyword list)",
+      "Step 3: Derive Root Cause - Based on IO utilization anomaly and component identity, determined cause is [region_pending, io_util, raft_apply_wait, qps, tidb, io] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Metric shows p99_change_ratio of 0.5828 for tidb-tikv component in the anomaly metrics table",
+        "instruction": "Search for metric [io_util] with component [tidb-tikv] in metric anomaly data"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Metric should show abnormal values for region_pending metric",
+        "instruction": "Check if [region_pending] metric exhibits abnormal patterns for tidb-tikv component"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "Metric should show abnormal values for raft_apply_wait metric",
+        "instruction": "Check if [raft_apply_wait] metric exhibits abnormal patterns for tidb-tikv component"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Metric should show abnormal values for qps metric",
+        "instruction": "Check if [qps] metric exhibits abnormal patterns for tidb-tikv component"
+      }
+    ]
+  }
+}

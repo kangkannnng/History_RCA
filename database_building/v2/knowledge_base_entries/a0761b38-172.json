@@ -1,0 +1,27 @@
+{
+  "uuid": "a0761b38-172",
+  "fault_type": "latency",
+  "symptom_vector": "Multiple frontend pods experiencing latency spike; elevated error ratio in adservice",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice出现JVM延迟问题，导致前端服务响应时间大幅上升。",
+    "reasoning_chain": [
+      "Step 1: 观察到所有 frontend pods (frontend-0, frontend-1, frontend-2) 的 rrt（响应时间）和 rrt_max 指标在故障期间均出现极大幅度上升（变化率 > 1.0），这是最显著且广泛的性能症状。",
+      "Step 2: 分析上游依赖服务，发现 adservice-0 的 client_error_ratio 和 error_ratio 指标在故障期间同样出现异常上升（p99值从1.55上升到2.46，变化率0.4545）。这指向该服务可能存在功能或性能问题，可能影响调用它的前端服务。",
+      "Step 3: 确认其他关键组件状态。redis-cart-0 的 pod_processes 变化率（0.67）虽然也被标记，但其绝对值和变化幅度远小于 frontend 的延迟激增（变化率 > 1.0），且影响范围更广的延迟问题通常源于关键业务链路（如adservice）而非资源类的孤立重启。综合最显著的症状（全局延迟）和上游服务的错误率异常，推断 adservice 的性能问题是导致全局延迟的根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt & rrt_max",
+        "expected_pattern": "Sudden and sustained spike across all frontend pods",
+        "instruction": "优先检查所有 frontend pods 的 rrt 和 rrt_max 指标，若发现所有实例同时出现响应时间飙升（例如中位数变化率 > 1.0），表明用户端体验到严重延迟，这是故障的首要表征。"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio & error_ratio",
+        "expected_pattern": "Elevated error rate in upstream service (e.g., adservice) during the same period",
+        "instruction": "在发现全局性延迟症状后，立即检查核心上游服务（特别是业务链路关键环节，如 adservice）的错误率指标。若发现其错误率在相同时间段内同步上升，该服务很可能是延迟的根源。"
+      }
+    ]
+  }
+}

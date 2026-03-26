@@ -1,0 +1,86 @@
+{
+  "271c6b09-108": {
+    "uuid": "271c6b09-108",
+    "status": "success",
+    "valid": true,
+    "issues": [],
+    "entry": {
+      "uuid": "271c6b09-108",
+      "fault_type": "metric",
+      "symptom_vector": "Severe latency spike in multiple services (checkoutservice, productcatalogservice), especially for downstream calls to shippingservice; No evident error logs.",
+      "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06节点磁盘使用率异常飙升，导致文件系统资源耗尽，引发运行在该节点上的服务性能严重退化。",
+        "reasoning_chain": [
+          "Step 1: 在全量指标数据扫描中，观察到 aiops-k8s-06 节点的 `node_filesystem_usage_rate` 出现系统中最剧烈的异常变化，其中位数从正常状态的53.72%激增至故障期间的80.74%，变化率达40.19%。这强烈暗示了该节点存在磁盘空间耗尽的根因问题。",
+          "Step 2: 分析调用链(Trace)数据，发现位于 aiops-k8s-06 节点上的服务（特别是 checkoutservice-2 和 productcatalogservice-0）出现了最严重的性能退化。例如，checkoutservice-2 调用 shippingservice 的 `GetQuote` 操作延迟从9.3秒飙升至47.7秒（5.1倍）。这种延迟模式与节点级基础设施故障（如磁盘IO阻塞）向上游服务传播的特征高度一致。",
+          "Step 3: 检查日志(Log)数据，在故障时间段内未发现任何相关的错误日志记录。这排除了因应用层代码错误导致故障的可能性，并支持了故障源于底层基础设施（如静默的磁盘压力）的假设。综合以上三模态证据，将根因定位至 aiops-k8s-06 节点的文件系统资源耗尽。"
+        ],
+        "critical_checks": [
+          {
+            "modality": "Metric",
+            "target": "node_filesystem_usage_rate",
+            "expected_pattern": "Sudden and significant increase in median value (e.g., >30% change rate). High p99 value (e.g., >90%) indicates severe disk pressure.",
+            "instruction": "立即筛选出故障期间 `node_filesystem_usage_rate` 变化率最高的节点。重点关注中位数和p99值均大幅增长的节点，这通常是磁盘耗尽的直接证据。"
+          },
+          {
+            "modality": "Trace",
+            "target": "checkoutservice-2->shippingservice / productcatalogservice-0->tidb",
+            "expected_pattern": "Severe latency degradation (e.g., 5x+ increase) in operations originating from pods that are located on the suspect node (aiops-k8s-06).",
+            "instruction": "关联节点与Pod的映射关系（node_pod_mapping），检查在问题节点（aiops-k8s-06）上运行的所有Pod发起的调用链是否都出现了显著的延迟增长。这能验证故障的传播范围和拓扑一致性。"
+          },
+          {
+            "modality": "Log",
+            "target": "error logs related to filesystem, disk, or IO",
+            "expected_pattern": "Absence of explicit application-level error logs during the fault period, which supports the hypothesis of a silent infrastructure failure.",
+            "instruction": "在故障时间范围内，针对问题节点（aiops-k8s-06）及其上运行的Pod进行日志搜索。如果未发现明确的应用程序错误日志，这本身是一个重要的证据，表明故障可能源于底层资源（如磁盘）的静默压力，而非应用逻辑错误。"
+          }
+        ]
+      }
+    }
+  },
+  "9a257bd5-150": {
+    "uuid": "9a257bd5-150",
+    "status": "success",
+    "valid": true,
+    "issues": [],
+    "entry": {
+      "uuid": "9a257bd5-150",
+      "fault_type": "latency",
+      "symptom_vector": "High RPC latency and frequent DeadlineExceeded errors propagating from adservice to frontend services.",
+      "expert_knowledge": {
+        "root_cause_desc": "Byteman代理规则注入导致adservice的getRandomAds方法产生人为延迟，进而引发服务超时和上游错误。",
+        "reasoning_chain": [
+          "Step 1: 观察到adservice日志中大量出现\"Rule.execute called for AdService-getRandomAds-latency-1749399002\"和\"AdService-getRandomAds-latency-1749399002 execute()\"条目，表明一个名为'AdService-getRandomAds-latency'的Byteman规则正在该服务中执行。同时，多个adservice实例（adservice-0, adservice-1, adservice-2）日志显示Agent启动失败和重复加载的异常（\"Agent failed to start!\", \"attempting to load Byteman agent more than once\"）。",
+          "Step 2: 分析frontend服务（frontend-1）日志，发现大量\"failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded\"错误。结合Step 1，这强烈暗示对adservice的RPC调用因adservice内部延迟而超时。",
+          "Step 3: 检查指标数据确认影响：adservice-0的pod_cpu_usage在P99分位数上从0.01增加到0.17（p99_change_ratio 1.7819），这与处理延迟增加导致的CPU消耗上升相符。同时，作为调用方的frontend服务（如frontend-0）的rrt（响应时间）中位数从11652.14飙升到34225.64（median_change_ratio 0.9841），rrt_max也从231479.5增加到601520.0，证实了端到端的延迟恶化。综合日志中Byteman规则名明确包含\"latency\"关键词，可以推导出该代理注入是导致adservice延迟、进而引发系统级RPC超时的根本原因。"
+        ],
+        "critical_checks": [
+          {
+            "modality": "Log",
+            "target": "\"AdService-getRandomAds-latency-\"",
+            "expected_pattern": "Contains keywords related to Byteman rule execution (e.g., \"Rule.execute\", \"execute()\") with high occurrence count.",
+            "instruction": "在adservice的日志中，搜索包含'AdService-getRandomAds-latency'和'Rule.execute'或'execute()'关键词的条目，确认是否存在高频率的规则执行记录。"
+          },
+          {
+            "modality": "Log",
+            "target": "\"DeadlineExceeded\" AND \"failed to get ads\"",
+            "expected_pattern": "Contains RPC deadline exceeded errors from services calling adservice (e.g., frontend).",
+            "instruction": "在调用链上游服务（特别是frontend）的日志中，搜索包含'DeadlineExceeded'和'failed to get ads'的错误信息，确认超时错误是否广泛存在。"
+          },
+          {
+            "modality": "Metric",
+            "target": "pod_cpu_usage",
+            "expected_pattern": "Sudden increase (high p99_change_ratio) for adservice pods, correlating with the fault time window.",
+            "instruction": "检查adservice各实例（尤其是adservice-0）在故障时间窗口内的pod_cpu_usage指标，关注其P99分位数的变化率是否出现显著增长。"
+          },
+          {
+            "modality": "Metric",
+            "target": "rrt / rrt_max",
+            "expected_pattern": "Significant increase (high median_change_ratio) for services that depend on adservice (e.g., frontend).",
+            "instruction": "检查直接或间接调用adservice的服务（如frontend）的rrt和rrt_max指标，确认响应时间中位数和最大值是否在故障期间大幅上升。"
+          }
+        ]
+      }
+    }
+  }
+}

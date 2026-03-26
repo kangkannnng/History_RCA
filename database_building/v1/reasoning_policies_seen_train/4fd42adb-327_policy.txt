@@ -1,0 +1,31 @@
+[Trigger]
+- Log anomaly pattern: Multiple log entries from frontend services show repeated "transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused" errors, along with "deadline exceeded" and "unavailable" messages when attempting to call adservice.
+- Metric anomaly pattern: All adservice pods exhibit sharp increases in error_ratio and client_error_ratio p99 values (e.g., from 0.0 to 25.43), coupled with pod_processes metrics changing from 1.0 to 2.0, indicating process count anomalies.
+- Trace anomaly pattern: Trace data reveals frontend services experiencing frequent failures and timeouts during adservice calls, with status codes and messages pointing to connection issues and timeouts.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs consistently report "connection refused" on port 9555 when frontend services target adservice - this matters because it directly indicates adservice is not accepting connections, suggesting a binding or configuration issue at the service level.
+- Evidence 2: Metrics show error_ratio spikes and pod_processes changes for all adservice pods - this matters because the concurrent error increases and process count anomalies imply service instability or restarts, reinforcing a root cause within adservice itself.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Traces indicate frontend services have "deadline exceeded" and "connection closed" errors - this is a consequence of adservice unavailability, as these errors occur when dependent services fail to connect, not the initial cause.
+- Evidence 4: Node memory usage metrics show fluctuations on some nodes - this can be deprioritized because the changes are not consistently linked to adservice pods and may be incidental effects or unrelated system noise.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the persistent connection refused errors targeting adservice on port 9555, we suspect that adservice has a configuration or startup problem preventing it from binding to the expected port, leading to service unavailability."
+
+Step 2: Verification or elimination
+"If this were caused by broader network connectivity issues, we would see intermittent or widespread connection problems across multiple services and ports; however, actual observations show consistent and specific refusals only for adservice on port 9555, with adservice pods also showing error spikes and process anomalies. This rules out general network faults and points to an adservice-specific issue."
+"Alternatively, if resource constraints like high memory usage were the primary cause, we would expect memory-related metrics to correlate tightly with the error onset for adservice pods, but the primary evidence highlights connection errors and restarts without strong, direct memory metric anomalies for those pods, making resource constraints less likely as the direct driver."
+
+Step 3: Convergence to conclusion
+"The combination of sustained connection refused logs and the metric evidence of escalating error ratios along with pod_processes changes indicates that adservice pods are failing to start or maintain stable operations due to a configuration error, likely involving port binding, which triggers repeated failures or restarts."
+
+[Conclusion]
+"The root cause is a service configuration error in adservice that prevents it from properly binding to its designated port, resulting in connection refusals and subsequent pod instability, which cascades into unavailability for dependent services."
+
+[Next Action]
+- "Verify whether adservice startup logs contain specific error messages related to port binding or configuration parsing."
+- "Check for recent deployment or configuration changes in adservice that might have altered port settings or service initialization parameters."

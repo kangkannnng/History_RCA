@@ -1,0 +1,78 @@
+```json
+{
+    "uuid": "ec746a17-395",
+    "fault_type": "qps_region_unavailability",
+    "symptom_vector": "pod failure with database region unavailability causing query failures and latency spikes",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 Region 不可用导致 qps 和 grpc_qps 异常，引发 pod 级联故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tidb 的 failed_query_ops 指标从 0.0 飙升至 45.33，duration_99th 从 0.01 升至 64.88，表明数据库查询严重失败",
+            "Step 2: 分析 tidb-pd 的 store_unhealth_count 指标从 0.0 增加到 1.0，确认存储节点健康状态异常",
+            "Step 3: 日志中发现 productcatalogservice 出现 866 次 'Error 9005 (HY000): Region is unavailable' 错误，直接指向 tidb-tikv 区域不可用问题",
+            "Step 4: 追踪数据显示 productcatalogservice 调用 TiDB 时延迟激增 3900 倍，错误码 2 表明数据库区域不可用"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Response time spike from milliseconds to seconds",
+                "instruction": "检查 productcatalogservice 调用链中是否出现延迟从毫秒级激增至秒级的异常"
+            },
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Abnormal error ratio in database calls",
+                "instruction": "分析 productcatalogservice 对 TiDB 调用的错误比例是否异常升高"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains 'failed to query product' or similar failure messages",
+                "instruction": "在 productcatalogservice 日志中搜索 failure 关键词，特别是数据库查询失败记录"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Contains 'Region is unavailable' error messages",
+                "instruction": "检查日志中是否出现 'Region is unavailable' 错误信息"
+            },
+            {
+                "modality": "Metric",
+                "target": "grpc_qps",
+                "expected_pattern": "Abnormal drop or spike in gRPC query rate",
+                "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否出现异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "qps",
+                "expected_pattern": "Query per second degradation",
+                "instruction": "监控 tidb-tikv 的 qps 指标是否显著下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Increased pending region count",
+                "instruction": "检查 region_pending 指标是否异常升高，表明区域处理积压"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_size",
+                "expected_pattern": "Abnormal store size changes",
+                "instruction": "分析 tidb-tikv 的 store_size 指标是否出现异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "Abnormal CPU utilization pattern",
+                "instruction": "检查 tidb-tikv pod 的 cpu_usage 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Memory usage anomalies",
+                "instruction": "监控 tidb-tikv 的 memory_usage 指标是否出现异常变化"
+            }
+        ]
+    }
+}
+```

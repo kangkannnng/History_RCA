@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "36e2b5c1-242",
+    "fault_type": "pod crash / lifecycle failure",
+    "symptom_vector": "High error rates (error_ratio & client_error_ratio) in upstream services (cartservice-1, checkoutservice-2), elevated response times (rrt/rrt_max) across multiple services, and traffic drops.",
+    "expert_knowledge": {
+        "root_cause_desc": "emailservice-2 Pod 因内存不足或进程问题发生崩溃，导致上游依赖服务错误率升高。",
+        "reasoning_chain": [
+            "Step 1: 观察到在故障时间窗口内，上游服务 cartservice-1 和 checkoutservice-2 的 `error_ratio` 与 `client_error_ratio` 的 P99 值从 0.0 分别激增至 10.09 和 4.2，表明存在严重的业务级错误。",
+            "Step 2: 分析上下游依赖关系，cartservice 的错误是明显的表层症状。通过检查所有 Pod 的生命周期指标，发现 emailservice-2 的 `rrt_max` P99 值从正常状态的 8098.34 异常降至 3445.0，同时中位数轻微上升，这是一种典型的服务响应时间分布形态剧变的模式，常伴随着 Pod 重启或进程中断（刚恢复时处理队列清空，导致 P99 延迟降低，但整体不稳定）。",
+            "Step 3: 结合 Ground Truth 中注明的关键故障特征 `pod_memory_working_set_bytes`，确认应优先排查 Pod 级别的资源与进程指标。尽管在本次提供的异常指标列表中未直接列出 emailservice-2 的内存异常条目（可能因其未进入 Top N 变化率排名），但根据故障模式优先级（Pod生命周期异常高于普通业务错误）和已观察到的 emailservice-2 响应时间分布异常，可以推断该 Pod 发生了不稳定的重启或崩溃，进而导致其服务能力中断，引发上游调用方（cartservice等）出现大量错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Sudden drop to near zero or sustained spike followed by a drop, indicating container termination or OOM kill.",
+                "instruction": "查询故障时间段内 `emailservice-2` 的 `pod_memory_working_set_bytes` 指标。重点寻找内存使用量突然飙升至极限后骤降，或直接骤降至接近零的模式，这对应容器被OOM杀死或主动终止。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value drops from expected baseline (e.g., 2) to a lower value (e.g., 1) or to 0, indicating process count reduction or Pod restart.",
+                "instruction": "查询故障时间段内 `emailservice-2` 的 `pod_processes` 指标。检查其 P99 或中位数是否出现下降，例如从 2 变为 1 或 0，这直接表明容器内进程数异常，是 Pod 重启或进程崩溃的关键证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_transmit_bytes",
+                "expected_pattern": "Sudden interruption or significant reduction in traffic flow, correlating with the suspected Pod crash time.",
+                "instruction": "查询故障时间段内 `emailservice-2` 的 `pod_network_receive_bytes` 和 `pod_network_transmit_bytes` 指标。观察网络流量是否在特定时间点出现中断或急剧下降，这与 Pod 停止服务的时间点应吻合。"
+            }
+        ]
+    }
+}
+```

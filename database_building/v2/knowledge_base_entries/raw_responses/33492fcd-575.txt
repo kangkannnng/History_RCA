@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "33492fcd-575",
+    "fault_type": "resource_overload", 
+    "symptom_vector": "Service latency spikes (e.g., CurrencyService 40x slower), increased error rates on dependent services (e.g., frontend, adservice), and upstream service degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "CurrencyService Pods因CPU过载成为性能瓶颈，导致上游服务链式延迟和错误。",
+        "reasoning_chain": [
+            "Step 1: 通过Metric分析，观察到所有三个`currencyservice` Pod（0/1/2）的`pod_cpu_usage`从正常值（0.0或0.01）异常飙升到0.4，同时伴随`pod_processes`从1.0激增至11.0，这表明Pod内部存在CPU密集型活动或进程异常。",
+            "Step 2: 通过Trace分析，发现`CurrencyService/Convert`和`CurrencyService/GetSupportedCurrencies`接口的延迟激增40倍（例如从2.3秒增加到93.4秒），这是由CPU资源争用直接导致的应用层性能劣化。",
+            "Step 3: 综合证据链：Metric指标（`pod_cpu_usage`激增）与Trace指标（`rrt_max`激增）在`currencyservice`组件上同时出现强烈异常。上游服务（如`frontend`, `checkoutservice`）的延迟增加是下流服务（CurrencyService）性能饱和的链式反应。Log分析未发现程序错误，排除了代码逻辑错误的可能，进一步将根因指向基础设施或资源层面。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike and sustained high value (e.g., from near 0 to >0.4), occurring across all pods of the same service.",
+                "instruction": "检查疑似故障服务的所有Pod实例的CPU使用率指标，寻找在故障时间段内是否出现突发性、持续性的激增。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Significant and sudden increase in maximum response time (e.g., 10x to 40x) for key operations of the suspected service.",
+                "instruction": "分析调用链数据，定位响应时间劣化最严重的服务和方法，确认延迟瓶颈的具体位置。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abrupt and significant increase in process count (e.g., from baseline 1 to 11), correlating in time with CPU surge.",
+                "instruction": "检查Pod进程数指标，判断是否存在进程异常创建或重启，这可能与CPU使用率激增互为因果。"
+            }
+        ]
+    }
+}
+```

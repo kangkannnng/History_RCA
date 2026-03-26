@@ -1,0 +1,48 @@
+```json
+{
+    "uuid": "3d3f68e9-554",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, memory saturation, high memory usage, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-08] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric data (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [node_memory_MemAvailable_bytes] in Metric data (From GT key_observations)",
+            "Step 4: Derive Root Cause - Based on above features, determined cause is [node_memory_usage_rate] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Metric appears in anomaly_metrics table with median_change_ratio and p99_change_ratio values",
+                "instruction": "Search for metric [node_memory_usage_rate] in the anomaly_metrics data for node aiops-k8s-08"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Metric should be monitored as part of memory stress detection",
+                "instruction": "Check if [node_memory_MemAvailable_bytes] is being collected and shows decreasing trend"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "HTTP response status code 302 appears in logs",
+                "instruction": "Search for keyword 'http.resp.status' with value '302' in log data"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Disk read bytes metric shows abnormal pattern",
+                "instruction": "Check if [node_disk_read_bytes_total] shows increased activity during fault period"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Disk read time metric shows increased values",
+                "instruction": "Check if [node_disk_read_time_seconds_total] indicates prolonged disk operations"
+            }
+        ]
+    }
+}
+```

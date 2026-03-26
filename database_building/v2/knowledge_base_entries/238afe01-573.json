@@ -1,0 +1,33 @@
+{
+  "uuid": "238afe01-573",
+  "fault_type": "service_connection_failure",
+  "symptom_vector": "Checkout service latency spike and error rate surge (>88%), leading to frontend 500 errors and cascading failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice因DNS解析故障导致服务不可用，引发上游checkoutservice阻塞和frontend级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在全量日志数据中观察到大量来自frontend服务的错误日志，其核心错误信息均指向'lookup cartservice on 10.233.33.139:53: server misbehaving'。这表明在调用链的关键环节（cartservice）发生了DNS解析失败。",
+      "Step 2: 分析监控指标数据，发现服务`checkoutservice-0`的错误率（error_ratio）从0%飙升至88.89%，同时其最大响应时间（rrt_max）从101677ms激增至2236568ms，变化率超过18倍。这表明有一个下游依赖的严重故障导致了checkoutservice的完全阻塞。",
+      "Step 3: 结合调用链分析，确认故障传播路径。Trace数据显示`checkoutservice->cartservice`的`GetCart`调用出现大量失败，状态码为14和13，且错误消息明确为DNS解析错误。这导致`frontend->checkoutservice`的调用链级联失败，产生HTTP 500错误。综合三方证据，定位根因为cartservice的DNS解析故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "lookup, server misbehaving",
+        "expected_pattern": "包含 'lookup <service_name> on <DNS_server>: server misbehaving' 模式的错误信息，通常与 'transport: Error while dialing' 和 'connection error' 等关键词伴随出现。",
+        "instruction": "搜索并过滤包含 'lookup' 和 'server misbehaving' 关键词的ERROR级别日志，重点关注涉及关键下游服务（如cartservice）域名解析的失败记录。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio, rrt_max",
+        "expected_pattern": "核心上游服务（如checkoutservice）的error_ratio指标在短时间内（如几分钟）发生剧烈突增（例如从接近0%升至>50%），同时其rrt_max（或rrt_p99）指标出现数量级级别的增长（如增加10倍以上），形成'高错误率+高延迟'的耦合异常。",
+        "instruction": "对比故障时间窗口与正常基线，识别出error_ratio和rrt_max同时发生极端异常的服务。该服务通常是受下游根因服务直接影响的受害者。"
+      },
+      {
+        "modality": "Trace",
+        "target": "status_code, status_message",
+        "expected_pattern": "在关键的服务依赖调用链路（如A->B）中，出现高比例的状态码为13(INTERNAL)或14(UNAVAILABLE)的Span，且其status_message字段中包含明确的网络层或解析层错误描述（如DNS错误、连接拒绝）。",
+        "instruction": "分析故障时间段内的异常Trace，根据status_code和status_message对失败的Span进行聚合与根因归类，识别出最早出现且错误信息最具体的失败调用方与被调用方，从而定位故障传播的起点。"
+      }
+    ]
+  }
+}

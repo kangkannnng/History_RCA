@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "a87be781-351",
+    "fault_type": "io fault (TiDB/TiKV IO/Storage)",
+    "symptom_vector": "Multiple upstream application services (productcatalogservice, checkoutservice, cartservice) experienced severe latency spikes and performance degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiKV存储层IO性能问题导致region处理积压和CPU使用率激增，进而引起数据库服务延迟并向上游应用层传播。",
+        "reasoning_chain": [
+            "Step 1: 从指标数据观察到核心数据库组件 `tidb-tikv` 出现多个关键指标异常：`region_pending` P99 值从 22737.25 急剧下降至 1293.32，`cpu_usage` P99 值从 0.11 上升至 0.58 (增长362%)，同时其上游组件 `tidb-tidb` 的 `duration_99th` 从 0.02ms 飙升至 10.93ms (增长近200倍)。这表明数据库底层存储与计算层均存在严重性能瓶颈。",
+            "Step 2: 分析调用链追踪数据，发现所有出现严重延迟的服务（如 `productcatalogservice` 的 GetProduct 操作延迟增加900倍）在调用链上最终都依赖于对 TiDB 数据库的操作。这种上游服务延迟与底层数据库延迟激增的时间高度重合，且符合典型的依赖故障传播模式。",
+            "Step 3: 综合关联分析，上游服务（如 productcatalogservice）的延迟是“症状”，而非“根因”。数据库组件 `tidb-tikv` 的 `region_pending` 异常指示存储层 IO 操作堆积，高 `cpu_usage` 表明系统在努力处理积压任务，这两者的结合直接导致了数据库查询延迟(`duration_99th`)，并最终引发了上游应用的性能雪崩。日志层未发现明显错误，这与纯性能瓶颈（如IO缓慢）而非逻辑错误的特征相符。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "tidb-tikv:region_pending",
+                "expected_pattern": "P99值急剧下降（例如从数万降至数千），表明待处理的region任务数激增，存储层IO或处理能力遇到瓶颈。",
+                "instruction": "加载 TiDB/TiKV 组件的 `region_pending` 指标，对比故障时段与正常时段的 P99 值，观察是否存在断崖式下跌，这是TiKV存储层积压的典型信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb-tikv:cpu_usage",
+                "expected_pattern": "P99值出现显著百分比增长（如增长>300%），表明TiKV进程为处理IO或计算任务消耗了大量CPU资源。",
+                "instruction": "检查 `tidb-tikv` 的 `cpu_usage` 指标，特别是 P99 分位数，确认是否与 `region_pending` 异常同时出现陡峭上升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb-tidb:duration_99th",
+                "expected_pattern": "P99值出现数个数量级的极端增长（如从毫秒级增至秒级）。",
+                "instruction": "检查 TiDB 计算层的 `duration_99th`（99分位延迟）指标，确认数据库响应延迟是否出现灾难性劣化。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice -> TiDB (Operation: GetProduct)",
+                "expected_pattern": "从调用方（如 frontend, checkoutservice）到 `productcatalogservice` 的 `GetProduct` 调用链平均延迟激增数百至数千倍，且该服务的下游依赖包含数据库操作。",
+                "instruction": "在全量调用链数据中，筛选出涉及 `productcatalogservice` 且操作名为 `GetProduct` 的异常调用链，分析其平均延迟的增幅，并确认它是否调用了数据库组件。这是数据库问题向上传播的关键证据。"
+            }
+        ]
+    }
+}
+```

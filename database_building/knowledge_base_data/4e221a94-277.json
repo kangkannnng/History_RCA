@@ -1,0 +1,35 @@
+{
+  "uuid": "4e221a94-277",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "Memory stress symptoms including high memory usage, saturation, exhaustion, leak, or stress leading to service anomalies and potential failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [paymentservice-1] experienced [pod_memory_working_set_bytes] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [paymentservice-1] (From Ground Truth instance).",
+      "Step 2: Check Observation - Found keyword [could not load] in Log for paymentservice-1, with log entries: 'PluginLoader#load: could not load plugin @opentelemetry/plugin-http...' and 'PluginLoader#load: could not load plugin @opentelemetry/plugin-grpc-js...' (From GT key_observations, verified in Full Context raw_log_result).",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric for paymentservice-1, with p99 value change from 1.0 to 2.0 (66.67% change rate) indicating pod restart or process anomaly (From GT key_observations, verified in Full Context raw_metric_result anomaly_metrics).",
+      "Step 4: Check Observation - Keyword [pod_memory_working_set_bytes] from GT key_observations is not directly observed in provided Full Context metric data, but is specified as key_metrics for memory stress fault.",
+      "Step 5: Derive Root Cause - Based on log keyword [could not load] indicating module failures, metric keyword [pod_processes] indicating pod instability, and fault type memory stress, determined cause is [pod_memory_working_set_bytes] as per Ground Truth key_metrics."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "could not load",
+        "expected_pattern": "Log entries for paymentservice-1 containing phrases like 'could not load plugin', indicating module loading failures that may correlate with memory stress or pod issues.",
+        "instruction": "Search for keyword 'could not load' in logs filtered for paymentservice-1 pod."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Metric pod_processes for paymentservice-1 showing p99 value increase from 1.0 to 2.0 or similar anomalies, suggesting pod restart or process count changes.",
+        "instruction": "Check metric pod_processes for paymentservice-1 for significant changes in p99 or median values during the fault timeframe."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "High or spiking values in pod_memory_working_set_bytes metric for paymentservice-1, indicating memory usage exceeding limits or stress conditions.",
+        "instruction": "Search for metric pod_memory_working_set_bytes for paymentservice-1 to verify memory usage anomalies; if not available, check related memory metrics like node_memory_usage_rate for the hosting node."
+      }
+    ]
+  }
+}

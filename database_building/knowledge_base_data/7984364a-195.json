@@ -1,0 +1,62 @@
+{
+  "uuid": "7984364a-195",
+  "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+  "symptom_vector": "High JVM latency and response delay, elevated request latency, JVM slow response leading to cascading service timeouts.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice-0] experienced [adservice-getRandomAds-latency, rrt, rrt_max] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice-0] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [adservice-getRandomAds-latency] in Log (From GT key_observations).",
+      "Step 3: Check Observation - Found keyword [deadlineexceeded] in Log (From GT key_observations).",
+      "Step 4: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations).",
+      "Step 5: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations).",
+      "Step 6: Check Observation - Found keyword [frontend] in Trace (From GT key_observations).",
+      "Step 7: Check Observation - Found keyword [response] in Metric (From GT key_observations).",
+      "Step 8: Derive Root Cause - Based on the combined features of Java exceptions, latency rule triggers, and extreme metric spikes, determined cause is [adservice-getRandomAds-latency, rrt, rrt_max] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Log entries from pod 'adservice-0' containing the exact string 'AdService-getRandomAds-latency-1749564659', indicating rule execution and latency injection.",
+        "instruction": "Search for keyword 'AdService-getRandomAds-latency' in logs from pod 'adservice-0'."
+      },
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Error logs from 'frontend' pods containing 'context deadline exceeded' when calling 'adservice'.",
+        "instruction": "Search for keyword 'DeadlineExceeded' or 'context deadline exceeded' in logs, particularly from services calling 'adservice'."
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Java exception log from pod 'adservice-0': 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException'.",
+        "instruction": "Search for keyword 'InvocationTargetException' in logs from pod 'adservice-0'."
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Log entries from pod 'adservice-0' containing 'org.jboss.byteman.agent.Transformer', indicating bytecode manipulation related to latency injection.",
+        "instruction": "Search for keyword 'Transformer' in logs from pod 'adservice-0'."
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Trace data showing calls from 'frontend' pods to 'adservice' with extremely high latency (e.g., avg duration ~499s) and status 'context deadline exceeded'.",
+        "instruction": "Analyze trace spans where service_name is 'frontend' and operation involves 'AdService/GetAds', check for latency anomalies and error statuses."
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "Metric 'response' for service 'frontend' shows a significant decrease in median value (e.g., from 2114.0 to 1852.0 for frontend-0), indicating fewer successful responses.",
+        "instruction": "Check the 'response' metric for services impacted by the fault, such as 'frontend', and compare fault vs. normal median values."
+      },
+      {
+        "modality": "Metric",
+        "target": "adservice-getRandomAds-latency, rrt, rrt_max",
+        "expected_pattern": "1) Implied by log rule trigger. 2) 'rrt' and 'rrt_max' metrics for 'adservice' or calling services (e.g., 'frontend') show extreme increases. Trace data confirms 'rrt_max' for adservice-0 increased 92x from 5.4s to 499s.",
+        "instruction": "1) Verify log rule trigger for 'adservice-getRandomAds-latency'. 2) Check 'rrt' and 'rrt_max' metrics for service 'adservice' and upstream services like 'frontend' for significant spikes."
+      }
+    ]
+  }
+}

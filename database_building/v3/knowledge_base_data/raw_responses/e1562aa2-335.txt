@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "e1562aa2-335",
+    "fault_type": "dns",
+    "symptom_vector": "DNS lookup failure, DNS resolution timeout, incorrect DNS response, DNS server unreachable, truncated DNS packet",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-2 组件因 dns 解析故障导致服务异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-2 的 http.resp.status 指标出现大量 302 状态码，表明存在重定向或连接问题",
+            "Step 2: 分析 cartservice 相关调用链中未发现直接的 DNS 错误日志，但 checkoutservice 下游调用延迟显著增加",
+            "Step 3: 确认故障模式符合 DNS 解析故障特征，包括超时、不可达和错误响应"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "Contains 302 status codes",
+                "instruction": "在 checkoutservice-2 的日志中搜索 http.resp.status 字段，检查是否存在大量 302 状态码"
+            },
+            {
+                "modality": "Metric",
+                "target": "dns",
+                "expected_pattern": "DNS resolution metrics showing failures or timeouts",
+                "instruction": "检查 dns 相关指标，包括解析成功率、延迟和错误率"
+            },
+            {
+                "modality": "Log",
+                "target": "DNS lookup failure|DNS resolution timeout|incorrect DNS response|DNS server unreachable|truncated DNS packet",
+                "expected_pattern": "Contains DNS-related error keywords",
+                "instruction": "在 cartservice 和 checkoutservice 的日志中搜索 DNS 故障相关关键词"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,58 @@
+```json
+{
+    "uuid": "62e9d294-564",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [checkoutservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [checkoutservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [latency_anomalies] in [Trace] data (From GT key_observations).",
+            "Step 3: Check Observation - Found keyword [http.resp.status, 302] in [Log] data (From GT key_observations).",
+            "Step 4: Check Observation - Found keyword [rrt, rrt_max] in [Metric] data (From GT key_observations).",
+            "Step 5: Check Observation - Found keyword [request, response] in [Metric] data (From GT key_observations).",
+            "Step 6: Check Observation - Found keyword [pod_memory_working_set_bytes] in [Metric] data (From GT key_observations).",
+            "Step 7: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in [Metric] data (From GT key_observations).",
+            "Step 8: Derive Root Cause - Based on the above features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Trace data shows significant latency anomalies for calls to `checkoutservice`. For example, `frontend` calling `checkoutservice` shows latency increase from normal average 144331.80 microseconds to anomaly average 8610403.30 microseconds (approx. 59.6x increase).",
+                "instruction": "Search for keyword 'latency_anomalies' in Trace data, specifically looking for calls involving the service 'checkoutservice'."
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "Log analysis results indicate no error logs were detected during the specified time period. The keyword 'http.resp.status 302' is a key observation from Ground Truth, but the Full Context shows the log agent reported 'Log data not collected' or found no errors.",
+                "instruction": "Search for keyword 'http.resp.status' with value '302' in Log data for the fault time period."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Metric data shows severe anomalies for `rrt` and `rrt_max` for services like `checkoutservice` and `currencyservice`. For `checkoutservice`, `rrt_max` increased from 215853 to 9302446 (change ratio 1.9093). For `currencyservice`, `rrt_max` increased from 2386 to 1071647 (change ratio 1.9911).",
+                "instruction": "Check if metrics `rrt` and `rrt_max` show abnormal increases for the services listed in the `instance` field (checkoutservice, currencyservice)."
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "The keywords 'request' and 'response' are listed in Ground Truth key_observations. The Full Context metric data includes related latency metrics (rrt, rrt_max) which measure request-response time, indicating anomalies in the request-response cycle.",
+                "instruction": "Search for metrics related to 'request' and 'response' counts or rates for the faulty services to identify throughput anomalies."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "The keyword 'pod_memory_working_set_bytes' is listed in Ground Truth. The Full Context metric data includes `node_memory_MemAvailable_bytes` showing a 41% decrease on node `aiops-k8s-08`, which hosts `checkoutservice-0`. This indicates potential memory pressure.",
+                "instruction": "Check the metric `pod_memory_working_set_bytes` (or related node memory metrics) for pods belonging to the faulty services to assess memory usage."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "These keywords are listed in Ground Truth key_observations and key_metrics. They are standard network metrics for pods. Their presence in the Ground Truth indicates network I/O should be investigated, though specific values are not detailed in the provided Full Context snippet.",
+                "instruction": "Check network I/O metrics (`pod_network_receive_bytes`, `pod_network_receive_packets`, `pod_network_transmit_bytes`, `pod_network_transmit_packets`) for pods of the faulty services to detect anomalies in network traffic."
+            }
+        ]
+    }
+}
+```

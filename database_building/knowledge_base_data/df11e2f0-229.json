@@ -1,0 +1,41 @@
+{
+  "uuid": "df11e2f0-229",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, CPU overload, CPU usage spike during stress test",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice-2] experienced [pod_cpu_usage] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice-2] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [pod_cpu_usage] in Metric data (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [rrt] and [rrt_max] in Metric data (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [pod_cpu_usage] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "pod_cpu_usage increased from 0.0 to 0.6 (2.0x change ratio) for adservice-2 during fault window",
+        "instruction": "Search for metric [pod_cpu_usage] with pod_name=adservice-2 and check for abnormal increase during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "pod_processes increased from 1.0 to 9.0 (1.6x change ratio) for adservice-2 during fault window",
+        "instruction": "Search for metric [pod_processes] with pod_name=adservice-2 and check for abnormal surge during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "rrt increased from 6114.56 to 7107.96 (0.1503 change ratio) for adservice-2 during fault window",
+        "instruction": "Search for metric [rrt] with service_name=adservice and pod_name=adservice-2 and check for degradation during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max increased from 43280.0 to 91169.0 (0.7124 change ratio) for adservice-2 during fault window",
+        "instruction": "Search for metric [rrt_max] with service_name=adservice and pod_name=adservice-2 and check for significant increase during fault period"
+      }
+    ]
+  }
+}

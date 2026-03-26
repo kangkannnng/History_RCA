@@ -1,0 +1,39 @@
+{
+  "uuid": "3ae307d9-218",
+  "fault_type": "application_exception",
+  "symptom_vector": "RPC errors in frontend services due to adservice exceptions, increased error ratios, and latency spikes in downstream dependencies",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman故障注入导致adservice抛出java.lang.Error异常，引发广告服务功能失效",
+    "reasoning_chain": [
+      "Step 1: 在日志数据中观察到adservice实例出现大量异常条目，包括'java.lang.Error: Injected error'和'AdService-getRandomAds-exception-1749647451 execute()'，表明有故障注入导致JVM异常抛出",
+      "Step 2: 分析指标数据发现adservice-0的error_ratio和client_error_ratio的p99变化比率达到0.6681，显示服务错误率显著上升，与日志异常时间吻合",
+      "Step 3: 进一步检查frontend日志，发现大量'rpc error: code = Unknown'和'failed to retrieve ads'错误，结合trace数据中frontend调用adservice的操作，确认adservice异常导致上游服务调用失败，形成典型的微服务依赖故障链"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "AdService-getRandomAds-exception-1749647451",
+        "expected_pattern": "高频次出现（如本案例中3368次），包含'java.lang.Error: Injected error'、'Rule.execute called'等关键词",
+        "instruction": "搜索adservice日志中是否出现Byteman故障注入相关的异常条目，特别是与AdService-getRandomAds-exception规则关联的错误消息"
+      },
+      {
+        "modality": "Log",
+        "target": "failed to get ads: rpc error: code = Unknown",
+        "expected_pattern": "在frontend服务日志中集中出现，且时间与adservice异常重叠",
+        "instruction": "检查所有frontend实例的日志，查找因adservice调用失败而产生的RPC错误消息"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "p99变化比率显著上升（如本案例中0.6681），从正常基线突增",
+        "instruction": "监控adservice的error_ratio指标，特别是在故障时间窗口内是否出现异常波动或持续高值"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "p99变化比率与error_ratio同步上升，表明客户端错误率增加",
+        "instruction": "对比adservice的client_error_ratio与正常时期数据，确认是否因服务异常导致客户端错误增多"
+      }
+    ]
+  }
+}

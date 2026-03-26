@@ -1,0 +1,33 @@
+{
+    "uuid": "f18b68cd-119",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "Node CPU overload, high usage, saturation, spike, or stress.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component aiops-k8s-07 experienced node_cpu_usage_rate fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is aiops-k8s-07 (From Ground Truth instance).",
+            "Step 2: Check Observation - Found keyword node_cpu_usage_rate in Metric data, showing abnormal increase from 21.41% to 87.34% for node aiops-k8s-07 (From GT key_observations and Full Context metric data).",
+            "Step 3: Derive Root Cause - Based on the key observation of node_cpu_usage_rate spike, determined root cause is node_cpu_usage_rate (From GT key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Value increased significantly from 21.41% to 87.34% during fault period, as observed in Full Context metric data.",
+                "instruction": "Search for metric node_cpu_usage_rate associated with node aiops-k8s-07 and check for spikes in the specified time range."
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_receive_packets_total",
+                "expected_pattern": "Not observed in provided Full Context metric data; keyword not found in anomaly_metrics or available_metric_names.",
+                "instruction": "Search for metric node_network_receive_packets_total in node metrics for aiops-k8s-07 during the fault period."
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_transmit_packets_total",
+                "expected_pattern": "Not observed in provided Full Context metric data; keyword not found in anomaly_metrics or available_metric_names.",
+                "instruction": "Search for metric node_network_transmit_packets_total in node metrics for aiops-k8s-07 during the fault period."
+            }
+        ]
+    }
+}

@@ -1,0 +1,27 @@
+{
+  "uuid": "8440ee17-580",
+  "fault_type": "port misconfiguration",
+  "symptom_vector": "shippingservice connection refused errors leading to checkout failures",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice 组件因目标端口配置错误导致连接拒绝，引发面向该服务的高 error_ratio 及 request/response 失败",
+    "reasoning_chain": [
+      "Step 1: 从 Trace 数据的状态组合中，观察到大量指向目标地址 10.233.27.213:50051 的 'connection refused' 错误，该地址为 shippingservice 的访问端点。这说明对 shippingservice 的 request 无法送达。",
+      "Step 2: 分析 Log 数据，发现多个 frontend 实例的日志均报告相同的连接拒绝错误，核心证据为 'transport: Error while dialing dial tcp 10.233.27.213:50051: connect: connection refused'，这确认了步骤1的发现，且错误模式一致，表明是 shippingservice 的服务端点问题，而非临时网络波动。",
+      "Step 3: 检查 Metric 数据，发现所有 shippingservice Pod (shippingservice-0, shippingservice-1, shippingservice-2) 的 error_ratio p99 值均异常升高（最高至48.0）。该指标直接量化了 request 的失败比例，与 Trace 和 Log 中观察到的连接失败现象互相印证，将根因锁定在 shippingservice 的端口配置上。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "connection refused, 10.233.27.213:50051",
+        "expected_pattern": "在 Trace 状态组合中，存在大量包含 'connection refused' 错误消息，且目标地址指向特定 IP:端口 (如 10.233.27.213:50051) 的条目，状态码通常为 14。",
+        "instruction": "在 Trace 数据的 status_combinations 中，搜索包含 'connection refused' 字样的条目，并确认被拒绝连接的目标地址是否为某关键服务的特定端口。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "被调用服务（尤其是日志和链路中报告连接失败的服务）的 error_ratio 或 client_error_ratio 指标（尤其是 p99 分位值）出现从极低值（如0.0）跃升至高位（>10）的异常飙升。",
+        "instruction": "针对日志和链路中高频出现的错误所涉及的目标服务（如 shippingservice），检查其所有 Pod 的 error_ratio 指标在故障时段内是否有显著异常上升。"
+      }
+    ]
+  }
+}

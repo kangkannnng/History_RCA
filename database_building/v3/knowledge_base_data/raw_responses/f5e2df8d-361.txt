@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "f5e2df8d-361",
+    "fault_type": "abnormal_region_count",
+    "symptom_vector": "Multiple database query timeouts and frontend errors indicating underlying component failure",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-pd-0 组件异常导致PD server超时，影响了leader_count的分配和region_health，引发上游服务大规模查询失败。",
+        "reasoning_chain": [
+            "Step 1: 观察到大量包含 'PD server timeout: start timestamp may fall behind safe point' 的错误日志（Error 9001 (HY000)），总计超过1500条，集中在异常时间段内。",
+            "Step 2: 分析关键组件 tidb-tidb 的监控指标，发现其 memory_usage 中位数从1440911360.0 降至 784515072.0（下降58.99%），同时 failed_query_ops 的P99值从0飙升至501.27，表明数据库处理能力严重下降。",
+            "Step 3: 通过链路追踪确认，故障传播链为 tidb-pd 服务超时 → productcatalogservice 查询失败（状态码2，错误信息'PD server timeout'） → frontend 返回HTTP 500错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "PD server timeout",
+                "expected_pattern": "大量集中出现的 'Error 9001 (HY000): PD server timeout: start timestamp may fall behind safe point' 错误信息，并向上游服务（如productcatalogservice、frontend）传播。",
+                "instruction": "在异常时间范围内，搜索所有服务日志中是否出现 'PD server timeout' 错误关键词，并统计其发生频率和来源服务。"
+            },
+            {
+                "modality": "Metric",
+                "target": "abnormal_region_count",
+                "expected_pattern": "数值异常飙升或远高于基线水平。",
+                "instruction": "检查 tidb-pd 服务的 abnormal_region_count 指标在异常时间段内是否存在突增或持续高位的异常模式。"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_health",
+                "expected_pattern": "健康度指标显著下降或恶化。",
+                "instruction": "检查 tidb-pd 服务的 region_health 指标是否在异常时段出现恶化趋势。"
+            },
+            {
+                "modality": "Metric",
+                "target": "leader_count",
+                "expected_pattern": "leader数量发生剧烈波动或显著减少。",
+                "instruction": "检查 tidb-pd 服务的 leader_count 指标在异常时间段内是否出现异常变化。"
+            }
+        ]
+    }
+}
+```

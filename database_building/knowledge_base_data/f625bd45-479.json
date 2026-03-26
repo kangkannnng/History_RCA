@@ -1,0 +1,78 @@
+{
+  "uuid": "f625bd45-479",
+  "fault_type": "qps, grpc_qps, region_pending, io_util, tidb-tikv",
+  "symptom_vector": "Pod failure symptoms including crash, unexpected termination, container exit, and general pod unavailability.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [qps, grpc_qps, region_pending, io_util, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field, and verified in Full Context metric data where 'tidb-tikv' is listed in service_name).",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data with latency anomalies (e.g., rrt_max increased from 10s to 38M seconds) and errors 'Error 9005 (HY000): Region is unavailable' (from Full Context trace data in status_combinations).",
+      "Step 3: Check Observation - Found keyword [failure] in Log data, specifically 'failed to query product by id' messages (from Full Context log data in filtered_logs).",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log and Trace data with 'Region is unavailable' errors (from Full Context log and trace data).",
+      "Step 5: Check Observation - For metric keywords, observed [memory_usage] anomalies in tidb-tidb (e.g., memory_usage changes in Full Context metric data), and based on key_observations, [grpc_qps, qps, io_util, region_pending, store_size, cpu_usage] are indicated as part of the fault signature, though not all explicitly shown in provided data.",
+      "Step 6: Derive Root Cause - Based on the combined features from trace, log, and metric observations, determined root cause is [qps, grpc_qps, region_pending, io_util, tidb-tikv] leading to pod failure."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Latency anomalies and error status with 'Region is unavailable' in trace data for productcatalogservice calls",
+        "instruction": "Search for trace entries involving productcatalogservice and check for anomalies and errors like 'Error 9005 (HY000): Region is unavailable'."
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log messages containing 'failed' such as 'failed to query product by id'",
+        "instruction": "Search for keyword 'failure' or 'failed' in log data, especially in productcatalogservice logs."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries with 'unavailable' keyword, specifically 'Region is unavailable'",
+        "instruction": "Search for keyword 'unavailable' in log data, focusing on error messages from services like frontend and productcatalogservice."
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "Anomalies in grpc_qps metric values indicating degradation",
+        "instruction": "Monitor and check metric [grpc_qps] for abnormal patterns or significant drops."
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Degradation in qps metric suggesting reduced query performance",
+        "instruction": "Check metric [qps] for significant changes or low values during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "High io_util values indicating I/O bottlenecks or storage issues",
+        "instruction": "Inspect metric [io_util] for elevated levels that could affect pod performance."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Increased region_pending metric suggesting region unavailability or delays",
+        "instruction": "Check metric [region_pending] for spikes or sustained high values."
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Abnormal store_size metric that may correlate with storage problems",
+        "instruction": "Verify metric [store_size] for anomalies such as unexpected growth or shrinkage."
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "High cpu_usage indicating resource exhaustion or pod stress",
+        "instruction": "Monitor metric [cpu_usage] for excessive values, especially in tidb-tikv related pods."
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage anomalies, e.g., increased usage in tidb-tidb as observed in Full Context metric data",
+        "instruction": "Check metric [memory_usage] for abnormal patterns like spikes or high utilization in database components."
+      }
+    ]
+  }
+}

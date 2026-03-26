@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "f78ef469-175",
+    "fault_type": "metric",
+    "symptom_vector": "Node memory exhaustion leading to performance degradation of services running on the node. Primary indicators: abnormal response time metrics (rrt_max) from services on the affected node, accompanied by significant changes in node memory utilization metrics.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点内存耗尽导致运行在该节点上的服务性能严重下降",
+        "reasoning_chain": [
+            "Step 1: 观察到节点aiops-k8s-01的node_memory_usage_rate指标显示异常变化，其p99分位值从正常时期的50.51%下降到故障期间的35.4%，变化率为35.19%。",
+            "Step 2: 分析节点上运行的服务容器，发现aiops-k8s-01节点运行着checkoutservice-1、emailservice-1、recommendationservice-2、shippingservice-0、productcatalogservice-1等多个关键服务Pod。",
+            "Step 3: 虽然本次分析过程中日志和追踪数据未能提供直接证据，但根据节点内存使用率异常变化与Ground Truth中描述的故障特征匹配（node memory exhaustion, memory saturation），可以推断节点内存资源不足是根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Sudden decrease in p99 value from normal period to fault period, indicating memory pressure or exhaustion triggered memory release/reclamation processes",
+                "instruction": "检查node_memory_usage_rate指标在故障时间段(2025-06-09T17:10:03Z到2025-06-09T17:22:03Z)与正常基线的差异。重点关注aiops-k8s-01节点的p99值变化，寻找内存使用率显著下降的模式，这通常暗示内存压力导致的内存释放或回收行为。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,28 @@
+{
+  "uuid": "958ecb16-253",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Node memory exhaustion, saturation, high usage, leak, or stress as described in fault_description",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-04] experienced [node_memory_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-04] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Search for keyword [node_memory_usage_rate] in Metric data for node aiops-k8s-04 during the anomaly time window (From GT key_observations)",
+      "Step 3: Check Observation - Search for keyword [node_memory_MemAvailable_bytes] in Metric data for node aiops-k8s-04 during the anomaly time window (From GT key_observations)",
+      "Step 4: Derive Root Cause - Based on observed anomalies in [node_memory_usage_rate] and [node_memory_MemAvailable_bytes] for node aiops-k8s-04, determined cause is [node_memory_usage_rate] fault (From GT key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Metric value showing high memory usage rate, such as increased median or p99 values compared to normal baseline",
+        "instruction": "Search for metric named [node_memory_usage_rate] associated with node [aiops-k8s-04] in the collected metric data during 2025-06-13T01:10:24Z to 2025-06-13T01:24:24Z"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Metric value indicating low available memory, with significant decrease in median or p99 values from normal baseline",
+        "instruction": "Search for metric named [node_memory_MemAvailable_bytes] associated with node [aiops-k8s-04] in the collected metric data during 2025-06-13T01:10:24Z to 2025-06-13T01:24:24Z"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "178aa45f-353",
+    "fault_type": "server_error_ratio spike",
+    "symptom_vector": "DNS resolution failure for cartservice leading to severe server error ratio spike in checkoutservice and HTTP 500 errors in frontend",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 组件的 server_error_ratio 飙升至 86.31%，其根本原因是 cartservice 域名无法被 DNS 服务器 (10.233.33.139:53) 正确解析，导致连接失败。",
+        "reasoning_chain": [
+            "Step 1: 观察到日志 (Log) 中 frontend 服务出现大量相同错误信息，核心关键词为 'transport: Error while dialing'、'lookup cartservice on 10.233.33.139:53: server misbehaving'，表明在 DNS 解析环节失败。",
+            "Step 2: 分析指标 (Metric) 发现 checkoutservice-0 的 server_error_ratio 从正常值 0% 激增至故障期间的 86.31%，同时 rrt_max (最大响应时间) 增长了 1.69倍，表明其性能严重劣化。",
+            "Step 3: 结合追踪 (Trace) 数据确认故障传播路径：checkoutservice 调用 cartservice 时因 DNS 解析失败（状态码 13/14 及对应的错误信息）而报错，此故障被上游 frontend 捕获并返回 HTTP 500 错误，形成了完整的故障链条。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing|lookup cartservice|server misbehaving",
+                "expected_pattern": "在涉及 cartservice 或 checkoutservice 的调用日志中出现上述关键词组合，且出现频次高，指向 DNS 服务器 10.233.33.139:53 的异常行为。",
+                "instruction": "检查所有 frontend 和 checkoutservice 服务的错误日志，搜索包含 'lookup cartservice' 和 'server misbehaving' 的条目，确认错误是否集中且由同一 DNS 服务器引起。"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "checkoutservice 实例（尤其是 checkoutservice-0）的 server_error_ratio 从基线值（如接近 0%）急剧飙升到一个异常高的水平（如超过 80%）。",
+                "instruction": "提取故障时间窗口内 checkoutservice 所有实例的 server_error_ratio 和 error_ratio 指标，对比其与正常基线的变化，识别出变化最剧烈的实例。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->cartservice 调用链",
+                "expected_pattern": "在故障时间内，checkoutservice 对 cartservice 的调用（如 hipstershop.CartService/GetCart）大量失败，状态码为 13 (Unavailable) 或 14 (Connection Error)，且错误详情中包含 DNS 解析失败的信息。",
+                "instruction": "分析 trace 数据，过滤出涉及 checkoutservice 调用 cartservice 的调用链，检查其状态码和错误消息，确认失败根源是否为 DNS 查找失败。"
+            }
+        ]
+    }
+}
+```

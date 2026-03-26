@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "8781f965-388",
+    "fault_type": "metric",
+    "symptom_vector": "Database storage layer performance degradation, application latency spike, silent failure without error logs",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB存储层region_pending和io_util指标异常导致存储性能下降，进而引起应用服务延迟激增",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据中观察到tidb-tikv组件的region_pending指标中位数变化率达163.66%（7384.5→738.0），io_util的P99变化率达116.74%（0.07→0.27），表明存储层存在严重性能问题",
+            "Step 2: 分析Trace数据发现productcatalogservice的GetProduct操作延迟激增748倍（10,774ms→8,060,373ms），但该服务本身没有错误日志，说明问题源于下游依赖",
+            "Step 3: 结合系统拓扑关系（productcatalogservice依赖TiDB）和故障时间窗口匹配，确认应用层延迟是存储层性能问题的下游表现，符合TiDB/IO故障依赖归因模式"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden spike in change rate (>100%) indicating storage layer performance degradation",
+                "instruction": "检查TiDB TiKV组件的region_pending指标，对比故障时段与正常时段的median和P99值，计算变化率，特别注意超过100%的异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Significant increase in P99 value indicating IO performance bottleneck",
+                "instruction": "分析TiDB TiKV的io_util指标P99值，关注故障时段相比正常时段的增幅，确认是否存在IO性能瓶颈"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice GetProduct latency",
+                "expected_pattern": "Dramatic latency increase (100x+) in operations that depend on database storage",
+                "instruction": "查找productcatalogservice的GetProduct操作调用链，对比正常与故障时段的平均耗时，识别异常延迟倍数"
+            }
+        ]
+    }
+}
+```

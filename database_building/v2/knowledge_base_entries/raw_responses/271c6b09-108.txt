@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "271c6b09-108",
+    "fault_type": "metric",
+    "symptom_vector": "Severe latency spike in multiple services (checkoutservice, productcatalogservice), especially for downstream calls to shippingservice; No evident error logs.",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06节点磁盘使用率异常飙升，导致文件系统资源耗尽，引发运行在该节点上的服务性能严重退化。",
+        "reasoning_chain": [
+            "Step 1: 在全量指标数据扫描中，观察到 aiops-k8s-06 节点的 `node_filesystem_usage_rate` 出现系统中最剧烈的异常变化，其中位数从正常状态的53.72%激增至故障期间的80.74%，变化率达40.19%。这强烈暗示了该节点存在磁盘空间耗尽的根因问题。",
+            "Step 2: 分析调用链(Trace)数据，发现位于 aiops-k8s-06 节点上的服务（特别是 checkoutservice-2 和 productcatalogservice-0）出现了最严重的性能退化。例如，checkoutservice-2 调用 shippingservice 的 `GetQuote` 操作延迟从9.3秒飙升至47.7秒（5.1倍）。这种延迟模式与节点级基础设施故障（如磁盘IO阻塞）向上游服务传播的特征高度一致。",
+            "Step 3: 检查日志(Log)数据，在故障时间段内未发现任何相关的错误日志记录。这排除了因应用层代码错误导致故障的可能性，并支持了故障源于底层基础设施（如静默的磁盘压力）的假设。综合以上三模态证据，将根因定位至 aiops-k8s-06 节点的文件系统资源耗尽。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Sudden and significant increase in median value (e.g., >30% change rate). High p99 value (e.g., >90%) indicates severe disk pressure.",
+                "instruction": "立即筛选出故障期间 `node_filesystem_usage_rate` 变化率最高的节点。重点关注中位数和p99值均大幅增长的节点，这通常是磁盘耗尽的直接证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice-2->shippingservice / productcatalogservice-0->tidb",
+                "expected_pattern": "Severe latency degradation (e.g., 5x+ increase) in operations originating from pods that are located on the suspect node (aiops-k8s-06).",
+                "instruction": "关联节点与Pod的映射关系（node_pod_mapping），检查在问题节点（aiops-k8s-06）上运行的所有Pod发起的调用链是否都出现了显著的延迟增长。这能验证故障的传播范围和拓扑一致性。"
+            },
+            {
+                "modality": "Log",
+                "target": "error logs related to filesystem, disk, or IO",
+                "expected_pattern": "Absence of explicit application-level error logs during the fault period, which supports the hypothesis of a silent infrastructure failure.",
+                "instruction": "在故障时间范围内，针对问题节点（aiops-k8s-06）及其上运行的Pod进行日志搜索。如果未发现明确的应用程序错误日志，这本身是一个重要的证据，表明故障可能源于底层资源（如磁盘）的静默压力，而非应用逻辑错误。"
+            }
+        ]
+    }
+}
+```

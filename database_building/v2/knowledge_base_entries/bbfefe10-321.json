@@ -1,0 +1,22 @@
+{
+  "uuid": "bbfefe10-321",
+  "fault_type": "metric",
+  "symptom_vector": "node CPU overload, service latency spike (specifically in productcatalogservice).",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06节点CPU使用率耗尽，导致运行于该节点上的服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 在全量指标的初始扫描中，观察到 `aiops-k8s-06` 节点的 `node_cpu_usage_rate` 指标出现最剧烈的变化，其中位数从正常期的40.56%飙升至故障期的94.52%，变化率高达79.89%，是扫描结果中最显著的异常。",
+      "Step 2: 根据 `node_pod_mapping` 数据，`aiops-k8s-06` 节点上运行着 `productcatalogservice-1`, `checkoutservice-2`, `emailservice-2` 等多个Pod。",
+      "Step 3: 在Metric数据中，进一步检查到运行于该节点上的 `productcatalogservice-1` 的 `rrt_max`（最大响应时间）指标从30755.5ms恶化至44276.0ms，变化率为36.04%，表明服务性能受到了节点资源瓶颈的直接影响。",
+      "Step 4: 与此同时，Log分析结果未检测到任何错误日志，Trace分析结果也未发现异常调用链。这排除了由应用层错误或复杂调用链异常引发的可能性，将故障范围缩小至基础设施资源层。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike or sustained high level (e.g., > 80%)",
+        "instruction": "Check the `node_cpu_usage_rate` metric for all nodes. Focus on identifying the node(s) with the most significant increase between normal and fault periods. Look for a median change ratio exceeding 50% as a strong signal of node CPU exhaustion."
+      }
+    ]
+  }
+}

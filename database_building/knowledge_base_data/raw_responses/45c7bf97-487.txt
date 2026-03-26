@@ -1,0 +1,43 @@
+```json
+{
+    "uuid": "45c7bf97-487",
+    "fault_type": "pod_processes timeout",
+    "symptom_vector": "Service method error, code error, and runtime panic leading to request failures and high latency.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [productcatalogservice] experienced [pod_processes] and [timeout] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [productcatalogservice] (From Ground Truth). Verified in Full Context trace data where `service_name` is 'productcatalogservice' and shows severe latency anomalies.",
+            "Step 2: Check Observation - Found keyword [context canceled] in [Log] (From GT key_observations). Verified in Full Context log data: frontend logs contain 'rpc error: code = Canceled desc = context canceled' when calling productcatalogservice.",
+            "Step 3: Check Observation - Found keyword [timeout] in [Log] (From GT key_observations). Verified implicitly in Full Context: 'context canceled' errors are a direct consequence of request timeouts from dependent services.",
+            "Step 4: Check Observation - Found keyword [pod_cpu_usage] in [Metric] (From GT key_observations). Verified in Full Context metric data: pod_cpu_usage for productcatalogservice-1 increased from 0.0 to 0.4.",
+            "Step 5: Derive Root Cause - Based on the above features (context canceled errors indicating timeouts and abnormal pod_cpu_usage), and aligning with the Ground Truth key_metrics, determined cause is [pod_processes] and [timeout]."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "Log entries from services like 'frontend' containing the exact phrase 'context canceled' in error messages related to calls to productcatalogservice.",
+                "instruction": "Search for keyword 'context canceled' in Log data, filtering for service_name 'frontend' and error messages mentioning 'productcatalogservice'."
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "The symptom of timeout is manifested as 'context canceled' errors in downstream service logs, as the calling context expires.",
+                "instruction": "Infer timeout by searching for 'context canceled' errors in logs of services that call productcatalogservice (e.g., frontend, checkoutservice)."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Metric 'pod_cpu_usage' for pods belonging to the productcatalogservice shows a significant increase from its normal baseline (e.g., 0.0 to 0.4).",
+                "instruction": "Check the 'anomaly_metrics' list for entries where metric_name is 'pod_cpu_usage' and pod_name starts with 'productcatalogservice-'."
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Trace data shows extreme latency spikes for operations targeting productcatalogservice (e.g., 'hipstershop.ProductCatalogService/GetProduct' latency increasing from ~11s to ~55s).",
+                "instruction": "Analyze trace data ('filtered_traces') for operations involving 'productcatalogservice' and compare 'normal_avg_duration' with 'anomaly_avg_duration'."
+            }
+        ]
+    }
+}
+```

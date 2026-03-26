@@ -1,0 +1,30 @@
+```json
+{
+    "uuid": "462e3353-107",
+    "fault_type": "metric",
+    "symptom_vector": "Severe latency increase (4-5.7x) in downstream calls from checkoutservice-2, including PaymentService/Charge, ShippingService/ShipOrder, EmailService/SendOrderConfirmation, and CartService/EmptyCart.",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06 节点磁盘空间使用率从54.42%急剧上升至78.23%，导致运行在该节点上的关键服务checkoutservice-2性能严重下降。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到，节点 aiops-k8s-06 的 `node_filesystem_usage_rate` 指标从正常中位数54.42%急剧上升到故障中位数78.23%，变化率高达35.9%，表明该节点文件系统使用率出现严重异常。",
+            "Step 2: 结合 `node_pod_mapping` 数据，确认 aiops-k8s-06 节点上运行着关键服务实例 `checkoutservice-2` 及其他pod。",
+            "Step 3: 在Trace数据中发现，所有由 `checkoutservice-2` 发起的关键内部操作（如调用PaymentService、ShippingService、EmailService、CartService）的延迟均出现4.0倍至5.7倍的显著增加，且这些延迟峰值均发生在故障时间窗口内。这种单节点上关键服务的全操作性能下降模式，与节点级资源压力（如磁盘空间紧张）导致IO性能下降的故障模式高度吻合。",
+            "Step 4: 检查Log数据，未发现该节点或相关服务在故障期间产生明确错误日志（如IO Error, OOMKilled），这符合“静默”磁盘压力（silent disk pressure）的特征，即在尚未达到绝对阈值（如>90%）时，高使用率主要通过性能衰减而非明确错误日志体现。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Sudden and significant increase in value (e.g., median change ratio > 30%) for a specific node.",
+                "instruction": "扫描所有节点的 `node_filesystem_usage_rate` 指标，识别在故障时间范围内，是否存在任一节点的该指标出现显著的、持续的、非正常的飙升。重点关注中位数变化率超过30%的节点。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice-2",
+                "expected_pattern": "Synchronous and severe latency increase (e.g., >3x) across ALL internal operations (e.g., downstream calls to PaymentService, ShippingService, EmailService) originating from the same pod.",
+                "instruction": "分析故障时间内的Trace数据，定位是否存在一个Pod（例如 `checkoutservice-2`），其内部的所有操作都出现了同步的、严重的延迟增长。这种模式暗示该Pod的运行环境（节点）存在资源瓶颈，而非单个下游依赖故障。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,39 @@
+{
+  "uuid": "46fc7b93-360",
+  "fault_type": "abnormal_region_count",
+  "symptom_vector": "pod crash and termination with database timeout errors across multiple services",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-pd 组件因 PD server timeout 导致数据库操作失败，引发 abnormal_region_count 等指标异常",
+    "reasoning_chain": [
+      "Step 1: 观察到多个服务的日志中出现 'PD server timeout: start timestamp may fall behind safe point' 错误，其中 productcatalogservice-1 出现1092次，productcatalogservice-2 出现705次",
+      "Step 2: 分析 tidb-pd 相关指标，发现 tidb-tidb 的 failed_query_ops 在p99级别达到509.82，memory_usage 中位数下降52.77%，表明数据库不稳定",
+      "Step 3: 确认 trace 数据中 frontend->productcatalogservice 调用失败，错误状态码为2，消息为 PD server timeout，影响数据库操作"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure|timeout",
+        "expected_pattern": "Contains 'PD server timeout: start timestamp may fall behind safe point' or similar timeout/failure keywords",
+        "instruction": "在 productcatalogservice 和 frontend 服务的日志中搜索 'PD server timeout'、'failure'、'timeout' 关键词"
+      },
+      {
+        "modality": "Metric",
+        "target": "abnormal_region_count",
+        "expected_pattern": "Abnormal increase or spike from baseline",
+        "instruction": "检查 tidb-pd 组件的 abnormal_region_count 指标是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "leader_count",
+        "expected_pattern": "Unusual fluctuation or decrease",
+        "instruction": "检查 tidb-pd 组件的 leader_count 指标是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_health",
+        "expected_pattern": "Health degradation or abnormal values",
+        "instruction": "检查 region_health 指标是否恶化或出现异常值"
+      }
+    ]
+  }
+}

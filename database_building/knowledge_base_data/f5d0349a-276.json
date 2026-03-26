@@ -1,0 +1,33 @@
+{
+  "uuid": "f5d0349a-276",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Node memory exhaustion, saturation, high memory usage, memory leak, and memory stress.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-08] experienced [node_memory_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth).",
+      "Step 2: Check Observation - Found memory-related metric data for node [aiops-k8s-08] in Metric data, showing a decrease in available memory.",
+      "Step 3: Derive Root Cause - Based on the observed memory pressure on the node, determined cause is [node_memory_usage_rate] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "The value for node `aiops-k8s-08` shows a decrease from a normal P99 of 14513799700.48 bytes to a fault P99 of 12925814046.72 bytes, indicating reduced available memory.",
+        "instruction": "Search for metric `node_memory_MemAvailable_bytes` with label `node_name` equal to `aiops-k8s-08` and compare values between the normal and fault periods."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total",
+        "expected_pattern": "Metric data for this keyword is not present in the provided Full Context, which may indicate a data collection gap or that the keyword is not a primary indicator for this specific fault instance.",
+        "instruction": "Search for keyword `node_disk_read_bytes_total` in the collected metric data."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_time_seconds_total",
+        "expected_pattern": "Metric data for this keyword is not present in the provided Full Context, which may indicate a data collection gap or that the keyword is not a primary indicator for this specific fault instance.",
+        "instruction": "Search for keyword `node_disk_read_time_seconds_total` in the collected metric data."
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "f9b9169c-407",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "Multiple service latency spikes (e.g., cartservice AddItem, EmptyCart), client error ratio anomalies, frontend request latency increase.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点aiops-k8s-07的CPU使用率过高，导致部署于其上的关键服务（如cartservice）性能严重下降。",
+        "reasoning_chain": [
+            "Step 1: 在Trace数据中观察到，多个服务（如checkoutservice）的调用链耗时显著增加，且延迟源头指向其依赖的服务cartservice。例如，frontend-1调用cartservice-0的AddItem操作从平均3.99秒激增至35.01秒。",
+            "Step 2: 在Metric数据中，虽然cartservice-1和cartservice-2的rrt_max指标出现极端飙升，这是主要表象，但未在Pod或服务级别的CPU/Memory使用率指标中发现瓶颈，暗示问题可能来自底层基础设施。",
+            "Step 3: 结合Log数据中未发现应用层错误日志，排除了配置错误或代码异常。根据Ground Truth和故障特征（包含`node_cpu_usage_rate`），并结合`node_pod_mapping`信息，发现关键受害者`cartservice-0`部署在节点`aiops-k8s-07`上。因此推断，节点层级的资源竞争（CPU过载）是导致服务级性能异常的最终根因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend->cartservice",
+                "expected_pattern": "Sudden spike in operation latency (e.g., AddItem, EmptyCart) with upstream propagation.",
+                "instruction": "分析从frontend发起的、目标为cartservice的调用链。检查是否存在操作（如AddItem, EmptyCart）的`anomaly_avg_duration`相比`normal_avg_duration`出现数倍甚至十倍以上的延迟突增。这是用户请求层面最直接的症状。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sustained high or spiking values on the node hosting the affected service pods.",
+                "instruction": "获取所有节点的`node_cpu_usage_rate`指标数据。特别关注部署了高延迟服务实例（例如cartservice-0部署于aiops-k8s-07）的节点，检查其P99或中位数在故障时段是否出现异常升高或饱和现象。这是识别基础设施层根本原因的关键。"
+            }
+        ]
+    }
+}
+```

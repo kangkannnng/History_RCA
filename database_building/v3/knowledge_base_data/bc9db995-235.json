@@ -1,0 +1,27 @@
+{
+  "uuid": "bc9db995-235",
+  "fault_type": "pod_processes",
+  "symptom_vector": "forceful pod termination with process count and network activity dropping to zero",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-1 由于进程终止导致pod被强制杀死，表现为 pod_processes 和 pod_network_receive_packets 指标归零",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 (同一服务的其他实例) 的 pod_memory_working_set_bytes 从 14836.05 急剧下降至 0，pod_cpu_usage 亦降为 0，初步指示Pod进程终止",
+      "Step 2: 分析 adservice 服务实例的关键资源指标，其 pod_network_receive_packets 与 pod_network_transmit_packets 在故障窗口内均归零，确认网络活动停止，进一步支持进程不复存在",
+      "Step 3: 结合 metric_analysis_findings 中关于 pod_processes 的上下文 (key_metrics) 与日志、追踪在1秒故障窗口内无数据(无法捕捉快速崩溃)的间接证据，确认了 pod kill 类型的故障"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Process count drops to zero",
+        "instruction": "检查 adservice 相关pod的 pod_processes 指标，确认其进程数是否在故障窗口内降为0，这是Pod被杀死的最直接证据"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Network traffic stops completely (drops to zero)",
+        "instruction": "检查 adservice 相关pod的网络指标（pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets），确认其网络活动是否在故障窗口内完全停止，这佐证了Pod进程已终止"
+      }
+    ]
+  }
+}

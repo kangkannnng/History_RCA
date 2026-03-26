@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "913e1ecf-194",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "node disk full, high disk utilization, disk space exhaustion causing pod performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-01 节点因 node_filesystem_usage_rate 指标飙升（从 50.98% 增至 71.43%，变化率 33.41%）导致磁盘空间耗尽，进而引发该节点上运行的 Pod 性能下降",
+        "reasoning_chain": [
+            "Step 1: 观察到节点级指标 `node_filesystem_usage_rate` 出现最显著的异常，aiops-k8s-01 节点的该指标中位值从 50.98% 飙升至 71.43%，变化率达 33.41%。",
+            "Step 2: 分析故障组件 `aiops-k8s-01` 节点与 Pod 的映射关系，发现 checkoutservice-1, emailservice-1, recommendationservice-2, shippingservice-0, productcatalogservice-1 等多个服务 Pod 运行在该节点上。",
+            "Step 3: 确认调用链 (Trace) 数据中，多个不同节点上的 Redis 实例同时出现操作延迟激增，支持了节点级（特别是可能影响 I/O 的）资源瓶颈是根本原因，而非单一 Pod (如 redis-cart-0) 自身故障的判断。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Significant increase from baseline (e.g., > 30% change rate)",
+                "instruction": "检查 `aiops-k8s-01` 节点的 node_filesystem_usage_rate 指标是否存在异常飙升，重点关注其变化率是否显著（通常超过 20%-30%）。"
+            }
+        ]
+    }
+}
+```

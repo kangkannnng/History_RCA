@@ -1,0 +1,21 @@
+{
+  "uuid": "b168261d-355",
+  "fault_type": "request response port misconfiguration",
+  "symptom_vector": "Target port misconfiguration causing service unreachable, connection refused errors, and request failures",
+  "expert_knowledge": {
+    "root_cause_desc": "Component paymentservice experienced request, response, and port fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is paymentservice (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword request and response in Metric data, with anomalies in error_ratio and server_error_ratio metrics for frontend services, indicating request and response processing issues (From GT key_observations)",
+      "Step 3: Derive Root Cause - Based on the metric anomalies and log evidence of connection refused on port 50051, determined cause is request, response, and port misconfiguration (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Increased error_ratio and server_error_ratio values in metric data, indicating request and response failures",
+        "instruction": "Search for keyword 'request' and 'response' in metric data by checking metrics like error_ratio and server_error_ratio for abnormalities during the fault window"
+      }
+    ]
+  }
+}

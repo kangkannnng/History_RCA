@@ -1,0 +1,66 @@
+```json
+{
+    "uuid": "38ee3d45-82",
+    "fault_type": "client_error_ratio",
+    "symptom_vector": "pod failure with client error ratio spike and connection refused errors",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 组件因端口连接拒绝导致 client_error_ratio 飙升，引发级联故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 组件的 error_ratio 和 server_error_ratio 从 0% 飙升至 28% 左右，表明用户请求失败率显著上升",
+            "Step 2: 分析 cartservice 组件的 client_error_ratio 在 P99 分位数上出现异常（cartservice-1 达 19.0，cartservice-0 达 18.38），同时 rrt_max 和 rrt 指标出现显著延迟变化",
+            "Step 3: 日志中发现多个 frontend 实例（frontend-0, frontend-1, frontend-2）连接 cartservice 的 7070 端口被拒绝，错误信息为 'transport: Error while dialing dial tcp 10.233.46.196:7070: connect: connection refused'",
+            "Step 4: 追踪数据确认 frontend->cartservice 调用链失败，导致 checkoutservice 的 PlaceOrder 操作出现快速失败模式，形成级联故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection|refused",
+                "expected_pattern": "包含 'connection refused' 错误信息",
+                "instruction": "在 cartservice 相关服务的日志中搜索 'connection refused' 关键词，检查端口连接拒绝错误"
+            },
+            {
+                "modality": "Log",
+                "target": "Error|while|dialing",
+                "expected_pattern": "包含 'Error while dialing' 错误信息",
+                "instruction": "在 frontend 和 checkoutservice 日志中搜索 'Error while dialing' 关键词，检查连接建立失败"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "包含 'failure' 错误描述",
+                "instruction": "在相关服务日志中搜索 'failure' 关键词，检查故障描述"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "包含 'unavailable' 状态描述",
+                "instruction": "在相关服务日志中搜索 'unavailable' 关键词，检查服务不可用状态"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "从正常值突然飙升到异常水平",
+                "instruction": "检查 cartservice 各实例的 client_error_ratio 指标是否异常飙升，特别是 P99 分位数"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "从 0% 显著增加到 20% 以上",
+                "instruction": "检查 frontend 和 cartservice 的 error_ratio 指标是否同时出现异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "异常波动或资源耗尽",
+                "instruction": "检查 cartservice 相关 pod 的 CPU 使用率指标，确认是否存在资源瓶颈"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_transmit_bytes",
+                "expected_pattern": "网络流量异常变化",
+                "instruction": "检查 cartservice pod 的网络接收和发送字节数指标，确认网络连接状态"
+            }
+        ]
+    }
+}
+```

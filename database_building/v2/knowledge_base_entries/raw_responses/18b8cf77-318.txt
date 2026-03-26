@@ -1,0 +1,30 @@
+```json
+{
+    "uuid": "18b8cf77-318",
+    "fault_type": "metric",
+    "symptom_vector": "Severe error_ratio and server_error_ratio spike, accompanied by drastic RRT (response round-trip time) increase.",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 由于严重性能退化（错误率激增、响应时间飙升）导致服务故障。",
+        "reasoning_chain": [
+            "Step 1: 从 Metric 数据中观察到 checkoutservice-0 和 checkoutservice-2 两个 Pod 的 `error_ratio` 和 `server_error_ratio` 均从 0% 急剧飙升至 72.73%，表明服务发生了大规模错误。",
+            "Step 2: 同时观察到这两个 Pod 的 `rrt` 中位数从约 6 秒（6845.65ms 和 5933.13ms）激增至超过 180 秒（181362.76ms 和 210430.01ms），`rrt_max` 也呈现数量级的增长，表明服务性能严重劣化，响应极其缓慢。",
+            "Step 3: 进一步确认故障影响范围，发现前端服务（frontend-0, frontend-1, frontend-2）的 `rrt_max` 也显著增长，`error_ratio` 略有上升（0.23-0.3%），shippingservice-0 的 p99 `error_ratio` 也高达 60.63%。这些下游或关联服务的异常模式符合由核心服务 checkoutservice 故障引发的级联效应。",
+            "Step 4: 综合高错误率（指向处理失败）和极端高的响应时间（指向阻塞或长时间等待）这两个关键症状，结合服务间调用依赖，可以推断故障根源于 checkoutservice 自身或其关键依赖，导致其无法正常处理请求并引发上游服务的连锁反应。Log和Trace数据虽不可用，但Metric的异常模式已足够定位根因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Sudden spike (e.g., from 0% to >50%) on a specific service component.",
+                "instruction": "Check the `error_ratio` and `server_error_ratio` metrics for services, focusing on any component showing a dramatic increase. A spike to over 70% is a strong indicator of a service failure."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Sharp increase in median and P99 values (e.g., from seconds to hundreds of seconds).",
+                "instruction": "Compare the RRT (response round-trip time) and RRT_max during the fault window against the baseline. A simultaneous increase with `error_ratio` indicates severe performance degradation, possibly due to resource exhaustion or downstream dependency failure."
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "c6e9faa0-270",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "memory stress with pod restart due to high memory usage, memory exhaustion and memory leak",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice-2 组件因内存压力导致Pod重启，pod_memory_working_set_bytes指标异常，并伴随OpenTelemetry插件依赖缺失",
+        "reasoning_chain": [
+            "Step 1: 观察到 currencyservice-2 的 pod_processes 指标从p99 1.0变化到2.0（66.67%变化率），表明Pod发生重启事件",
+            "Step 2: 分析 currencyservice-2 组件的日志，发现OpenTelemetry插件依赖缺失错误（无法加载@opentelemetry/plugin-http和@opentelemetry/plugin-grpc-js模块）",
+            "Step 3: 确认 currencyservice-2 在故障期间出现内存压力特征，pod_memory_working_set_bytes指标应显示异常升高，同时rrt中位数上升44.01%、rrt_max上升37.54%"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "could not load",
+                "expected_pattern": "Contains plugin loading failure keywords",
+                "instruction": "在 currencyservice-2 的日志中搜索 'could', 'not', 'load' 关键词，检查是否有插件加载失败的错误信息"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Significant increase in memory usage metric",
+                "instruction": "检查 currencyservice-2 的 pod_memory_working_set_bytes 指标是否在故障时间段内异常升高，符合内存泄漏或内存压力模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Process count change from 1.0 to 2.0 (p99)",
+                "instruction": "检查 currencyservice-2 的 pod_processes 指标，确认p99值是否从1.0变化到2.0（66.67%变化率），表明Pod重启事件"
+            }
+        ]
+    }
+}
+```

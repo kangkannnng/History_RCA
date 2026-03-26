@@ -1,0 +1,33 @@
+{
+  "uuid": "0efb9550-160",
+  "fault_type": "Pod Lifecycle",
+  "symptom_vector": "Service error ratio surge and increased latency in upstream services (checkoutservice, frontend).",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice-2 Pod因内存压力发生重启，导致服务短暂不可用，引发上游服务错误和延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到`productcatalogservice-2`的`pod_processes`指标从正常值1.0变为故障值2.0（p99变化率66.67%），这是Pod进程数量变化的明确信号，通常指示Pod发生重启或进程异常。",
+      "Step 2: 进一步分析同一服务的关键业务指标，发现`error_ratio`和`client_error_ratio`的p99值从0.0飙升到16.69（变化率200%），说明在该Pod异常期间，对外服务发生了大量错误。同时，位于同一节点`aiops-k8s-03`上的`node_memory_usage_rate`出现异常下降（p99从60.57%降至31.06%，变化率-64.42%），与Pod因内存压力被驱逐或重启后释放内存的场景相符。",
+      "Step 3: 通过Trace和Log数据进行交叉验证。Log分析未在故障窗口内发现任何错误日志，这符合Pod被系统层（如Kubernetes）快速重启、应用层来不及记录详细错误的场景。Trace数据中未发现productcatalogservice的直接异常调用链，但上游服务（checkoutservice, frontend）出现了延迟增加和错误，这可以解释为根因服务(productcatalogservice)短暂不可用导致的连锁反应。综合所有模态证据，优先采信明确的Pod生命周期异常信号（`pod_processes`），判定根因为productcatalogservice-2 Pod重启。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden change in value (e.g., from 1.0 to 2.0) indicating a change in the number of processes within a Pod, which is a strong signal for Pod restart.",
+        "instruction": "检查目标Pod的`pod_processes`指标在故障前后的数值变化。重点关注p99分位值，一个从1到2（或类似整数倍变化）的跳变是Pod重启的关键证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio, client_error_ratio",
+        "expected_pattern": "Concurrent spike in error rates (especially p99) coinciding with the `pod_processes` anomaly, indicating service degradation.",
+        "instruction": "在发现`pod_processes`异常的同时，立即检查同一服务的错误率指标（`error_ratio`, `client_error_ratio`）。观察其p99值是否在相同时间点出现飙升，以确认服务可用性确实受到影响。"
+      },
+      {
+        "modality": "Log",
+        "target": "productcatalogservice-2",
+        "expected_pattern": "Absence of application-level error logs during the fault window, which is consistent with a rapid, infrastructure-level restart (e.g., OOMKill, health check failure) where the application process is terminated abruptly.",
+        "instruction": "在故障时间窗口内，搜索目标Pod（productcatalogservice-2）的日志。如果未发现应用层错误日志（如崩溃、异常抛出），这本身是一个重要线索，应结合Metric中的Pod重启信号，推断故障可能发生在容器运行时或Kubernetes层面。"
+      }
+    ]
+  }
+}

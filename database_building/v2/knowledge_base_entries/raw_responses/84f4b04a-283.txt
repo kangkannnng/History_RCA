@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "84f4b04a-283",
+    "fault_type": "内存指标异常",
+    "symptom_vector": "RPC connection refused errors, high latency (rrt_max spike), HTTP 500 errors, pod processes count changes",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice因所在节点内存压力（aiops-k8s-05节点内存使用率上升）导致Pod进程异常，进而引发连接拒绝与性能退化",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据显示aiops-k8s-05节点的node_memory_usage_rate在故障期间从29.68%上升至42.25%（变化率34.93%），表明该节点存在显著的内存压力。",
+            "Step 2: 通过node-pod映射关系分析，发现运行在aiops-k8s-05节点上的关键Pod包括currencyservice-0。该Pod的metric指标同时出现异常：rrt_max从5037飙升到65873（+171.59%），且pod_processes从1.0变为2.0，暗示进程可能因内存问题发生了重启或异常。",
+            "Step 3: 结合Log与Trace数据验证：Log中出现大量指向currencyservice（IP: 10.233.39.78:7000）的'connection refused'与'Error while dialing'错误；Trace数据确认前端服务调用CurrencyService时失败并返回状态码14（UNAVAILABLE）。这些现象与内存压力导致服务不可用的推断相符。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Significant increase in memory usage rate on the node hosting the suspect service.",
+                "instruction": "检查故障时间段内，运行currencyservice组件的节点（aiops-k8s-05）的node_memory_usage_rate指标是否存在显著上升趋势。需关注中位数与P99值的变化。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Change in the number of processes within the suspect pod (e.g., from 1.0 to 2.0), which may indicate process restart or fork due to resource pressure.",
+                "instruction": "检查故障时间段内，currencyservice相关Pod（特别是currencyservice-0）的pod_processes指标数值是否发生突变，这通常是Pod内部进程生命周期异常（如OOM重启）的信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "Connection, refused, Error while dialing",
+                "expected_pattern": "Log messages containing keywords like 'connection refused', 'Error while dialing', pointing to a specific service endpoint (e.g., IP:Port).",
+                "instruction": "在日志中搜索包含'connection refused'和'Error while dialing'等关键词的错误信息，并确认被拒绝连接的目标地址是否为疑似故障的服务（如currencyservice的IP与端口）。"
+            },
+            {
+                "modality": "Trace",
+                "target": "status_code 14 (UNAVAILABLE)",
+                "expected_pattern": "Trace spans showing RPC calls to the suspect service failing with status code 14 (gRPC UNAVAILABLE), often accompanied by connection error descriptions.",
+                "instruction": "分析调用链数据，查找对currencyservice服务（如CurrencyService/GetSupportedCurrencies, CurrencyService/Convert）的调用，是否大量失败并返回状态码14（UNAVAILABLE），以及错误信息是否描述连接问题。"
+            }
+        ]
+    }
+}
+```

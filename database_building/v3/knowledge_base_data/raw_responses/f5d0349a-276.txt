@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "f5d0349a-276",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-08 节点因 node_memory_usage_rate 异常导致内存压力，影响该节点上运行的服务性能",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 指标从正常值 14513799700.48 下降到 12925814046.72 (p99变化率 0.1157)，表明可用内存减少约 1.6GB",
+            "Step 2: 分析 aiops-k8s-08 节点上运行的 paymentservice-0 和 productcatalogservice-2 服务出现性能异常，rrt_max 和 error_ratio 指标显著恶化",
+            "Step 3: 确认节点内存压力与节点上服务性能退化存在时间关联性，符合节点级故障向上传播的模式"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Available memory decreasing significantly from baseline",
+                "instruction": "检查 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 指标是否持续下降，确认内存可用量减少"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Increased disk read activity",
+                "instruction": "检查 aiops-k8s-08 节点的 node_disk_read_bytes_total 指标是否异常增加，确认是否存在内存交换导致的磁盘I/O增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increased disk read time",
+                "instruction": "检查 aiops-k8s-08 节点的 node_disk_read_time_seconds_total 指标是否异常增加，确认磁盘读取延迟是否恶化"
+            }
+        ]
+    }
+}
+```

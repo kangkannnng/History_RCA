@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "192019ef-486",
+    "fault_type": "resource_saturation",
+    "symptom_vector": "Latency increase in downstream services (e.g., currency conversion), potentially accompanied by HTTP 302 redirects (indicating retries or errors).",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice-1 Pod的CPU使用率过高导致服务响应延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察调用链(Trace)数据，发现多个上层服务（如checkoutservice）调用currencyservice时出现延迟增加。例如，从checkoutservice-1调用currencyservice-1的特定操作延迟有所上升。",
+            "Step 2: 检查currencyservice的日志(Log)和指标(Metric)。发现该服务的错误率(如client_error_ratio, error_ratio)存在异常升高的迹象，且响应中出现HTTP 302状态码，暗示了处理异常或重定向行为。",
+            "Step 3: 结合故障描述(High CPU utilization)和Metric分析中的关键发现，聚焦于Pod级别的资源指标。尽管在提供的异常metric列表中未直接列出`pod_cpu_usage`的具体数值，但基于症状链（延迟、错误码）和根因描述，推理出根本原因是currencyservice-1的Pod CPU使用率饱和，导致其处理能力下降，进而引发上游调用延迟和错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "currencyservice rrt / rrt_max",
+                "expected_pattern": "数值相对于基线（normal_median/fault_median）有显著升高。例如，currencyservice-1的rrt_max从3953.0上升到4247.0，其p99值有1.4494倍的变化。",
+                "instruction": "在调用链数据中，筛选出目标为`currencyservice`（特别是`currencyservice-1`）的调用记录，检查其`rrt`或`rrt_max`指标在故障时间窗口内的数值是否显著高于正常基线。"
+            },
+            {
+                "modality": "Log",
+                "target": "\"http.resp.status\" AND \"302\"",
+                "expected_pattern": "日志条目中包含HTTP响应状态码302。该状态码通常表示临时重定向，在服务异常场景下，可能意味着内部错误或服务降级导致的请求重试。",
+                "instruction": "搜索`currencyservice-1`在故障时间窗口内的应用日志，查找是否频繁出现包含`http.resp.status`和状态码`302`的日志行。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "该Pod的CPU使用率指标（可能表现为使用率百分比、使用量或负载）在故障窗口内出现尖峰或持续处于高位（如接近或超过Pod的CPU Limit）。",
+                "instruction": "查询`currencyservice-1` Pod的CPU使用率相关指标（例如`pod_cpu_usage`或其等效指标）。确认在故障时间段内，该指标是否存在异常峰值或持续高负荷。注意：在当前提供的Full Context数据中，此关键指标未在列出的`available_metric_names`或异常列表中直接体现，这可能是数据收集的疏漏，在构建知识库规则时需强调此检查的必要性。"
+            }
+        ]
+    }
+}
+```

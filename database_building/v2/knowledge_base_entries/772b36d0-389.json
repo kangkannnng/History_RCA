@@ -1,0 +1,33 @@
+{
+  "uuid": "772b36d0-389",
+  "fault_type": "Database Storage Layer Performance Degradation (TiKV)",
+  "symptom_vector": "Severe latency spike in product catalog queries, high error rates across services, and database storage node health degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB-TiKV存储节点性能问题导致Region不可用，引发级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到 `tidb-pd` 组件的 `store_unhealth_count` 指标P99从正常值0激增至故障期间的1（变化率200%），这明确指示了TiDB集群中有存储节点（TiKV）处于不健康状态。",
+      "Step 2: 在Log数据中，发现来自 `productcatalogservice-1`、`frontend` 等多个上游服务的错误日志中，高频出现关键词 'Error 9005 (HY000): Region is unavailable'（例如，productcatalogservice-1中出现120次），这直接指向底层数据库存储层（TiKV）的区域不可用故障。",
+      "Step 3: 在Trace数据中，进一步验证了此故障的影响：调用链 `frontend -> productcatalogservice` 的响应时间（rrt）从正常的 ~9.6秒 激增至异常的 ~39880.9秒（约4000倍增长），并且这些慢追踪和失败请求的状态码消息均为 'Error 9005 (HY000): Region is unavailable'，这构成了从存储节点异常到应用层性能劣化的完整证据链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "store_unhealth_count",
+        "expected_pattern": "Sudden increase from 0 to 1 or higher, indicating one or more storage nodes are unhealthy.",
+        "instruction": "检查 TiDB PD 组件的 `store_unhealth_count` 指标。如果该值在故障期间从基线0显著上升（例如，P99或中位数>0），则表明 TiKV 存储层存在节点健康问题。这是根因的早期信号。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "高频出现（如单实例超百次），且日志来源为直接依赖数据库的服务（如 productcatalogservice）。",
+        "instruction": "在 productcatalogservice、frontend 等服务的错误日志中搜索关键词 'Error 9005 (HY000): Region is unavailable'。如果发现该错误模式在故障期间集中、高频出现，则强烈指向 TiDB TiKV 层的 Region 可用性问题。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice rrt & error status",
+        "expected_pattern": "针对 productcatalogservice 的调用（如 GetProduct）出现超常延迟（如增长千倍以上），且追踪状态码包含 'Error 9005 (HY000): Region is unavailable'。",
+        "instruction": "分析涉及 productcatalogservice（特别是对 TiDB 的查询操作）的调用链追踪。检查其响应时间（rrt）是否出现灾难性增长，并同时检查这些慢追踪或失败追踪的详细状态消息。如果高延迟与 'Region is unavailable' 错误相关联，则确认了应用性能劣化与数据库存储故障的因果关系。"
+      }
+    ]
+  }
+}

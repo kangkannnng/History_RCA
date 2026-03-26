@@ -1,0 +1,27 @@
+{
+  "uuid": "b531523c-584",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-01 节点因 node_memory_usage_rate 异常导致内存压力",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-01 节点的 node_memory_usage_rate 指标在故障时段出现异常变化",
+      "Step 2: 分析 node_memory_MemAvailable_bytes 指标显示可用内存显著减少，符合内存压力特征",
+      "Step 3: 确认该节点上运行的关键服务（如 emailservice-1）出现调用延迟增加，符合节点资源紧张导致的连锁反应"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "异常升高或波动",
+        "instruction": "检查 aiops-k8s-01 节点的 node_memory_usage_rate 指标在故障时段是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "显著下降",
+        "instruction": "检查 aiops-k8s-01 节点的 node_memory_MemAvailable_bytes 指标是否在故障时段显著减少"
+      }
+    ]
+  }
+}

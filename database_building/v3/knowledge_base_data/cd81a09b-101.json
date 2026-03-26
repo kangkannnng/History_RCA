@@ -1,0 +1,63 @@
+{
+  "uuid": "cd81a09b-101",
+  "fault_type": "pod_processes",
+  "symptom_vector": "pod killed with process termination and cessation of network activity",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice 因 pod_processes 降为零导致 pod 被强制终止",
+    "reasoning_chain": [
+      "Step 1: 从 Trace 数据观察到 frontend 服务的请求比例异常，暗示下游服务 recommendationservice 可能故障",
+      "Step 2: 分析 Metric 数据发现 recommendationservice 的 pod_network_receive_packets 和 pod_network_transmit_packets 指标从正常值降为零，表明网络活动停止",
+      "Step 3: 检查 pod_processes 指标，对于受影响 pod 如 redis-cart-0 降为零，结合 pod_memory_working_set_bytes 降为零的模式，确认 pod 被杀死"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Request proportion anomalies in frontend service calls",
+        "instruction": "检查 Trace 数据中 frontend 服务的请求比例是否异常，特别是调用 recommendationservice 的链路"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "Sudden drop to zero or abnormal fluctuations",
+        "instruction": "检查 recommendationservice 的 request 指标是否骤降或异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "Sudden drop to zero or abnormal fluctuations",
+        "instruction": "检查 recommendationservice 的 response 指标是否骤降或异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Drop to zero indicating memory release",
+        "instruction": "检查 recommendationservice pod 的 pod_memory_working_set_bytes 是否降为零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Drop to zero indicating no inbound traffic",
+        "instruction": "检查 recommendationservice pod 的 pod_network_receive_bytes 是否降为零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Drop to zero indicating no inbound packets",
+        "instruction": "检查 recommendationservice pod 的 pod_network_receive_packets 是否降为零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Drop to zero indicating no outbound traffic",
+        "instruction": "检查 recommendationservice pod 的 pod_network_transmit_bytes 是否降为零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Drop to zero indicating no outbound packets",
+        "instruction": "检查 recommendationservice pod 的 pod_network_transmit_packets 是否降为零"
+      }
+    ]
+  }
+}

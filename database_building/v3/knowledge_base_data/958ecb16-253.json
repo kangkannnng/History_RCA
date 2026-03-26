@@ -1,0 +1,27 @@
+{
+  "uuid": "958ecb16-253",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion and saturation leading to widespread service latency increases and error ratio spikes",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-04 因 node_memory_usage_rate 异常导致的节点内存压力，进而引发其上运行服务的性能连锁反应。",
+    "reasoning_chain": [
+      "Step 1: 观察到节点级指标 node_memory_MemAvailable_bytes 显著下降，表明系统内存可用量锐减，这是内存压力的直接表现。",
+      "Step 2: 分析故障节点 aiops-k8s-04 上的服务调用链，发现 frontend、checkoutservice 等关键服务响应时间 (rrt_max) 激增，特别是 frontend->cartservice 的 AddItem 操作延迟飙升，这与节点资源瓶颈导致的服务处理能力下降的特征相符。",
+      "Step 3: 确认 aiops-k8s-04 上运行的 checkoutservice-0 等服务出现异常，并通过调用链影响下游，结合节点内存指标异常，推断根因是节点内存资源耗尽引发应用级性能劣化。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Percentage value abnormally high, indicating memory saturation",
+        "instruction": "检查所有节点的 node_memory_usage_rate 指标，寻找持续接近或达到 100% 的节点，确认内存使用率是否异常飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Available memory bytes drastically decreasing over the anomaly period",
+        "instruction": "检查所有节点的 node_memory_MemAvailable_bytes 指标，寻找在故障时间段内可用内存急剧下降的节点，尤其是 aiops-k8s-04。"
+      }
+    ]
+  }
+}

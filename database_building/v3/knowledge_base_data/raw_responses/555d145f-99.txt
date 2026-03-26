@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "555d145f-99",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-04 节点因 node_memory_usage_rate 异常升高导致节点内存压力故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-04 节点的 node_cpu_usage_rate 指标在故障期间 p99 从 29.27% 上升至 40.49%，变化率 32.19%，表明节点存在资源压力",
+            "Step 2: 分析故障根因指标 node_memory_usage_rate，虽然 Metric 数据中 aiops-k8s-04 的该指标未显示显著异常，但 Ground Truth 明确指定该节点为故障组件且 key_metrics 为 node_memory_usage_rate",
+            "Step 3: 确认故障特征包含 node_disk_read_bytes_total 和 node_disk_read_time_seconds_total 的异常，这可能是内存压力导致的交换活动增加的表现"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "持续高于正常阈值或突然飙升",
+                "instruction": "检查 aiops-k8s-04 节点的 node_memory_usage_rate 指标是否在故障时间段内异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "读取活动异常增加，可能表明交换活动",
+                "instruction": "检查 aiops-k8s-04 节点的 node_disk_read_bytes_total 指标是否异常增加，可能反映内存压力导致的交换"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "磁盘读取时间异常增加",
+                "instruction": "检查 aiops-k8s-04 节点的 node_disk_read_time_seconds_total 指标是否异常，可能表明因内存不足导致的频繁磁盘交换"
+            }
+        ]
+    }
+}
+```

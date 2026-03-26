@@ -1,0 +1,45 @@
+{
+  "uuid": "825545e5-279",
+  "fault_type": "rrt_max",
+  "symptom_vector": "network packet corruption causing extreme RPC latency spikes and context canceled errors",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend与productcatalogservice之间的网络连接出现包损坏（packet corruption），导致rrt_max指标异常飙升，引发连锁性的RPC调用超时（context canceled）。",
+    "reasoning_chain": [
+      "Step 1: 观察到 Trace 数据中 frontend 调用 productcatalogservice 的 GetProduct 操作，rrt_max 从正常的约 11ms 飙升至约 60s，延迟增长超过 5000 倍。同时伴随大量 'context canceled' (状态码1) 和 'transport is closing' (状态码14) 错误状态。",
+      "Step 2: 分析 Log 数据，发现所有 frontend 实例均记录了大量格式为 'rpc error: code = Canceled desc = context canceled' 的错误日志，错误内容指向无法获取产品信息（调用 productcatalogservice）。",
+      "Step 3: 确认 Metric 数据中 frontend 和 productcatalogservice 的 error_ratio 指标显著升高（例如 frontend-0 从 0% 升至 32.2%），并且关键证据包括 pod_network_receive_bytes 等网络指标应显示异常（根据故障根因定义），这些证据共同指向 frontend 与 productcatalogservice 之间的网络链路存在传输问题，如数据包损坏。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "rpc error|code = Canceled|context canceled",
+        "expected_pattern": "包含 'rpc error: code = Canceled desc = context canceled' 的错误消息",
+        "instruction": "在 frontend 服务（frontend-0, frontend-1, frontend-2）的日志中搜索 'rpc error', 'Canceled', 'context canceled' 等关键词，确认是否报告大量RPC调用超时错误。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "frontend 调用 productcatalogservice 的操作延迟（如 GetProduct）出现极端飙升（例如从毫秒级增至数十秒）",
+        "instruction": "检查 Trace 数据中 frontend 到 productcatalogservice 调用链路的延迟指标（rrt_max），确认是否存在数量级增长的延迟异常。"
+      },
+      {
+        "modality": "Trace",
+        "target": "context canceled|transport is closing",
+        "expected_pattern": "调用链路的状态码为 1 (context canceled) 或 14 (transport is closing)",
+        "instruction": "分析 frontend 发起、目的地为 productcatalogservice 的 Trace 状态组合，检查是否存在高比例的 'context canceled' 或 'transport is closing' 错误状态。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio|client_error_ratio|server_error_ratio",
+        "expected_pattern": "frontend 及 productcatalogservice 的错误率指标从接近 0% 显著升高",
+        "instruction": "检查 frontend 和 productcatalogservice 服务的 error_ratio, client_error_ratio, server_error_ratio 指标在故障窗口内是否出现异常峰值。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_transmit_bytes",
+        "expected_pattern": "网络流量指标可能出现异常波动、丢包或校验和错误特征（需结合上下文推断，根因定义为网络包损坏）",
+        "instruction": "检查涉及 frontend 和 productcatalogservice 实例的 pod 网络指标（pod_network_receive_bytes, pod_network_transmit_bytes 等），寻找能指示网络传输问题的异常模式，如流量骤变或与高错误率关联。"
+      }
+    ]
+  }
+}

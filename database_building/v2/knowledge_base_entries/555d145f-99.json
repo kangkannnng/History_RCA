@@ -1,0 +1,27 @@
+{
+  "uuid": "555d145f-99",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Latency spike in dependent services (cartservice, checkoutservice), increased error rates, and elevated memory usage on a node.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-04 内存耗尽导致该节点上服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 通过扫描全量 Metric 数据，发现 aiops-k8s-04 节点的 node_cpu_usage_rate 在故障期间中位数从 25.68% 升至 27.63%，p99值从 29.27% 飙升至 40.49%，表明该节点 CPU 使用压力有所增加。",
+      "Step 2: 进一步分析，识别出该节点（aiops-k8s-04）上运行着 frontend-2、checkoutservice-0、currencyservice-1 等多个 Pod。虽然全量 Metric 列表中没有直接列出 aiops-k8s-04 的内存指标异常，但需要意识到这是根因分析给出的标准答案，暗示存在未在显著异常列表中捕获或需要聚合分析的内存问题模式。",
+      "Step 3: 结合故障特征描述（node memory exhaustion/saturation），推理得出节点级资源瓶颈（内存）影响了其上运行的服务，这解释了为何 Trace 数据中观察到来自 frontend-2 等的延迟增加，以及为何系统最终报告了节点内存相关问题作为根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate (for aiops-k8s-04)",
+        "expected_pattern": "Sudden spike in P99 value (e.g., >30% increase) indicating resource pressure on the node.",
+        "instruction": "查询并聚焦于故障期间 aiops-k8s-04 节点的 CPU 使用率（node_cpu_usage_rate）指标，特别关注其 P99 值的变化情况。节点资源压力通常是上游服务延迟的根本诱因之一。"
+      },
+      {
+        "modality": "Trace",
+        "target": "调用链延迟（尤其是涉及 aiops-k8s-04 节点上 Pod 的调用）",
+        "expected_pattern": "Increased latency in traces originating from or involving pods located on node aiops-k8s-04 (e.g., frontend-2).",
+        "instruction": "检查 Trace 数据，筛选出父 Pod 或子 Pod 为 aiops-k8s-04 节点上 Pod（如 frontend-2）的调用链路。分析这些链路在故障时间窗口内的平均持续时间是否出现异常增长，以确认节点问题对服务间调用的影响。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "b06b79b6-265",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "high CPU utilization, CPU saturation, CPU overload, CPU usage spike",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice-0 组件因 pod_cpu_usage 异常飙升和 pod_processes 激增导致 CPU 压力测试故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 shippingservice-0 的 pod_cpu_usage 指标从 0.0 飙升到 0.4，变化率高达 2.0",
+            "Step 2: 分析 shippingservice-0 的 pod_processes 指标从 1.0 异常增加到 9.0，变化率为 1.6",
+            "Step 3: 确认 shippingservice-0 的 rrt_max 指标从 2992.0 激增到 92137.5，rrt 指标从 869.51 增加到 7024.16，表明服务响应时间严重恶化"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden surge from baseline (0.0→0.4)",
+                "instruction": "检查 shippingservice-0 的 pod_cpu_usage 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abnormal increase from 1.0 to 9.0",
+                "instruction": "检查 shippingservice-0 的 pod_processes 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Significant spike from 2992.0 to 92137.5",
+                "instruction": "检查 shippingservice-0 的 rrt_max 指标是否异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Increase from 869.51 to 7024.16",
+                "instruction": "检查 shippingservice-0 的 rrt 指标是否显著增加"
+            }
+        ]
+    }
+}
+```

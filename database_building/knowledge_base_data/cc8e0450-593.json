@@ -1,0 +1,28 @@
+{
+  "uuid": "cc8e0450-593",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "Node disk full with high disk utilization, disk space exhaustion, and disk saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component aiops-k8s-08 experienced node_filesystem_usage_rate fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is aiops-k8s-08 (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword node_filesystem_usage_rate in Metric data showing abnormal increase from 53.2% to 78.16% with median change ratio 37.99% (From GT key_observations and Full Context metric data)",
+      "Step 3: Check Observation - Keyword http.resp.status and 302 not detected in Log data during fault timeframe, as per log analysis findings indicating no logs found (From GT key_observations, but not observed in Full Context)",
+      "Step 4: Derive Root Cause - Based on the metric anomaly of node_filesystem_usage_rate on aiops-k8s-08, determined cause is node_filesystem_usage_rate fault (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Metric value increased significantly on node aiops-k8s-08, e.g., from normal median 53.2% to fault median 78.16% with 37.99% median change ratio",
+        "instruction": "Search for metric node_filesystem_usage_rate on node aiops-k8s-08 and check for abnormal increase above thresholds during the fault period"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entries containing http.resp.status with value 302, potentially indicating errors or redirections due to disk-related issues",
+        "instruction": "Search for keywords 'http.resp.status' and '302' in logs from node aiops-k8s-08 or related services during the fault timeframe 2025-06-28T10:10:26Z to 2025-06-28T10:27:26Z"
+      }
+    ]
+  }
+}

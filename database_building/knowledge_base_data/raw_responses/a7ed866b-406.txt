@@ -1,0 +1,54 @@
+{
+    "uuid": "a7ed866b-406",
+    "fault_type": "request response port",
+    "symptom_vector": "Checkoutservice experiencing port misconfiguration leading to connection refused errors, high request/response error rates, and service unavailability.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [checkoutservice] experienced [request, response, port] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [checkoutservice] (From Ground Truth instance field).",
+            "Step 2: Check Observation - Found keyword [request error] in Log, as evidenced in log messages with 'message': 'request error' in Full Context raw_log_result.",
+            "Step 3: Check Observation - Found keyword [transport Error while dialing] in Log, indicated by error messages containing 'transport: Error while dialing dial tcp 10.233.61.165:5050' in Full Context raw_log_result.",
+            "Step 4: Check Observation - Found keyword [unavailable] in Log, shown in error codes 'code = Unavailable' in Full Context log entries.",
+            "Step 5: Check Observation - Found keyword [request response] in Metric, via abnormal error_ratio and server_error_ratio metrics rising from 0.0 to 0.32 in Full Context raw_metric_result.",
+            "Step 6: Derive Root Cause - Based on the above features, determined cause is [request, response, port] fault, as port misconfig (e.g., port 5050) leads to connection refused and request/response errors."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status 302",
+                "expected_pattern": "HTTP response status 302 logged in error or redirect contexts",
+                "instruction": "Search for keyword 'http.resp.status' with value '302' in log entries during fault period"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "Log messages containing 'request error', such as in Full Context with 'message': 'request error'",
+                "instruction": "Search for keyword 'request error' in logs from services like frontend"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "RPC error messages in logs, e.g., 'rpc error: code = Unavailable'",
+                "instruction": "Search for 'rpc' and 'error' in log entries to identify RPC failures"
+            },
+            {
+                "modality": "Log",
+                "target": "transport Error while dialing",
+                "expected_pattern": "Connection dialing errors in logs, specifically 'transport: Error while dialing' with IP and port",
+                "instruction": "Search for 'transport: Error while dialing' in logs to detect connection issues"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Unavailable error codes in logs, such as 'code = Unavailable' in error descriptions",
+                "instruction": "Search for 'unavailable' in log error codes or messages"
+            },
+            {
+                "modality": "Metric",
+                "target": "request response",
+                "expected_pattern": "Abnormal metrics related to requests and responses, like high error_ratio or server_error_ratio",
+                "instruction": "Check metrics such as error_ratio and server_error_ratio for significant increases during fault time"
+            }
+        ]
+    }
+}

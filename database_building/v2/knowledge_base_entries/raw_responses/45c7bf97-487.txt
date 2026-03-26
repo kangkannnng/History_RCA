@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "45c7bf97-487",
+    "fault_type": "latency_timeout",
+    "symptom_vector": "Severe latency spike in productcatalogservice.GetProduct (11s -> 55-57s), causing cascading `context canceled` errors in dependent services (frontend, checkoutservice, recommendationservice) and increased HTTP 500 responses.",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice内部方法错误或运行时异常导致处理延迟飙升至数十秒，引发调用链大规模超时。",
+        "reasoning_chain": [
+            "Step 1: 从Trace数据中观察到，productcatalogservice的GetProduct接口延迟从正常的平均约11秒飙升至异常期间的5500-5700万毫秒（55-57秒），延迟增长超过5000倍，是系统最严重的性能瓶颈。",
+            "Step 2: 分析Log数据，发现前端（frontend）、结账（checkoutservice）等服务出现大量`rpc error: code = Canceled desc = context canceled`和`request error`日志，这些错误指向对productcatalogservice的调用因等待超时而被主动取消。",
+            "Step 3: 检查Metric数据，确认productcatalogservice-1的Pod CPU使用率（pod_cpu_usage）从0.0异常上升至0.4，同时其客户端错误率（client_error_ratio）和总错误率（error_ratio）从0.0激增至53.05，表明该服务节点自身处理能力出现严重问题，验证了内部故障的假设。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "rrt_max (Request Response Time Max)",
+                "expected_pattern": "Severe latency spike in calls to productcatalogservice/GetProduct, e.g., from ~11 seconds to over 50 seconds.",
+                "instruction": "全面扫描调用链数据，识别出延迟（rrt）异常增长的节点和接口。重点检查 productcatalogservice 的 GetProduct 接口，对比正常期与异常期的平均耗时与最大耗时。"
+            },
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "Logs from services like frontend and checkoutservice containing high-frequency 'rpc error: code = Canceled desc = context canceled' errors, especially in calls targeting productcatalogservice.",
+                "instruction": "搜索包含 'context canceled' 关键词的错误日志。分析这些错误出现在哪些服务中，以及这些错误的RPC调用目标服务是否是 productcatalogservice。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Anomalous increase in CPU usage for pods belonging to productcatalogservice, indicating potential internal processing issues.",
+                "instruction": "定位属于 productcatalogservice 服务的所有Pod，检查其 'pod_cpu_usage' 指标在故障时间段内是否出现异常上升。"
+            }
+        ]
+    }
+}
+```

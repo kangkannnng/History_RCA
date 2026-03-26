@@ -1,0 +1,71 @@
+```json
+{
+    "uuid": "7984364a-195",
+    "fault_type": "adservice-getRandomAds-latency",
+    "symptom_vector": "high JVM latency with elevated request latency and JVM response delay",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-0 组件因 Java 异常和 adservice-getRandomAds-latency 延迟规则触发导致响应时间异常飙升",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 的 client_error_ratio 和 error_ratio 指标的 p99 值从 0.51 异常增加到 2.87，表明服务错误率显著上升",
+            "Step 2: 分析 adservice-0 的日志发现 java.lang.reflect.InvocationTargetException 异常和 AdService-getRandomAds-latency-1749564659 延迟规则触发记录",
+            "Step 3: 确认 adservice-0 的 rrt_max 指标从正常 5.4 秒异常增加到 499 秒（92倍延迟），并伴随大量 context deadline exceeded 错误"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "Contains AdService-getRandomAds-latency rule execution logs",
+                "instruction": "在 adservice-0 的日志中搜索 AdService-getRandomAds-latency 相关规则触发记录"
+            },
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "Contains context deadline exceeded errors",
+                "instruction": "在 frontend 服务的日志中搜索 deadline exceeded 超时错误"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Contains java.lang.reflect.InvocationTargetException exceptions",
+                "instruction": "在 adservice-0 的日志中搜索 InvocationTargetException Java 异常"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Contains Byteman agent transformation logs",
+                "instruction": "在 adservice-0 的日志中搜索 transformlistener 或 Byteman 相关日志"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "frontend->adservice calls with high latency and deadline exceeded errors",
+                "instruction": "检查 frontend 到 adservice 的调用链路，分析延迟异常和超时错误"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Abnormal response time metrics",
+                "instruction": "检查 adservice-0 和 frontend 的 response 指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "High latency values",
+                "instruction": "检查 adservice-getRandomAds-latency 指标是否异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Elevated round-trip time",
+                "instruction": "检查 adservice-0 和 frontend 的 rrt 指标是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Spike in maximum round-trip time",
+                "instruction": "检查 adservice-0 的 rrt_max 指标是否出现异常峰值"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+{
+  "uuid": "53d5d618-289",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice, cartservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty components are [checkoutservice, cartservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [rrt] and [rrt_max] in Metric data with severe anomalies (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [frontend] in Trace data with latency anomalies (From GT key_observations)",
+      "Step 4: Check Observation - Found keywords [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric data (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "checkoutservice-2: rrt_max increased 19466% from 103221ms to 7626032ms, rrt from 4151ms to 295049ms; cartservice-0: rrt_max increased 19774% from 7615ms to 1341060ms",
+        "instruction": "Search for metric [rrt] and [rrt_max] values for checkoutservice and cartservice instances, check for abnormal increases"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "frontend->checkoutservice PlaceOrder latency increased from 143518ms to 7312706ms (51x)",
+        "instruction": "Search for trace data containing keyword 'frontend' in service_name or parent_pod fields, check for latency anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network metrics showing abnormal patterns for checkoutservice and cartservice pods",
+        "instruction": "Check if network metrics [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] are available for checkoutservice and cartservice pods"
+      }
+    ]
+  }
+}

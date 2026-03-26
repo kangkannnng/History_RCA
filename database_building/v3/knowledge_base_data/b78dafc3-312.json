@@ -1,0 +1,93 @@
+{
+  "uuid": "b78dafc3-312",
+  "fault_type": "rrt_max",
+  "symptom_vector": "network packet corruption causing extreme latency spikes and connection timeouts between services",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice 与 productcatalogservice 之间的网络通信因数据包损坏导致 rrt_max 指标异常飙升，引发连接超时",
+    "reasoning_chain": [
+      "Step 1: 观察到 recommendationservice 的 rrt_max 指标从正常 3852.31μs 飙升至 499103975.85μs，增长约129,000倍",
+      "Step 2: 分析 recommendationservice-2 日志中出现 'Connection timed out' 错误，grpc_status=14，表明网络连接问题",
+      "Step 3: 确认 trace 数据中 recommendationservice->productcatalogservice 调用链出现极端延迟，且网络传输指标 pod_network_receive_bytes 和 pod_network_transmit_bytes 存在异常模式"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Extreme latency increase in service-to-service calls",
+        "instruction": "检查 recommendationservice 与 productcatalogservice 之间的调用链是否存在异常延迟，特别是 rrt_max 指标的极端飙升"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Abnormal proportion of failed requests in call chains",
+        "instruction": "分析 frontend->recommendationservice 和 recommendationservice->productcatalogservice 调用链中失败请求的比例异常"
+      },
+      {
+        "modality": "Log",
+        "target": "context|canceled",
+        "expected_pattern": "Context canceled errors due to timeout propagation",
+        "instruction": "在 frontend 和 recommendationservice 日志中搜索 'context canceled' 关键词，确认超时传播"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status|302",
+        "expected_pattern": "HTTP 302 status codes indicating redirection issues",
+        "instruction": "检查日志中是否存在 HTTP 302 状态码，可能指示网络重定向问题"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Request error messages with RPC failures",
+        "instruction": "搜索包含 'request error' 的日志条目，特别是与 RPC 调用失败相关的错误"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc|error",
+        "expected_pattern": "RPC error messages with specific error codes",
+        "instruction": "检查 recommendationservice 日志中的 RPC 错误，特别是 grpc_status=14 的连接超时错误"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Timeout-related error messages",
+        "instruction": "在 recommendationservice 日志中搜索 'timeout' 关键词，确认连接超时问题"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Service unavailable errors",
+        "instruction": "检查 trace 状态码中是否出现 UNAVAILABLE (状态码14) 错误"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt|rrt_max",
+        "expected_pattern": "Extreme spike in response time metrics",
+        "instruction": "检查 recommendationservice 的 rrt 和 rrt_max 指标是否出现极端飙升，特别是从微秒级到秒级的变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "request|response",
+        "expected_pattern": "Abnormal request/response patterns",
+        "instruction": "分析服务间的请求和响应指标是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error|client_error_ratio|error|error_ratio",
+        "expected_pattern": "Increased error rates across multiple services",
+        "instruction": "检查 frontend、recommendationservice 和 productcatalogservice 的错误率指标是否同时上升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Memory usage anomalies",
+        "instruction": "检查 recommendationservice 和 productcatalogservice 的内存使用指标是否存在异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+        "expected_pattern": "Network traffic pattern anomalies indicating packet corruption",
+        "instruction": "分析 recommendationservice 和 productcatalogservice 的网络传输指标，检查是否存在数据包损坏的迹象"
+      }
+    ]
+  }
+}

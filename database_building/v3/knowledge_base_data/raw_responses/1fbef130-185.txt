@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "1fbef130-185",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload with high CPU usage and CPU saturation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-03 节点因 node_cpu_usage_rate 指标异常飙升导致节点级CPU压力故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-03 节点的 node_cpu_usage_rate 指标从正常中位数26.58%飙升至故障中位数92.81%，变化率高达110.95%",
+            "Step 2: 分析 aiops-k8s-03 节点的 node_memory_usage_rate 指标也从32.2%上升至48.21%，变化率为39.82%，显示节点级资源耗尽",
+            "Step 3: 确认运行在 aiops-k8s-03 节点上的多个服务（shippingservice-2, recommendationservice-1, adservice-0, paymentservice-1, cartservice-0, frontend-0）出现rrt_max指标大幅上升，符合节点资源争用导致的级联性能问题特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden increase from baseline (normal_median=26.58% to fault_median=92.81%, change_ratio=1.1095)",
+                "instruction": "检查 aiops-k8s-03 节点的 node_cpu_usage_rate 指标是否出现异常飙升，重点关注中位数变化率是否超过阈值"
+            }
+        ]
+    }
+}
+```

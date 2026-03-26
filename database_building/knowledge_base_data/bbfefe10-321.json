@@ -1,0 +1,28 @@
+{
+  "uuid": "bbfefe10-321",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload, high CPU usage, CPU saturation, CPU spike, node cpu stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-06] experienced [node_cpu_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-06] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [node_cpu_usage_rate] in Metric data with abnormal increase from 40.56% to 94.52% (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [node_network_receive_packets_total] in Metric data (From GT key_observations)",
+      "Step 4: Derive Root Cause - Based on above features, determined cause is [node_cpu_usage_rate] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Metric shows abnormal increase from normal_median=40.56 to fault_median=94.52 with median_change_ratio=0.7989",
+        "instruction": "Search for metric [node_cpu_usage_rate] for node [aiops-k8s-06] and check if value exceeds threshold (40.56%→94.52%)"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Metric data exists for network monitoring",
+        "instruction": "Search for metric [node_network_receive_packets_total] to monitor network activity on node [aiops-k8s-06]"
+      }
+    ]
+  }
+}

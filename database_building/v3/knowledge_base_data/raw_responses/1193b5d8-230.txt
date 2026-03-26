@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "1193b5d8-230",
+    "fault_type": "client_error",
+    "symptom_vector": "pod failure with connection refused errors and performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice-1 组件因端口连接拒绝(client_error_ratio、error_ratio飙升)导致Pod故障不可用",
+        "reasoning_chain": [
+            "Step 1: 从日志中观察到多个前端服务实例(frontend-0, frontend-1)在调用时出现‘connection refused’和‘Error while dialing’的错误，目标地址明确指向cartservice的7070端口",
+            "Step 2: 分析指标数据，发现cartservice-1的client_error_ratio P99达到20.73%，error_ratio P99高达22.46%，同时rrt_max指标从5231.5飙升至77184.0，变化率达174.61%",
+            "Step 3: 调用链追踪确认了错误传播路径，多个上游服务（frontend、checkoutservice）因无法连接到cartservice-1而失败，最终锁定cartservice-1的服务不可用为根因"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection refused|Error while dialing",
+                "expected_pattern": "日志中出现连接拒绝或拨号错误的关键词，指向特定的目标IP:端口",
+                "instruction": "在日志中搜索包含‘connection refused’和‘Error while dialing’的错误条目，特别关注对cartservice服务（如IP: 10.233.46.196:7070）的调用"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio|error_ratio",
+                "expected_pattern": "服务错误率指标出现显著峰值，P99值异常升高",
+                "instruction": "检查cartservice服务的client_error_ratio和error_ratio指标的P99值，确认在故障时间段内是否出现激增"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "服务的最大响应时间出现极端增长，变化率远超其他服务",
+                "instruction": "分析cartservice-1实例的rrt_max指标，对比故障前后数值，计算其异常变化幅度"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_transmit_bytes",
+                "expected_pattern": "Pod的网络收发字节数在故障期间可能出现异常下降或波动",
+                "instruction": "检查cartservice-1的网络指标，查看其在故障时段内的网络活动是否正常"
+            }
+        ]
+    }
+}
+```

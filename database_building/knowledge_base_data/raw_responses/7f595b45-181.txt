@@ -1,0 +1,72 @@
+```json
+{
+    "uuid": "7f595b45-181",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "Network packet corruption and data corruption causing bit errors on network with corrupted packets between services",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [recommendationservice, productcatalogservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty components are [recommendationservice, productcatalogservice] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [Rpc, error, code, canceled, desc, context canceled] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [timeout] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [unavailable] in Log (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [frontend, recommendationservice] in Trace (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [client_error, client_error_ratio, error, error_ratio] in Metric (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [rrt, rrt_max] in Metric (From GT key_observations)",
+            "Step 8: Check Observation - Found keyword [request, response] in Metric (From GT key_observations)",
+            "Step 9: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric (From GT key_observations)",
+            "Step 10: Derive Root Cause - Based on above network-related features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets]"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Rpc, error, code, canceled, desc, context canceled",
+                "expected_pattern": "Log entries containing 'rpc error: code = Canceled desc = context canceled' appear in frontend logs",
+                "instruction": "Search for keyword 'rpc error: code = Canceled desc = context canceled' in Log data from frontend service"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Log entries containing 'Connection timed out' appear in recommendationservice logs",
+                "instruction": "Search for keyword 'Connection timed out' in Log data from recommendationservice"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Log entries containing 'StatusCode.UNAVAILABLE' appear in recommendationservice logs",
+                "instruction": "Search for keyword 'StatusCode.UNAVAILABLE' in Log data from recommendationservice"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend, recommendationservice",
+                "expected_pattern": "Trace data shows frontend->recommendationservice calls with extreme latency anomalies",
+                "instruction": "Check trace data for frontend to recommendationservice calls showing latency anomalies"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error, client_error_ratio, error, error_ratio",
+                "expected_pattern": "Metric data shows error_ratio and client_error_ratio spikes in frontend and recommendationservice",
+                "instruction": "Check metric data for error_ratio and client_error_ratio values in frontend and recommendationservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Metric data shows rrt_max increased from 12,499.0 to 39,660,312.36 and rrt from 3,902.74 to 6,725,340.28 in recommendationservice",
+                "instruction": "Check metric data for rrt and rrt_max values in recommendationservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "Metric data shows request/response anomalies in affected services",
+                "instruction": "Check metric data for request and response patterns in recommendationservice and productcatalogservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "Network metric anomalies indicating packet corruption issues",
+                "instruction": "Check network metrics for pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets in affected pods"
+            }
+        ]
+    }
+}
+```

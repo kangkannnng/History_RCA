@@ -1,0 +1,33 @@
+{
+  "uuid": "cc8e0450-593",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "Latency spike and elevated error rates for services dependent on the affected node (aiops-k8s-08).",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08节点磁盘使用率过高，导致运行在该节点上的服务性能严重下降。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到节点'aiops-k8s-08'的`node_filesystem_usage_rate`指标从53.2%急剧上升至78.16%（变化率+37.99%），同时`node_memory_MemAvailable_bytes`大幅下降39.57%，表明该节点面临严重的存储和内存资源压力。",
+      "Step 2: 分析Metric数据，发现恰好运行在该问题节点'aiops-k8s-08'上的Pod'redis-cart-0'，其`rrt_max`（最大响应时间）中位数从5468ms激增至10911ms，增幅达66.46%，与节点资源瓶颈在时间和空间上高度关联。",
+      "Step 3: 检查Trace数据，确认从cartservice到redis的调用链（特别是HGET操作）延迟激增9.5倍，该异常路径的根源指向位于资源紧张节点'aiops-k8s-08'的redis服务。同时，日志数据中未发现明确的直接报错信息，符合资源耗尽型故障常不直接在应用层日志体现的特征。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden spike (e.g., increase ratio > 30%) for a specific node.",
+        "instruction": "检查所有节点的`node_filesystem_usage_rate`指标。特别关注在故障时间段内，该指标相对于基线（如前7天同期）是否有单个节点出现急剧、持续的增长，例如增长率超过30%。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Significant and sustained decrease for a specific node.",
+        "instruction": "检查故障节点（上一步中识别出高磁盘使用率的节点）的`node_memory_MemAvailable_bytes`指标。确认该节点的可用内存是否在同一时间段内出现显著且持续的下降，这通常是伴随磁盘写满或应用频繁交换的并发症状。"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis",
+        "expected_pattern": "Severe latency spike (e.g., latency multiplier > 5x) on operations involving the redis instance located on the problem node.",
+        "instruction": "分析所有调用链数据，特别是涉及redis操作的路径（如HGET）。筛选出延迟增长倍数异常高（例如超过5倍）的调用。然后，将这些高延迟调用的目标服务（redis）实例定位到具体的节点。确认这些实例是否恰好运行在先前通过Metric识别出的磁盘/内存资源紧张的节点上。"
+      }
+    ]
+  }
+}

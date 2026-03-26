@@ -1,0 +1,28 @@
+{
+  "uuid": "d1e74aa8-214",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Node memory exhaustion, memory saturation, high memory usage, memory leak, memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-06] experienced [node_memory_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-06] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric data (From GT key_observations keyword list)",
+      "Step 3: Check Observation - Found keyword [node_memory_MemAvailable_bytes] in Metric data (From GT key_observations keyword list)",
+      "Step 4: Derive Root Cause - Based on memory metric anomalies, determined cause is [node_memory_usage_rate] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Metric value shows abnormal increase from normal baseline",
+        "instruction": "Search for metric [node_memory_usage_rate] for node [aiops-k8s-06] and compare normal vs fault period values"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Available memory bytes decreasing significantly",
+        "instruction": "Check metric [node_memory_MemAvailable_bytes] for node [aiops-k8s-06] to confirm memory pressure"
+      }
+    ]
+  }
+}

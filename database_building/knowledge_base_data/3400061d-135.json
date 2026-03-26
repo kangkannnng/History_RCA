@@ -1,0 +1,49 @@
+{
+  "uuid": "3400061d-135",
+  "fault_type": "client_error client_error_ratio error error_ratiopod_processes request response",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [recommendationservice] experienced [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [Connection, refused] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric (From GT key_observations)",
+      "Step 7: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Connection, refused",
+        "expected_pattern": "'connection refused' error appeared in frontend logs when connecting to recommendationservice at 10.233.43.10:8080",
+        "instruction": "Search for keyword 'connection refused' in Log data, specifically in frontend service logs"
+      },
+      {
+        "modality": "Log",
+        "target": "Error, while, dialing",
+        "expected_pattern": "'Error while dialing' error message appeared in frontend logs with transport dial failure details",
+        "instruction": "Search for keyword 'Error while dialing' in Log data, focusing on transport layer errors"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "'Unavailable' status code appeared in error logs describing connection failures",
+        "instruction": "Search for keyword 'unavailable' in Log data, particularly in rpc error descriptions"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Memory usage metrics for recommendationservice pods showing abnormal patterns",
+        "instruction": "Check if metric [pod_memory_working_set_bytes] for recommendationservice pods shows abnormal values"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network metrics for recommendationservice pods showing abnormal traffic patterns",
+        "instruction": "Check network metrics [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] for recommendationservice pods"
+      }
+    ]
+  }
+}

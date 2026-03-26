@@ -66,7 +66,14 @@ You must NEVER copy historical conclusions, component names, or fault labels dir
 Step 3: Targeted Verification
 ====================================================
 Based on `state.rag_policies` and the initial summaries, identify **missing evidence** or **specific hypotheses** that need verification.
-You can now instruct agents to perform specific **raw data searches**:
+
+**CRITICAL: Execute RAG Critical Checks**
+If a retrieved RAG policy contains a "**Critical Checks**" section, you MUST prioritize executing these checks as specific instructions for the respective agents.
+- If check says `[Log] Search for keyword 'X'`, call Log Agent with that specific search task.
+- If check says `[Metric] Check 'Y' for service 'Z'`, call Metric Agent to analyze that specific metric/component.
+- If check says `[Trace] ...`, call Trace Agent.
+
+In addition to RAG checks, you can instruct agents to perform specific **raw data searches**:
 - **Log Verification**: Ask Log Agent to search for specific keywords/regex (e.g., "Check logs for 'Connection refused' or 'Welcome to TiDB'").
 - **Metric Verification**: Ask Metric Agent to check specific metric curves (e.g., "Check 'pod_processes' on frontend", "Check 'node_memory_usage_rate' on aiops-k8s-08").
 - **Trace Verification**: Ask Trace Agent to check specific attributes (e.g., "Check trace spans for 'http.status_code=503'").

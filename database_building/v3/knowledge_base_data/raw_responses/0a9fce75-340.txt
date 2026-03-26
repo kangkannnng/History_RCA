@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "0a9fce75-340",
+    "fault_type": "pod failure",
+    "symptom_vector": "pod terminated unexpectedly with PD server timeout errors and failed query operations spike",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-pd 组件因 PD server timeout 导致数据库查询失败，进而引发 pod failure",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tidb 的 failed_query_ops 指标从 0.0 激增至 459.34，同时 memory_usage 从 900550656.0 下降至 663379968.0",
+            "Step 2: 分析 tidb-pd 组件的相关日志，发现大量 'PD server timeout: start timestamp may fall behind safe point' 错误信息",
+            "Step 3: 确认 productcatalogservice-2 的 request 和 response 数量异常下降，且前端服务出现连锁故障，最终导致 pod failure"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains failure keywords in pod logs",
+                "instruction": "在 tidb-pd 组件的日志中搜索 failure 关键词，检查是否有 pod 故障记录"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Contains timeout errors related to PD server",
+                "instruction": "在 tidb-pd 和相关服务的日志中搜索 timeout 关键词，特别是 'PD server timeout' 错误"
+            },
+            {
+                "modality": "Metric",
+                "target": "failed_query_ops",
+                "expected_pattern": "Sudden spike from baseline",
+                "instruction": "检查 tidb-tidb 组件的 failed_query_ops 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Significant drop from normal levels",
+                "instruction": "检查 tidb-tidb 组件的 memory_usage 指标是否异常下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Abnormal decrease in request count",
+                "instruction": "检查 productcatalogservice-2 的 request 指标是否异常下降"
+            }
+        ]
+    }
+}
+```

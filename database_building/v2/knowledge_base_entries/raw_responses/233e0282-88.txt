@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "233e0282-88",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "Cascading latency increase from CurrencyService to CheckoutService and Frontend services, accompanied by significant rise in client error ratios for downstream services like CartService.",
+    "expert_knowledge": {
+        "root_cause_desc": "CurrencyService 的 Pod 出现 CPU 使用率飙升与进程数激增，导致服务处理能力饱和，引发应用级延迟并级联影响下游服务。",
+        "reasoning_chain": [
+            "Step 1: 通过 Metric 数据观测到所有三个 currencyservice Pod (`currencyservice-0`, `currencyservice-1`, `currencyservice-2`) 的关键指标同时出现剧烈异常：`pod_cpu_usage` 从约 0.0（或 0.01）飙升至 0.4（中位数变化率达 1.9-2.0 倍），同时 `pod_processes` 从 1.0 激增至 8.0（变化率 1.56 倍），且这些 Pod 的 `rrt_max` 与 `rrt` 中位数也出现了 1.16-1.86 倍的显著恶化。",
+            "Step 2: 结合 Trace 数据分析，发现针对 `hipstershop.CurrencyService/Convert` 等操作的延迟从正常的约 2.3 秒大幅增加至约 50 秒（21 倍），证实了应用层面的严重性能瓶颈。同时，Trace 数据显示了清晰的级联影响路径：Frontend 调用 CurrencyService 延迟升高，进而导致依赖于货币转换的 CheckoutService `PlaceOrder` 操作延迟从约 150 秒增加到约 315 秒。",
+            "Step 3: 查验 Log 数据，发现故障时段内无任何错误日志记录。这排除了因明确错误（如 OOMKilled、连接失败）导致故障的可能性，同时与 `pod_processes` 异常增加（可能源于进程泄漏或异常 fork）但无对应错误日志的“静默”进程生命周期问题特征相符。结合 Metric 中 `pod_cpu_usage` 与 `pod_processes` 强相关、同步激增的模式，以及由此直接导致的 Trace 延迟，确认 CPU 资源因进程数异常而饱和是本次故障的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden and sustained spike in median values (e.g., from near 0 to >0.3) across multiple pods of the same service.",
+                "instruction": "检查疑似故障服务（如 currencyservice）下所有 Pod 的 `pod_cpu_usage` 指标。关注故障时间段内中位数（median）是否出现突然、持续的飙升，且所有副本 Pod 是否呈现一致性异常模式。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Abrupt and significant increase in process count (e.g., from 1.0 to 8.0) coinciding with the CPU usage spike.",
+                "instruction": "在发现 `pod_cpu_usage` 异常的相同 Pod 上，检查 `pod_processes` 指标。确认进程数是否在故障开始时急剧增加，并与 CPU 使用率的上升时间点高度相关。"
+            },
+            {
+                "modality": "Trace",
+                "target": "CurrencyService operation latency (e.g., Convert, GetSupportedCurrencies)",
+                "expected_pattern": "Dramatic increase in average duration (e.g., 10x or more) for operations involving the suspected service, indicating application-level performance degradation.",
+                "instruction": "从调用链（Trace）数据中，筛选出所有指向或经过疑似故障服务（如 CurrencyService）的调用。分析其操作（如 Convert）在故障时段内的平均耗时（anomaly_avg_duration）与正常时段（normal_avg_duration）相比，是否出现数量级级别的增长，从而验证 Metric 指标异常是否已转化为实际用户体验的延迟。"
+            }
+        ]
+    }
+}
+```

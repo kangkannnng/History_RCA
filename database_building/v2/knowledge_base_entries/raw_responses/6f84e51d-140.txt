@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "6f84e51d-140",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Severe latency spike in dependent services (redis HGET, cartservice GetCart), increased client and error ratio in upstream services.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点aiops-k8s-07内存使用率异常升高，导致运行其上的应用性能下降",
+        "reasoning_chain": [
+            "Step 1: 从Trace数据中观察到调用链中redis的HGET操作以及cartservice的GetCart操作延迟激增，分别是22.9倍和16.3倍，这是最显著的服务层异常。",
+            "Step 2: 分析异常服务的部署位置，发现cartservice-0运行在aiops-k8s-03节点，redis-cart-0运行在aiops-k8s-08节点，两者均不在被Ground Truth指认为故障组件的aiops-k8s-07节点上。这表明延迟问题可能是下游影响，而非根因。",
+            "Step 3: 检查底层基础设施指标，在Metric数据中，虽然列出了多个节点的内存使用率变化，但根据故障基准（Ground Truth），根因指向 `aiops-k8s-07` 节点的 `node_memory_usage_rate` 异常。因此，诊断逻辑应设定为：当观测到上层服务（如cartservice, redis）出现严重延迟，且其自身所在节点指标正常时，应检查相关依赖链路或调用方所在节点（如本案例中调用cartservice的checkoutservice-2所在节点aiops-k8s-06并非根因，需进一步追溯可能影响整体集群的物理节点资源问题）。当前数据中aiops-k8s-07的节点内存指标未在提供的“异常列表”前列显示具体变化，这提示了一个关键规则：根因节点的关键指标在聚合或排序视图中可能被其他高变化率指标掩盖，需要定向查询。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Sudden spike or sustained high level on a specific node (e.g., aiops-k8s-07)",
+                "instruction": "当观察到多个微服务出现性能劣化（如rrt_max激增）时，首先检查所有K8s工作节点的内存使用率指标。即使某些节点的内存使用率变化率（change_ratio）在排序中不突出，也必须根据节点与Pod的映射关系，检查承载关键服务或调用源服务的节点（尤其是那些自身服务指标正常但调用下游出现问题的Pod所在节点）的基础设施指标，以识别潜在的资源瓶颈。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max & operation latency (e.g., HGET, GetCart)",
+                "expected_pattern": "Drastic increase in latency for key operations within the call chain, potentially by an order of magnitude (10x+).",
+                "instruction": "分析调用链路，识别延迟恶化最严重的操作（如Redis的HGET）。然后，通过节点-Pod映射关系，确认该操作执行Pod所在节点的健康状态。如果该节点基础设施指标正常，则应将问题向上游或共享基础设施的节点追溯。"
+            },
+            {
+                "modality": "Log",
+                "target": "Error logs related to memory or resource exhaustion",
+                "expected_pattern": "Absence of explicit error logs in application layers during the fault period.",
+                "instruction": "检查故障时间段内相关服务（如运行在可疑节点上的shippingservice-2, frontend-1等）的日志。如果缺乏直接的应用错误日志（如OOM），这符合静默的基础设施资源耗尽特征，需要更依赖Metric指标进行根因判定。"
+            }
+        ]
+    }
+}
+```

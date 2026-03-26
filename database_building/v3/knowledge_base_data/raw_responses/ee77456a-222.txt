@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "ee77456a-222",
+    "fault_type": "rrt/rrt_max异常",
+    "symptom_vector": "High network latency and increased RTT observed from checkoutservice to cartservice",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 与 cartservice 之间的网络遭遇攻击，导致网络延迟激增，表现为 rrt 与 rrt_max 指标异常。",
+        "reasoning_chain": [
+            "Step 1: 从 Metric 数据中观察到 cartservice 所有实例的 rrt_max 和 rrt 指标出现严重异常飙升，例如 cartservice-2 的 rrt_max 从 3090 激增至 2，590，357 (变化率 199.52%)，rrt 从 1348.41 激增至 274，717.54 (变化率 198.05%)，这些是网络延迟的关键指标。",
+            "Step 2: 同时观察到发起调用方 checkoutservice 的实例 (如 checkoutservice-2) rrt_max 和 rrt 指标同样出现巨幅增长 (变化率约 195%)，确认延迟影响已波及上游服务。",
+            "Step 3: 分析 Trace 数据，发现 checkoutservice 调用 cartservice 的调用链成为明确瓶颈，Cart 服务（如 cartservice-0， cartservice-2）的响应时间异常导致整个下单流程阻塞，进一步印证了 checkoutservice 与 cartservice 之间的网络延迟是系统性能瓶颈。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "从基准值突然飙升，增长百分比异常（如超过 100%）",
+                "instruction": "检查 cartservice 和 checkoutservice 实例的 rrt 指标在故障时间段内是否出现异常飙升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "从基准值突然飙升，增长百分比异常（如超过 100%）",
+                "instruction": "检查 cartservice 和 checkoutservice 实例的 rrt_max 指标在故障时间段内是否出现异常飙升。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->cartservice",
+                "expected_pattern": "调用链时延远高于正常基线，成为系统瓶颈",
+                "instruction": "在 Trace 数据中，分析从 checkoutservice 到 cartservice 的调用链，确认其平均时延或 P99 时延是否出现异常增长，并识别导致延迟的具体 cartservice 实例。"
+            }
+        ]
+    }
+}
+```

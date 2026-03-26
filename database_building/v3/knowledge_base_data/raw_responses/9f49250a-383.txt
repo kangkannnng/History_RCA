@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "9f49250a-383",
+    "fault_type": "request_response_port",
+    "symptom_vector": "target port misconfiguration causing connection refused errors with transport dial failures",
+    "expert_knowledge": {
+        "root_cause_desc": "emailservice 组件因端口5000配置错误导致连接被拒绝，表现为 request 和 response 指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 Trace 数据中 checkoutservice->emailservice 调用出现121次 'connection refused' 错误，错误信息明确指向 dial tcp 10.233.49.244:5000",
+            "Step 2: 分析 Log 数据发现相同的连接拒绝模式，全部指向 emailservice 的5000端口，符合端口配置错误特征",
+            "Step 3: 确认 emailservice 作为调用链最下游服务，其端口配置错误导致上游 checkoutservice 的 request 和 response 指标异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "rpc|error|transport|Error|while|dialing|unavailable",
+                "expected_pattern": "包含 'connection refused' 和 'dial tcp [IP]:5000' 的错误信息",
+                "instruction": "在 checkoutservice 和 emailservice 的日志中搜索 'rpc error', 'transport: Error while dialing', 'unavailable' 等关键词，检查是否有指向端口5000的连接拒绝错误"
+            },
+            {
+                "modality": "Log",
+                "target": "transport|Error|while|dialing",
+                "expected_pattern": "明确的 'transport: Error while dialing dial tcp [IP]:5000: connect: connection refused' 错误模式",
+                "instruction": "检查日志中是否有 'transport: Error while dialing' 错误，并确认目标端口是否为5000"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "rpc error: code = Unavailable desc = connection error",
+                "instruction": "搜索 'unavailable' 关键词，检查是否与连接错误相关"
+            },
+            {
+                "modality": "Metric",
+                "target": "request|response|port",
+                "expected_pattern": "调用链中 request 和 response 指标异常，但 emailservice 自身性能指标正常",
+                "instruction": "检查 checkoutservice->emailservice 调用链的 request 和 response 指标是否异常，同时确认 emailservice 自身的性能指标是否正常"
+            },
+            {
+                "modality": "Trace",
+                "target": "error_ratio",
+                "expected_pattern": "checkoutservice->emailservice 调用出现大量错误状态码14（连接错误）",
+                "instruction": "检查 Trace 数据中 checkoutservice 调用 emailservice 的 error_ratio，查看是否有大量状态码为14的连接错误"
+            }
+        ]
+    }
+}
+```

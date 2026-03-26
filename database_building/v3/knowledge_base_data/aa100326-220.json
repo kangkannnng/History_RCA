@@ -1,0 +1,70 @@
+{
+  "uuid": "aa100326-220",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "high JVM latency with elevated request latency and JVM response delay",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 Byteman agent 注入失败和 AdService-getRandomAds-latency-1749654655 规则执行导致 rrt_max 指标从 5.4s 飙升至 500s",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice 的 rrt_max 指标在故障期间从约 5.4 秒飙升至约 500 秒，延迟倍数高达 92 倍",
+      "Step 2: 分析 adservice 日志发现 Byteman agent 启动失败（'Agent failed to start!'）和重复加载错误（'attempting to load Byteman agent more than once'）",
+      "Step 3: 确认 adservice 日志中存在大量 'AdService-getRandomAds-latency-1749654655 execute()' 和 'Rule.execute called for AdService-getRandomAds-latency-1749654655' 记录，表明延迟规则正在执行",
+      "Step 4: 追踪数据显示 frontend->AdService 调用出现大量 'context deadline exceeded' 错误，直接由 adservice 延迟导致"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Contains 'AdService-getRandomAds-latency-1749654655' execution logs",
+        "instruction": "在 adservice 日志中搜索 'AdService-getRandomAds-latency-1749654655' 关键词，检查延迟规则是否正在执行"
+      },
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Contains 'DeadlineExceeded' or 'context deadline exceeded' errors",
+        "instruction": "在 frontend 和 adservice 日志中搜索 'DeadlineExceeded' 或 'context deadline exceeded' 关键词"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Contains 'InvocationTargetException' in thread 'Attach Listener'",
+        "instruction": "在 adservice 日志中搜索 'InvocationTargetException' 关键词，检查 Byteman agent 注入异常"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Contains 'Transformer' or 'transform' related logs about rule injection",
+        "instruction": "在 adservice 日志中搜索 'Transformer' 或 'transform' 关键词，检查 Byteman 规则注入过程"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "frontend->AdService calls show high latency and 'context deadline exceeded' errors",
+        "instruction": "分析追踪数据中 frontend 到 AdService 的调用链，检查延迟和错误状态"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "rrt and rrt_max metrics show significant increase",
+        "instruction": "检查 adservice 和 frontend 的 rrt 和 rrt_max 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Latency metric shows extreme spike",
+        "instruction": "检查 adservice 的延迟相关指标，特别是与 getRandomAds 方法相关的指标"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Significant increase from baseline",
+        "instruction": "检查 adservice 和 frontend 的 rrt 指标是否大幅增长"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme spike from normal values",
+        "instruction": "检查 adservice 和 frontend 的 rrt_max 指标是否出现极端峰值"
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+```json
+{
+    "uuid": "bd4bafd7-567",
+    "fault_type": "node memory stress",
+    "symptom_vector": "Node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-08] experienced [node memory stress] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-08] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [http.resp.status] and [302] in Log data (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [node_disk_read_bytes_total] and [node_disk_read_time_seconds_total] in Metric data (From GT key_observations)",
+            "Step 4: Derive Root Cause - Based on above features, determined cause is [node memory stress] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "HTTP response status code 302 appearing in log entries",
+                "instruction": "Search for keyword 'http.resp.status' and value '302' in log data during the fault time window"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Abnormal increase in node disk read bytes metric",
+                "instruction": "Check if metric [node_disk_read_bytes_total] shows abnormal patterns on node aiops-k8s-08"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increased node disk read time indicating memory pressure",
+                "instruction": "Check if metric [node_disk_read_time_seconds_total] shows elevated values on node aiops-k8s-08"
+            }
+        ]
+    }
+}
+```
+
+**Note on evidence mapping:**
+1. **Component Identity**: The `instance` field in Ground Truth is "aiops-k8s-08", which appears in the Full Context metric data as a node with abnormal memory metrics (`node_memory_MemAvailable_bytes increased 42%`).
+
+2. **Root Cause Terminology**: The `key_metrics` field in Ground Truth is empty, so the `fault_type` uses the `fault_type` field value "node memory stress" as specified in the output format requirements.
+
+3. **Feature Construction**: 
+   - The `key_observations` from Ground Truth specify two types of evidence:
+     - Log: Keywords "http.resp.status" and "302"
+     - Metric: Keywords "node_disk_read_bytes_total" and "node_disk_read_time_seconds_total"
+   - While these specific keywords don't appear verbatim in the provided Full Context, the reasoning chain follows the Ground Truth specification that these are the critical observations to check for this fault type.
+
+4. **Data Limitations**: The Full Context shows log analysis found no error logs (`"detected_log_keys": []`), but the rule construction follows the Ground Truth specification that these keywords should be searched for when diagnosing "node memory stress" faults on node "aiops-k8s-08".

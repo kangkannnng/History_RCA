@@ -1,0 +1,55 @@
+{
+  "uuid": "f370cf6d-291",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "JVM CPU spike, JVM CPU overload, JVM high CPU usage, JVM CPU saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [pod_cpu_usage] fault, accompanied by [adservice--stress] anomaly.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [adservice--stress] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [rrt] and [rrt_max] in Metric (From GT key_observations)",
+      "Step 7: Derive Root Cause - Based on above features, determined cause is [pod_cpu_usage] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice--stress",
+        "expected_pattern": "Byteman agent stress injection logs with AdService--stress-1749913849 rules appear in adservice pods",
+        "instruction": "Search for keyword 'AdService--stress' in logs from adservice pods (adservice-0, adservice-1, adservice-2)"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException appears in adservice-1 logs",
+        "instruction": "Search for keyword 'InvocationTargetException' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "org.jboss.byteman.agent.Transformer logs appear in adservice pods",
+        "instruction": "Search for keyword 'Transformer' in adservice logs (appears in context of Byteman agent transformation)"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "pod_cpu_usage median increased from 0.0 to 0.6 (200% change) for all adservice pods",
+        "instruction": "Check if metric [pod_cpu_usage] shows significant increase for adservice pods during anomaly period"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "rrt median increased from 3225.93 to 13403.61 (122.4% change) for adservice-1",
+        "instruction": "Check if metric [rrt] shows degradation for adservice pods"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max median increased from 42246.0 to 130879.0 (102.39% change) for adservice-1",
+        "instruction": "Check if metric [rrt_max] shows extreme degradation for adservice pods"
+      }
+    ]
+  }
+}

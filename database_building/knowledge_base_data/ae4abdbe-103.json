@@ -1,0 +1,48 @@
+{
+  "uuid": "ae4abdbe-103",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "High memory usage, memory saturation, exhaustion, leak, or stress causing service connection issues and performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component productcatalogservice-2 experienced pod_memory_working_set_bytes fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is productcatalogservice-2 (From Ground Truth instance field, verified in Full Context metric and trace data)",
+      "Step 2: Check Observation - Found keyword 'connection refused' in Log (From GT key_observations, present in Full Context log data as 'connection refused' error messages)",
+      "Step 3: Check Observation - Found keyword 'Error while dialing' in Log (From GT key_observations, present in Full Context log data as 'Error while dialing' in error logs)",
+      "Step 4: Check Observation - Found keyword 'unavailable' in Log (From GT key_observations, present in Full Context log data as 'Unavailable' status in error descriptions)",
+      "Step 5: Check Observation - Found keyword 'pod_processes' in Metric (From GT key_observations, present in Full Context metric data with anomaly from 1.0 to 2.0 for productcatalogservice-2)",
+      "Step 6: Derive Root Cause - Based on above features and fault_description indicating memory stress, determined cause is pod_memory_working_set_bytes (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused",
+        "expected_pattern": "Error log entry with 'connection refused' message, e.g., 'connect: connection refused' in log data",
+        "instruction": "Search for keyword 'connection refused' in log data within the specified time range"
+      },
+      {
+        "modality": "Log",
+        "target": "Error while dialing",
+        "expected_pattern": "Log message containing 'Error while dialing', e.g., 'transport: Error while dialing' in error logs",
+        "instruction": "Search for keyword 'Error while dialing' in log data"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entry with 'unavailable' status or error code, e.g., 'code = Unavailable' in log messages",
+        "instruction": "Search for keyword 'unavailable' in log data"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Anomaly in pod_processes metric value, e.g., p99 change from 1.0 to 2.0 for productcatalogservice-2 in metric data",
+        "instruction": "Check pod_processes metric for significant changes, specifically for pod productcatalogservice-2"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "High value or anomaly indicating memory usage stress, based on fault_description and Ground Truth",
+        "instruction": "Search for metric pod_memory_working_set_bytes in metric data to verify memory-related anomalies"
+      }
+    ]
+  }
+}

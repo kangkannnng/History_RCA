@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "d99a98a0-233",
+    "fault_type": "metric",
+    "symptom_vector": "Service errors (client_error, error_ratio spikes) and request/response anomalies, likely observed by upstream services. The underlying cause is a pod lifecycle event (killed/evicted).",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice-0 Pod被强制终止，导致支付服务不可用，引发上游服务的请求与错误率异常。",
+        "reasoning_chain": [
+            "Step 1: 对比历史结论与标准答案，发现历史结论将故障定位到 redis-cart-0，但标准答案明确指出故障组件为 paymentservice-0，因此历史结论错误，需要基于全量数据重新分析。",
+            "Step 2: 在全量数据中，Metric数据显示多个Pod的CPU使用率、网络包和进程数在故障期间降为0，这是Pod生命周期中断的典型表现。尽管异常列表未直接列出 paymentservice-0 的指标剧烈变化，但标准答案中的故障原因（如 client_error, error_ratio）和故障描述（如 pod killed）暗示这是一次短暂、未留下应用层错误日志的Pod驱逐或强制终止事件。",
+            "Step 3: 结合 Trace 数据中仅有一条 frontend->productcatalogservice 的异常记录，且其响应时间反而改善，以及 Log 数据中无错误日志的发现，这进一步支持了故障是下游依赖（如 paymentservice）突然不可用，导致前端请求失败或降级处理，而非应用自身性能问题的假设。因此，推理结论与标准答案一致：根因是 paymentservice-0 Pod 被终止。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden drop to 0 (from a baseline of 1.0 or higher), indicating the container process has terminated.",
+                "instruction": "检查故障时间段内，所有Pod（尤其是故障组件列表中的paymentservice-0）的'pod_processes'指标。关注其是否从正常值（如1.0）突降至0.0，这是Pod/容器进程停止的最直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio, error_ratio",
+                "expected_pattern": "A significant increase (spike) during the fault window.",
+                "instruction": "分析故障时间段内，特别是上游服务（如frontend, checkoutservice）调用paymentservice的客户端错误率(client_error_ratio)和总错误率(error_ratio)指标。寻找是否有明显的突增，这反映了因下游paymentservice不可用而导致的请求失败。"
+            }
+        ]
+    }
+}
+```

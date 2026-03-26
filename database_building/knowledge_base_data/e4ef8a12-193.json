@@ -1,0 +1,63 @@
+{
+  "uuid": "e4ef8a12-193",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "Network packet corruption and data corruption causing bit errors on network with corrupted packets between frontend and recommendationservice",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [frontend, recommendationservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [frontend, recommendationservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations) - appears as 'transport: Error while dialing dial tcp 10.233.43.10:8080: i/o timeout' in frontend logs",
+      "Step 3: Check Observation - Found keyword [Rpc, error, code, canceled, desc, context canceled] in Log (From GT key_observations) - appears as 'rpc error: code = Canceled desc = context canceled' in frontend logs",
+      "Step 4: Check Observation - Found keyword [timeout] in Log (From GT key_observations) - appears as 'i/o timeout' in frontend logs",
+      "Step 5: Check Observation - Found keyword [unavailable] in Log (From GT key_observations) - appears as 'code = Unavailable desc = transport is closing' in frontend logs",
+      "Step 6: Check Observation - Found keyword [error, error_ratio] in Metric (From GT key_observations) - appears as error_ratio metrics showing 0.0→15.25 (2.0x change) for frontend-1",
+      "Step 7: Check Observation - Found keyword [rrt, rrt_max] in Metric (From GT key_observations) - appears as rrt_max: 15807.0→0.0 for recommendationservice-1 and rrt: 12341.0→4511502.78 (1.9891x change) for frontend-0",
+      "Step 8: Check Observation - Found keyword [request, response] in Metric (From GT key_observations) - appears as request: 11967.0→202.0 and response: 10047.0→176.0 for productcatalogservice-0",
+      "Step 9: Derive Root Cause - Based on above network-related error patterns and metric anomalies, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] indicating network corruption issues"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error, while, dialing",
+        "expected_pattern": "'transport: Error while dialing dial tcp 10.233.43.10:8080: i/o timeout' error message appears in frontend logs",
+        "instruction": "Search for keyword 'Error while dialing' in frontend service logs"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc, error, code, canceled, desc, context canceled",
+        "expected_pattern": "'rpc error: code = Canceled desc = context canceled' error message appears in frontend logs",
+        "instruction": "Search for keyword 'rpc error: code = Canceled desc = context canceled' in frontend service logs"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "'i/o timeout' error message appears in frontend logs",
+        "instruction": "Search for keyword 'timeout' in frontend service logs"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "'code = Unavailable desc = transport is closing' error message appears in frontend logs",
+        "instruction": "Search for keyword 'Unavailable' in frontend service logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "error, error_ratio",
+        "expected_pattern": "error_ratio metric shows significant increase (e.g., 0.0→15.25 for frontend-1)",
+        "instruction": "Check error_ratio metrics for frontend and recommendationservice during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "rrt_max shows instability (15807.0→0.0 for recommendationservice-1) and rrt shows massive increase (12341.0→4511502.78 for frontend-0)",
+        "instruction": "Check rrt and rrt_max metrics for frontend and recommendationservice during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "request and response metrics show significant drops (11967.0→202.0 and 10047.0→176.0 for productcatalogservice-0)",
+        "instruction": "Check request and response metrics for affected services during fault period"
+      }
+    ]
+  }
+}

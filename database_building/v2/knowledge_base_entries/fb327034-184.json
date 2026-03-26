@@ -1,0 +1,27 @@
+{
+  "uuid": "fb327034-184",
+  "fault_type": "application exception",
+  "symptom_vector": "Java application runtime errors, agent startup failures, and method-level exception injections",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-1 Pod中的Java应用因Byteman代理启动失败和规则注入异常，导致getRandomAds方法触发JVM异常",
+    "reasoning_chain": [
+      "Step 1: 观察到日志数据中adservice-1 Pod在故障期间持续输出Java异常日志，包括'java.lang.reflect.InvocationTargetException'和'Agent failed to start!'",
+      "Step 2: 分析日志详情发现Byteman代理尝试多次加载失败，同时在AdService.getRandomAds()方法中注入了异常规则'AdService-getRandomAds-exception-1749525035'",
+      "Step 3: 确认所有异常日志都集中在adservice-1 Pod且时间为故障窗口内，同时其他服务的调用链异常均为资源性能问题而非应用层异常"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-1 Pod日志",
+        "expected_pattern": "包含'AdService-getRandomAds-exception'、'InvocationTargetException'、'Agent failed to start'等关键字",
+        "instruction": "检查adservice-1 Pod在故障时间窗口内的应用日志，查找Java异常、Byteman代理错误、规则注入失败等相关错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "adservice-1 Pod日志中的Transformer类记录",
+        "expected_pattern": "包含'RuleTriggerMethodAdapter.injectTriggerPoint'和'inserting trigger into hipstershop.AdService.getRandomAds'",
+        "instruction": "确认是否有Byteman规则在AdService.getRandomAds方法中被注入，并触发了特定异常规则"
+      }
+    ]
+  }
+}

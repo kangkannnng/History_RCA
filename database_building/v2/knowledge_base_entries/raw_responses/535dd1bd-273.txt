@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "535dd1bd-273",
+    "fault_type": "metric",
+    "symptom_vector": "Latency spike and error ratio increase across multiple services (cartservice, checkoutservice, paymentservice). Specifically, cartservice rrt_max P99 increased by 141.89% (11243ms to 66155ms).",
+    "expert_knowledge": {
+        "root_cause_desc": "根因为 aiops-k8s-06 节点内存使用率激增，接近饱和，导致节点上运行的服务性能下降。",
+        "reasoning_chain": [
+            "Step 1: 观察到节点级别的Metric指标存在严重异常。特别是 `aiops-k8s-06` 节点的 `node_memory_usage_rate` P99值从正常基线的29.68%飙升至故障期间的64.87%，变化率达74.42%。同时，`node_memory_MemAvailable_bytes` 指标可用内存下降，证实了内存压力。",
+            "Step 2: 分析故障节点上的服务依赖。`node_pod_mapping` 数据显示，`aiops-k8s-06` 节点上运行着 `checkoutservice-2`、`productcatalogservice-0` 和 `emailservice-2`。Trace和Metric数据显示，运行在该节点上的 `checkoutservice-2` 服务出现 `error_ratio` 异常（从0%升至4.2%）。",
+            "Step 3: 确认根因与下游症状的因果逻辑。节点内存资源不足是上游基础设施问题，它直接影响运行在该节点上的所有Pod（服务）。这与观察到的、源自该节点的 `checkoutservice-2` 的错误率上升相符。同时，节点资源压力也会加剧服务的响应延迟，这与全链路中观测到的 `cartservice` 等下游服务延迟激增（可能因依赖调用超时）形成了合理的故障传播路径。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Sudden spike or sustained high value, especially in P99 percentile (e.g., >50% increase). Check for corresponding node.",
+                "instruction": "重点检查所有节点的 `node_memory_usage_rate` 指标的P99变化率。定位变化率最高的节点，并确认其P99值是否达到一个危险的高水平（例如，超过60%）。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Significant decrease, indicating less available memory.",
+                "instruction": "对于在 `node_memory_usage_rate` 中识别出的异常节点，检查其 `node_memory_MemAvailable_bytes` 指标的中位数和P99值是否显著下降，以交叉验证内存不足的判断。"
+            },
+            {
+                "modality": "Log",
+                "target": "OOM|Out of memory|memory allocation error",
+                "expected_pattern": "Contains keywords related to memory exhaustion or failed allocation.",
+                "instruction": "在故障时间范围内，搜索包含‘OOM’、‘Out of memory’、‘memory allocation’等关键词的日志。虽然本次案例中日志分析结果为无错误，但此检查对于确认内存故障至关重要。"
+            },
+            {
+                "modality": "Trace",
+                "target": "services on the faulty node (e.g., checkoutservice-2)",
+                "expected_pattern": "Increased latency (rrt, rrt_max) or error ratio originating from pods located on the identified problematic node.",
+                "instruction": "根据 `node_pod_mapping` 找到被识别为内存异常的节点上运行的所有Pod。在Trace数据中，检查这些Pod作为调用链父节点时的响应时间（`rrt`, `rrt_max`）和错误率（`error_ratio`）是否有异常，以建立节点问题影响服务的直接证据。"
+            }
+        ]
+    }
+}
+```

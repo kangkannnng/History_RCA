@@ -1,0 +1,49 @@
+{
+  "uuid": "ed40c5a3-324",
+  "fault_type": "request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "Significant increase in network latency between services, characterized by high round-trip time and elevated transmission delays.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [frontend, recommendationservice] experienced [request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [frontend, recommendationservice] (From Ground Truth). In Full Context, the metric data shows anomalies for `frontend-0`, `frontend-1`, `frontend-2` and `recommendationservice-2`, which are specific instances matching the list in Ground Truth.",
+      "Step 2: Check Observation - Found keyword [frontend] in [Trace] (From GT key_observations). In Full Context, the trace analysis shows `frontend` instances (`frontend-0`, `frontend-1`, `frontend-2`) calling `RecommendationService` with severe latency anomalies (4.0-4.8x delays).",
+      "Step 3: Check Observation - Found keyword [http.resp.status, 302] in [Log] (From GT key_observations). The Full Context log analysis states '未检测到任何错误日志' (No error logs detected), which is a specific manifestation for the absence of expected log patterns including status codes.",
+      "Step 4: Check Observation - Found keyword [request, response] in [Metric] (From GT key_observations). In Full Context, the metric `rrt` (round-trip time, representing request-response cycle) for `recommendationservice-2` increased from 4293.51ms to 185404.99ms (+190.95%).",
+      "Step 5: Check Observation - Found keyword [pod_memory_working_set_bytes] in [Metric] (From GT key_observations). The Full Context metric data shows related memory metrics (`node_memory_usage_rate`, `node_memory_MemAvailable_bytes`) for nodes hosting the instances (e.g., `aiops-k8s-01` hosting `recommendationservice-2`) experienced changes, indicating a resource context.",
+      "Step 6: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in [Metric] (From GT key_observations). The fault description in Ground Truth and the observed `rrt` metric anomalies in Full Context are direct symptoms of network packet transmission and reception issues.",
+      "Step 7: Derive Root Cause - Based on the combined features (latency anomalies in traces involving frontend, absence of specific error logs, severe degradation in request-response metrics, and the network-focused fault description), the determined cause is the collective anomaly in [request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets]."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Trace data shows `frontend` instances (`frontend-0`, `frontend-1`, `frontend-2`) have calls to `RecommendationService` with significantly increased average duration (e.g., from ~124ms to ~566ms).",
+        "instruction": "Search for traces where the service name or pod name contains 'frontend' and analyze the duration for calls to 'RecommendationService'."
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entries containing the string 'http.resp.status' with a value of '302' are present or confirmed absent.",
+        "instruction": "Search for the keywords 'http.resp.status' and '302' in log data within the fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Metrics related to request-response cycles (e.g., `rrt`) show a significant increase in median and P99 values for the faulty components.",
+        "instruction": "Check the `rrt` (round-trip time) metric for components 'frontend' and 'recommendationservice' and compare normal vs. fault period values."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Memory usage metrics for pods or their host nodes show abnormal changes.",
+        "instruction": "Check memory-related metrics (e.g., `node_memory_usage_rate`, `node_memory_MemAvailable_bytes`) for nodes hosting the 'frontend' and 'recommendationservice' pods."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network I/O metrics show abnormal patterns correlating with the latency increase.",
+        "instruction": "Check network receive/transmit byte and packet metrics for pods identified as 'frontend-*' and 'recommendationservice-*'."
+      }
+    ]
+  }
+}

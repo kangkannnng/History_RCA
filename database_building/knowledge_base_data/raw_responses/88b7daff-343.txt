@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "88b7daff-343",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [cartservice, redis-cart, redis-cart-0] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [cartservice, redis-cart, redis-cart-0] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [latency_anomalies] in Trace data (From GT key_observations[0].subtype)",
+            "Step 3: Check Observation - Found keyword [frontend] in Trace data (From GT key_observations[0].keyword)",
+            "Step 4: Check Observation - Found keyword [http.resp.status, 302] in Log data (From GT key_observations[1].keyword)",
+            "Step 5: Check Observation - Found keyword [rrt, rrt_max] in Metric data (From GT key_observations[2].keyword)",
+            "Step 6: Check Observation - Found keyword [request, response] in Metric data (From GT key_observations[3].keyword)",
+            "Step 7: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric data (From GT key_observations[4].keyword)",
+            "Step 8: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric data (From GT key_observations[5].keyword)",
+            "Step 9: Derive Root Cause - Based on above features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Redis operations HGET/HMSET latency increased 1600-1800x from 1.5-1.7ms to 2.8-2.9ms, affecting cartservice calls",
+                "instruction": "Search for latency anomalies in trace data, specifically check Redis operations HGET/HMSET latency"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Frontend services (frontend-0, frontend-1, frontend-2) show increased latency in CartService operations",
+                "instruction": "Check trace data for frontend service calls to CartService with increased latency"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "Log entries containing HTTP response status codes, particularly status 302",
+                "instruction": "Search for keyword 'http.resp.status' and '302' in log files"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "redis-cart-0 rrt increased 199.76% from 219.54ms to 371448.18ms, rrt_max increased 199.41% from 4494ms to 3040367ms",
+                "instruction": "Check metric data for rrt and rrt_max values, specifically for redis-cart-0 service"
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "Request and response metrics showing abnormal patterns during fault period",
+                "instruction": "Monitor request and response rate metrics for services in the call chain"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Memory usage metrics for pods involved in the fault",
+                "instruction": "Check pod_memory_working_set_bytes metric for redis-cart-0 and related pods"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "Network traffic metrics showing abnormal receive/transmit patterns",
+                "instruction": "Monitor network metrics for pods to detect abnormal traffic patterns"
+            }
+        ]
+    }
+}
+```

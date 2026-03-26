@@ -1,0 +1,33 @@
+{
+  "uuid": "7e54232b-275",
+  "fault_type": "pod_cpu_usage increase",
+  "symptom_vector": "sustained high CPU utilization with cascading service latency",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice-0 因 pod_cpu_usage 异常升高及 pod_processes 变化导致处理能力下降，引发下游服务连锁延迟。",
+    "reasoning_chain": [
+      "Step 1: 观察到 pod_cpu_usage 在 checkoutservice-0 上从 0.0 显著上升至 0.2 (变化率 2.0)，同时 pod_processes 从 1.0 变为 8.0，表明该 Pod 可能经历了重启或异常。",
+      "Step 2: 分析 checkoutservice-0 的调用链性能，发现其 CheckoutService/PlaceOrder 操作的 rrt_max 延迟激增 11.25 倍，从 143518ms 增至 1615180ms，成为系统瓶颈。",
+      "Step 3: 确认 checkoutservice-0 的日志中无错误记录，排除代码逻辑错误，结合 pod_processes 变化，确认为因资源（CPU）压力导致的性能下降与连锁故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden and sustained increase from baseline",
+        "instruction": "检查 checkoutservice-0 的 pod_cpu_usage 指标是否从正常基线突然持续升高。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Significant change in count",
+        "instruction": "检查 checkoutservice-0 的 pod_processes 指标是否发生显著变化，例如从 1 变为 8，表明 Pod 重启或进程异常。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Dramatic latency spike at the bottleneck service",
+        "instruction": "分析 checkoutservice-0 关键操作（如 PlaceOrder）的 rrt_max 延迟是否出现激增，并评估其对下游调用链的级联影响。"
+      }
+    ]
+  }
+}

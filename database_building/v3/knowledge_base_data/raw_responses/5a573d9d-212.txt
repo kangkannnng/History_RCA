@@ -1,0 +1,90 @@
+```json
+{
+    "uuid": "5a573d9d-212",
+    "fault_type": "rrt_max",
+    "symptom_vector": "network packet corruption causing connection timeouts and handshake failures between services",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 组件因网络数据包损坏导致 rrt_max 指标飙升2750倍，引发 checkoutservice 连接超时",
+        "reasoning_chain": [
+            "Step 1: 观察到 cartservice-1 的 rrt_max 指标从正常值37.7秒飙升至22,501秒，变化率高达2750倍",
+            "Step 2: 分析 cartservice 的 client_error_ratio 指标p99值从0%升至47.65%，显示客户端连接异常",
+            "Step 3: 日志中发现 checkoutservice 调用 cartservice:7070 端口时出现 'transport: Error while dialing dial tcp 10.233.46.196:7070: i/o timeout' 和 'timed out waiting for server handshake' 错误",
+            "Step 4: Trace数据确认 checkoutservice->cartservice 调用延迟从8.1秒增至22.4秒，错误传播路径为 cartservice→checkoutservice→frontend"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Extreme spike from baseline (2750x increase)",
+                "instruction": "检查 cartservice 和 checkoutservice 的 rrt_max 指标是否出现灾难性增长"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "Significant increase from 0% to high percentage",
+                "instruction": "检查 cartservice 的 client_error_ratio 指标是否从0%异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Response time degradation with high change ratio",
+                "instruction": "检查 checkoutservice 的 rrt 指标是否出现近200%的变化率"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Abnormal request patterns",
+                "instruction": "检查服务间请求指标是否出现异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Response failure or timeout patterns",
+                "instruction": "检查服务响应指标是否显示失败或超时"
+            },
+            {
+                "modality": "Log",
+                "target": "Error while dialing",
+                "expected_pattern": "Contains connection timeout errors with specific IP:port",
+                "instruction": "在 frontend 和 checkoutservice 日志中搜索 'Error while dialing' 和 'i/o timeout' 关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains failure keywords in error messages",
+                "instruction": "搜索包含 'failure' 关键词的错误日志"
+            },
+            {
+                "modality": "Log",
+                "target": "Rpc error code canceled desc context canceled",
+                "expected_pattern": "Contains RPC context canceled errors",
+                "instruction": "检查日志中是否存在 'rpc error: code = Canceled desc = context canceled' 错误"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Contains timeout-related error messages",
+                "instruction": "搜索包含 'timeout' 关键词的日志记录"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Contains service unavailable errors",
+                "instruction": "检查日志中是否存在 'Unavailable' 状态码或描述"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Extreme latency increase in service calls",
+                "instruction": "分析 checkoutservice->cartservice 调用链的延迟异常，检查是否出现2750倍增长"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Error propagation from downstream services",
+                "instruction": "检查 frontend 调用链中是否出现因下游服务故障导致的错误传播"
+            }
+        ]
+    }
+}
+```

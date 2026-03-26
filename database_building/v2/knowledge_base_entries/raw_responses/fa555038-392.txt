@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "fa555038-392",
+    "fault_type": "io_util, region_pending, raft_apply_wait, qps, grpc_qps, memory_usage",
+    "symptom_vector": "Latency spike in productcatalogservice and dependent services (checkoutservice, frontend), IO utilization spike, database region pending count anomaly, database CPU usage increase",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB-TiKV存储层出现严重的IO性能瓶颈，导致region处理堆积，进而引发依赖数据库的业务服务（如productcatalogservice）出现级联延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据中，组件`tidb-tikv`的`region_pending`指标中位数变化率高达173.84%，`io_util`指标的P99值变化率达165.87%，`cpu_usage`的P99值变化率达126.8%。这明确指示数据库存储层遇到严重的IO和计算资源瓶颈，region任务被大量积压。",
+            "Step 2: 结合Trace数据发现，直接依赖该数据库的`productcatalogservice`服务的`GetProduct`操作延迟激增，平均延迟从正常值约9.6秒飙升至异常值约240.3秒，延迟倍数达24.8倍，表明数据库性能问题已直接导致依赖服务的业务响应超时。",
+            "Step 3: 日志数据中未发现显性错误，这与底层存储IO性能瓶颈导致请求卡顿、而非立即抛出软件错误的特征相符。综合多模态数据，判断故障模式为底层存储层（tidb-tikv）的性能问题向上层业务服务（productcatalogservice等）传播，引发级联延迟。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden spike in median value (change ratio > 150%), indicating a large backlog of region tasks",
+                "instruction": "检查tidb-tikv组件的region_pending指标，查看其中位数值在故障时间段是否出现急剧增长，确认是否存在region处理积压。"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Significant increase in P99 value (e.g., from 0.02 to 0.21), indicating storage I/O bottleneck",
+                "instruction": "检查tidb-tikv组件的io_util指标，特别关注其P99分位数在故障期间是否出现显著上升，以确认是否存在磁盘I/O压力。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice->tidb-tikv rrt_max",
+                "expected_pattern": "Extreme latency spike (e.g., 24.8x increase), confirming the downstream impact of database issues",
+                "instruction": "分析追踪数据，找到从productcatalogservice到tidb-tikv（或类似数据库服务）的调用链，检查其rrt_max（最大响应时间）在故障时段的增长倍数，确认数据库延迟是否直接导致上游服务延迟。"
+            },
+            {
+                "modality": "Log",
+                "target": "tidb-tikv error logs",
+                "expected_pattern": "Absence of explicit error logs (No error logs found), consistent with performance degradation rather than application-level failures",
+                "instruction": "搜索故障时间段内，tidb-tikv组件相关的日志，确认是否没有明显的应用层错误日志。这种“静默”的日志状态结合性能指标异常，是底层资源瓶颈的典型特征之一。"
+            }
+        ]
+    }
+}
+```

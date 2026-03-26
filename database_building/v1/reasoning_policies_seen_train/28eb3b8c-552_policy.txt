@@ -1,0 +1,32 @@
+[Trigger]
+- Metric anomaly pattern: node_memory_usage_rate on node aiops-k8s-03 increased from a normal median of 31.03% to a fault median of 39.12%, representing a 23.05% change rate.
+- Trace anomaly pattern: Services running on node aiops-k8s-03 exhibited severe latency increases. The call from checkoutservice to shippingservice increased from 9.35ms to 57.11ms (6.1x), and the call from checkoutservice to cartservice increased from 2.62ms to 41.18ms (15.7x).
+- Log anomaly pattern: No error logs were detected during the fault period, indicating an absence of application-level failures.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: A significant and isolated increase in node_memory_usage_rate specifically on aiops-k8s-03 - this matters as it points to a resource strain at the infrastructure level affecting a single node.
+- Evidence 2: Multiple, severe service latency anomalies concentrated on services (checkoutservice-2, cartservice-1) that are mapped to run on the affected node aiops-k8s-03 - this matters because it shows a direct correlation between the node's resource state and the performance of its hosted services.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: High latency observed in calls from cartservice to Redis - this is a consequence, not the cause, as the Redis service runs on a different node (aiops-k8s-08), and the latency is likely induced by the resource-constrained caller on aiops-k8s-03.
+- Evidence 4: An increase in database region_pending metrics - this can be deprioritized as it is a system-wide metric not uniquely tied to the node showing the primary resource anomaly, and may be a secondary effect of upstream service slowdowns.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the concentrated spike in memory usage on node aiops-k8s-03 coinciding with severe latency for services deployed there, we suspect a node-level resource contention issue is creating a performance bottleneck for multiple dependent services."
+
+Step 2: Verification or elimination
+"If this were caused by a performance degradation of a specific backend service like Redis, we would expect latency issues to be widespread across all nodes calling that service, not isolated to one node;
+However, actual observation shows the most severe latency is localized to services on aiops-k8s-03, and the Redis service itself resides on a different, unaffected node;
+This rules out a primary failure of the backend service and suggests the problem originates within the node hosting the calling services."
+
+Step 3: Convergence to conclusion
+"The combination of the targeted node memory usage increase and the correlated latency degradation of all major services on that same node indicates a root cause of infrastructure resource strain. The lack of error logs supports that this is a performance bottleneck due to resource saturation, not an application crash or code fault."
+
+[Conclusion]
+"The root cause is a resource capacity issue on a specific node, where increased memory utilization created a constrained environment that degraded the performance of multiple hosted services, manifesting as high latency in their interactions."
+
+[Next Action]
+- "Verify whether memory usage trends on the affected node show a continuous climb or periodic spikes."
+- "Check for resource request and limit configurations for the pods scheduled on the affected node to identify potential contention."

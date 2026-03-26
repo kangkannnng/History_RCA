@@ -1,0 +1,33 @@
+{
+  "uuid": "c3f4fde9-330",
+  "fault_type": "latency_anomaly",
+  "symptom_vector": "Latency spike and increased RTT observed in checkout and email services, leading to degraded user-facing response times.",
+  "expert_knowledge": {
+    "root_cause_desc": "emailservice 的 SendOrderConfirmation 操作出现极端延迟，导致整个结账链路响应时间恶化。",
+    "reasoning_chain": [
+      "Step 1: 在 Metric 数据中，观察到 emailservice 所有实例的 `rrt_max` 和 `rrt` 指标出现极端恶化，中位数增长超过196%（例如，rrt_max从~5秒增至~67万毫秒），其变化幅度是系统中所有服务里最严重的。",
+      "Step 2: 在 Trace 数据中，进一步确认了 emailservice 的 `SendOrderConfirmation` 操作是调用链中的瓶颈，其延迟从正常的24.5毫秒暴增至1878毫秒，增长了76.6倍。这直接证实了Metric观察到的延迟异常。",
+      "Step 3: 分析下游服务影响，发现 checkoutservice 和 frontend 服务的 `rrt_max` 和延迟也显著增加（增长约162%），但其变化幅度小于 emailservice。同时，Log数据中未发现 emailservice 的直接错误，但发现了与当前性能问题无关的 adservice 依赖警告。这符合上游服务（emailservice）性能恶化，导致依赖它的下游服务（checkoutservice, frontend）出现连锁延迟的模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt_max, rrt",
+        "expected_pattern": "Extreme increase (e.g., >150% growth) in median or P99 values for emailservice instances.",
+        "instruction": "检查 emailservice 所有实例的 rrt_max 和 rrt 指标。如果发现所有实例的指标值均出现大幅、同步的突增，且增幅显著高于系统中其他服务，则表明 emailservice 本身是性能瓶颈的根因。"
+      },
+      {
+        "modality": "Trace",
+        "target": "SendOrderConfirmation",
+        "expected_pattern": "Severe latency spike in the emailservice.SendOrderConfirmation operation, with anomaly duration far exceeding the normal baseline.",
+        "instruction": "分析从 checkoutservice 到 emailservice 的调用链，聚焦于 SendOrderConfirmation 操作。确认该操作的平均延迟或P99延迟是否出现数量级级别的增长，这将是验证 Metric 观察到的 rrt 恶化的直接证据。"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused, timeout, error, exception",
+        "expected_pattern": "Absence of critical error logs (e.g., connection failures, timeouts) directly from the suspected root cause service (emailservice). The presence of unrelated warnings (e.g., from other services) should be noted but not treated as evidence for this fault.",
+        "instruction": "搜索来自 emailservice 的 pod 或服务的日志。如果关键性能问题期间，其日志中没有出现连接失败、超时、处理异常等错误，而问题又通过Trace和Metric得到确认，那么这暗示问题可能是内部处理延迟或资源竞争，而非外部依赖故障。同时，需识别并排除来自其他服务的无关日志警告。"
+      }
+    ]
+  }
+}

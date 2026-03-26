@@ -1,0 +1,77 @@
+{
+  "uuid": "38ee3d45-82",
+  "fault_type": "client_error, client_error_ratio, error, error_ratiopod_processes, request, response",
+  "symptom_vector": "Pod crash or termination leading to service unavailability, error rate spikes, and cascading failures in dependent services",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [cartservice] experienced [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [cartservice] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword [Connection refused] in Log, as evidenced by log messages: 'connect: connection refused' in Full Context raw_log_result.",
+      "Step 3: Check Observation - Found keyword [Error while dialing] in Log, visible in 'Error while dialing' error entries in log data.",
+      "Step 4: Check Observation - Found keyword [client_error_ratio] in Metric, with values spiking from 0.0 to over 20% in anomaly_metrics data.",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Connection refused",
+        "expected_pattern": "Log entries containing 'connect: connection refused' error message, as seen in filtered_logs for frontend services.",
+        "instruction": "Search for keyword 'connection refused' in the log data, especially for cartservice-related errors."
+      },
+      {
+        "modality": "Log",
+        "target": "Error while dialing",
+        "expected_pattern": "Error logs with 'Error while dialing' phrase, present in log messages like 'transport: Error while dialing dial tcp 10.233.46.196:7070'.",
+        "instruction": "Look for 'Error while dialing' in log messages within the fault timeframe."
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log messages indicating operation failure, e.g., 'failed to add to cart' or 'cart failure' in error logs.",
+        "instruction": "Search for keyword 'failure' in log entries, particularly in cartservice call chains."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Logs showing 'Unavailable' error codes or messages, such as 'rpc error: code = Unavailable' in trace status combinations.",
+        "instruction": "Check for 'unavailable' in log data and trace status messages."
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error",
+        "expected_pattern": "Metric indicating client errors, potentially inferred from client_error_ratio spikes in anomaly_metrics.",
+        "instruction": "Check metric [client_error] or related metrics for anomalies in cartservice instances."
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "Metric [client_error_ratio] showing significant increase from normal baseline, e.g., from 0.0 to high percentages in metric data.",
+        "instruction": "Monitor the [client_error_ratio] metric for cartservice pods during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "error",
+        "expected_pattern": "General error metric anomalies, such as error_ratio spikes observed in metric analysis findings.",
+        "instruction": "Check [error] metric or error_ratio for abnormal values in service metrics."
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "Spike in [error_ratio] metric values, as documented in anomaly_metrics with changes from 0.0 to over 20%.",
+        "instruction": "Look for spikes in [error_ratio] metric across services, especially cartservice."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Abnormal CPU usage metrics for cartservice pods, though not explicitly listed in provided metric names, should be verified if available.",
+        "instruction": "Inspect [pod_cpu_usage] metric for cartservice pods to detect resource issues."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Changes in network receive bytes metric for pods, which may indicate network activity anomalies.",
+        "instruction": "Look at [pod_network_receive_bytes] metric for cartservice pods to assess network health."
+      }
+    ]
+  }
+}

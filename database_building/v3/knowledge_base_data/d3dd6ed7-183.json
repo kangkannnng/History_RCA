@@ -1,0 +1,57 @@
+{
+  "uuid": "d3dd6ed7-183",
+  "fault_type": "pod_processes",
+  "symptom_vector": "pod kill with forceful pod termination and container killed",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice-1 组件的 pod_processes 指标降至0.0，表明发生了Pod强制终止或驱逐",
+    "reasoning_chain": [
+      "Step 1: 观察到多个Pod的pod_processes、pod_cpu_usage、pod_network_transmit_packets等指标在02:10:32Z-02:10:33Z期间同时降至0.0，变化率均为2.0",
+      "Step 2: 分析shippingservice-1作为故障实例，其pod_processes指标归零表明进程终止，符合pod kill特征",
+      "Step 3: 确认日志中无应用层错误记录，符合Kubernetes强制终止Pod的静默特征，网络指标中断进一步验证了Pod生命周期异常"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Frontend服务调用比例异常",
+        "instruction": "检查Trace数据中frontend服务的请求分布是否出现异常，特别是对shippingservice的调用比例变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "请求量异常下降或归零",
+        "instruction": "检查shippingservice-1的request指标是否在故障时间段内异常下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "响应量异常下降或归零",
+        "instruction": "检查shippingservice-1的response指标是否在故障时间段内异常下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "网络接收字节数降至0.0",
+        "instruction": "检查shippingservice-1的pod_network_receive_bytes指标是否归零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "网络接收包数降至0.0",
+        "instruction": "检查shippingservice-1的pod_network_receive_packets指标是否归零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "网络发送字节数降至0.0",
+        "instruction": "检查shippingservice-1的pod_network_transmit_bytes指标是否归零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "网络发送包数降至0.0",
+        "instruction": "检查shippingservice-1的pod_network_transmit_packets指标是否归零"
+      }
+    ]
+  }
+}

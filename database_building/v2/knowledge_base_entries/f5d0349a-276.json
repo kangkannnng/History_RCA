@@ -1,0 +1,33 @@
+{
+  "uuid": "f5d0349a-276",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Increased latency and error ratio of services running on the affected node, with downstream performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点内存使用率异常升高，导致该节点上运行的服务（如 paymentservice-0）性能下降，并可能引发下游调用链延迟。",
+    "reasoning_chain": [
+      "Step 1: 在 Metric 数据中观察到 `node_memory_MemAvailable_bytes` 指标显示 aiops-k8s-08 节点的可用内存显著减少，故障期间的 P99 值从 14513799700.48 字节下降到 12925814046.72 字节（变化率 0.1157），表明节点存在内存压力。",
+      "Step 2: 分析该节点上运行的服务，发现 `paymentservice-0` 的 `rrt_max` P99 值从 4589.74ms 异常升高到 59030.48ms（变化率 1.7114），`rrt` P99 值从 3485.42ms 升高到 58183.3ms（变化率 1.7739）。这表明节点资源问题直接影响了其承载的服务性能。",
+      "Step 3: 检查 Trace 数据，发现来自 `checkoutservice` 对 `paymentservice-0` 的 `Charge` 操作调用链延迟从 13679.2ms 异常增加到 75628.0ms（约 5.53 倍），进一步证实了 paymentservice-0 的性能问题。综合节点内存指标与服务指标，可推断节点内存压力是导致服务性能问题的根因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Significant decrease in available memory (P99 change ratio > 0.1), indicating potential memory saturation on the node.",
+        "instruction": "检查指定节点的 node_memory_MemAvailable_bytes 指标，比较故障窗口与正常基线的 P99 值。确认是否存在可用内存显著下降的趋势。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max, rrt, error_ratio",
+        "expected_pattern": "Concurrent spike in latency and error rate for services (e.g., paymentservice-0) deployed on the problematic node.",
+        "instruction": "筛选并检查运行在目标节点（如 aiops-k8s-08）上的所有服务实例的 `rrt_max`, `rrt`, `error_ratio` 等性能指标。查看其 P99 值在故障期间是否出现异常增长，并与节点内存异常发生时间相关联。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Trace data originating from the problematic node (e.g., node_name: aiops-k8s-08) or targeting services on that node.",
+        "expected_pattern": "Increased latency in operation calls (e.g., `hipstershop.PaymentService/Charge`) where the callee service resides on the node with memory pressure.",
+        "instruction": "分析 Trace 数据，筛选调用方或被调用方服务位于目标节点（aiops-k8s-08）的调用链。重点关注关键操作的 `anomaly_avg_duration` 与 `normal_avg_duration` 对比，确认调用链延迟是否显著增加。"
+      }
+    ]
+  }
+}

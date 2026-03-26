@@ -1,0 +1,33 @@
+{
+  "uuid": "7513dbaf-190",
+  "fault_type": "latency_anomalies",
+  "symptom_vector": "Significant latency spike and timeout errors in service calls, observed as drastically increased response times and context deadline exceeded errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman代理启动失败，并在AdService中注入了导致高延迟的规则，引发服务响应超时。",
+    "reasoning_chain": [
+      "Step 1: 观察到adservice的日志中出现大量错误，包括`Agent failed to start!`、`InvocationTargetException`以及`AdService-getRandomAds-latency-1749546648 execute()`，这直接指向了Byteman代理配置问题及恶意延迟规则的注入。",
+      "Step 2: 分析adservice的指标数据，发现其关键性能指标`rrt`从3081.34激增至161041.4，`rrt_max`从43075.0增至349903.0，增幅超过50倍，证实了该服务存在严重的延迟。",
+      "Step 3: 通过跟踪数据分析确认，所有frontend实例调用`hipstershop.AdService/GetAds`操作的延迟从平均约5.5秒飙升至339秒，并伴随`context deadline exceeded`状态码。症状与日志及指标数据完全吻合，锁定了根因服务。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Agent failed to start! | AdService-getRandomAds-latency-1749546648",
+        "expected_pattern": "Contains error",
+        "instruction": "搜索adservice组件的日志，检查是否存在Byteman代理启动失败或特定规则（如`AdService-getRandomAds-latency-1749546648`）注入的关键字。这些是代码层面引入延迟的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Sudden spike",
+        "instruction": "检查adservice组件的`rrt`（响应时间）和`rrt_max`（最大响应时间）指标，在故障时间窗口内是否出现数十倍甚至数百倍的突增。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.AdService/GetAds",
+        "expected_pattern": "Latency spike & context deadline exceeded",
+        "instruction": "分析调用链，重点检查上游服务（如frontend）对adservice的`GetAds`调用。确认其平均耗时是否异常激增，并伴随出现`context deadline exceeded`（状态码4）的错误。"
+      }
+    ]
+  }
+}

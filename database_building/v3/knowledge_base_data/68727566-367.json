@@ -1,0 +1,34 @@
+{
+  "uuid": "68727566-367",
+  "fault_type": "request_response_port_error",
+  "symptom_vector": "service port mismatch causing connection refused errors and spiking error ratios across upstream services",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice 服务因目标端口 50051 配置错误导致 connection refused 错误，引发 request 失败和上游服务的 response 错误率飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 服务的 error_ratio 与 server_error_ratio 指标从 0 飙升至 0.27-0.31，表明服务层出现大量错误。",
+      "Step 2: 分析日志数据，发现多个 frontend 实例报告完全相同的连接错误：\"transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused\"，直接指向了具体的 IP 地址 (10.233.55.4) 和端口号 (50051) 的连接问题。",
+      "Step 3: 检查 Trace 数据，确认 checkoutservice 对 paymentservice 的调用失败 81 次，状态码为 14 (UNAVAILABLE)，对应上述 'connection refused' 错误，这表明 paymentservice 服务完全不可用，是故障的源头。",
+      "Step 4: 综合所有证据，确定故障根因为连接到 paymentservice 的目标端口 50051 的配置错误或端口不可达，导致请求(request)无法发送，响应(response)为拒绝连接，错误向上传播。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused|dial tcp|50051",
+        "expected_pattern": "日志中出现 'connection refused' 错误，并明确指定了目标 IP 和端口 (如 :50051)",
+        "instruction": "在 frontend 和 checkoutservice 服务的日志中搜索 'connection refused', 'dial tcp', ':50051' 等关键词，确认端口连接错误。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->paymentservice",
+        "expected_pattern": "checkoutservice 调用 paymentservice 的链路出现大量失败，状态码为 14 (UNAVAILABLE)，错误信息包含 'connection refused'",
+        "instruction": "分析 Trace 数据，筛选 checkoutservice 到 paymentservice 的调用链路，检查其状态码和错误消息。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio|server_error_ratio",
+        "expected_pattern": "frontend 服务及相关上游服务的错误率指标（error_ratio, server_error_ratio）从基线值（如0）出现突发性异常飙升",
+        "instruction": "检查所有 frontend 实例的 error_ratio 和 server_error_ratio 指标在故障时间段内是否出现异常增长。"
+      }
+    ]
+  }
+}

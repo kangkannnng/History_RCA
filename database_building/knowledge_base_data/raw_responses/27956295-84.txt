@@ -1,0 +1,64 @@
+```json
+{
+    "uuid": "27956295-84",
+    "fault_type": "rrt rrt_max pod_network_receive_bytes pod_network_receive_packets pod_network_transmit_bytes pod_network_transmit_packets",
+    "symptom_vector": "Network packet corruption and data corruption causing bit errors on network with corrupted packets",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [checkoutservice, paymentservice] experienced [rrt, rrt_max, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty components are [checkoutservice, paymentservice] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations: 'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout')",
+            "Step 3: Check Observation - Found keyword [Rpc, error, code, canceled, desc, context canceled] in Log (From GT key_observations: 'failed to complete the order: rpc error: code = Canceled desc = context canceled')",
+            "Step 4: Check Observation - Found keyword [timeout] in Log (From GT key_observations: 'i/o timeout' and 'timed out waiting for server handshake')",
+            "Step 5: Check Observation - Found keyword [unavailable] in Log (From GT key_observations: 'rpc error: code = Unavailable desc = timed out waiting for server handshake')",
+            "Step 6: Check Observation - Found keyword [checkoutservice, frontend] in Trace (From GT key_observations: Trace data shows frontend->checkoutservice->paymentservice call chain anomalies)",
+            "Step 7: Check Observation - Found keyword [rrt, rrt_max] in Metric (From GT key_observations: paymentservice-0 rrt p99 increased from 2127.52 to 2472178.23, rrt_max p99 from 3260.76 to 2543459.37)",
+            "Step 8: Derive Root Cause - Based on network connection errors, timeouts, and extreme latency spikes in network-related metrics, determined cause is [rrt, rrt_max, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] indicating network corruption"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Error while dialing",
+                "expected_pattern": "'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout' error appeared in frontend logs",
+                "instruction": "Search for keyword 'Error while dialing' in Log data from frontend services"
+            },
+            {
+                "modality": "Log",
+                "target": "Rpc error code canceled desc context canceled",
+                "expected_pattern": "'failed to complete the order: rpc error: code = Canceled desc = context canceled' error appeared in frontend logs",
+                "instruction": "Search for keyword 'context canceled' in Log data from frontend services"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "'i/o timeout' and 'timed out waiting for server handshake' errors appeared in logs",
+                "instruction": "Search for keyword 'timeout' in Log data from frontend and checkout services"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "'rpc error: code = Unavailable desc = timed out waiting for server handshake' error appeared in logs",
+                "instruction": "Search for keyword 'Unavailable' in Log data from frontend services"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice frontend",
+                "expected_pattern": "Trace data shows abnormal call chains between frontend and checkoutservice with extreme latency increases",
+                "instruction": "Check Trace data for call chains involving checkoutservice and frontend with abnormal latency"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt rrt_max",
+                "expected_pattern": "paymentservice-0 shows extreme rrt and rrt_max p99 increases (2127.52→2472178.23 and 3260.76→2543459.37)",
+                "instruction": "Check Metric data for rrt and rrt_max values from paymentservice and checkoutservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes pod_network_receive_packets pod_network_transmit_bytes pod_network_transmit_packets",
+                "expected_pattern": "Network packet metrics show anomalies indicating packet corruption",
+                "instruction": "Check Metric data for network packet statistics from checkoutservice and paymentservice pods"
+            }
+        ]
+    }
+}
+```

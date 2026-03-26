@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "26c9ab68-91",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "emailservice latency spike (57x increase in rrt_max), increased pod processes (1.0 to 12.0), and high CPU utilization",
+    "expert_knowledge": {
+        "root_cause_desc": "emailservice的Pod进程数激增导致CPU使用率上升，进而引起响应时间急剧增加，影响上游服务性能。",
+        "reasoning_chain": [
+            "Step 1: 通过Metric数据观察到emailservice的所有Pod（emailservice-0, emailservice-1, emailservice-2）的pod_processes从1.0急剧增加到12.0，同时pod_cpu_usage从0.0上升到0.4（变化率2.0），表明Pod进程异常增多并消耗大量CPU资源。",
+            "Step 2: 结合Trace数据发现emailservice的响应时间（rrt_max）从正常的约700ms激增至40,281ms（延迟倍数57.5倍），这是系统中最严重的延迟异常，且调用链显示该异常向上游传播，导致checkoutservice和frontend的响应时间也随之恶化。",
+            "Step 3: 检查Log数据未发现错误日志，排除应用逻辑错误，确认为资源型性能问题。综合Metric和Trace的证据，推断pod_processes激增导致CPU饱和，进而引发响应时间飙升。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden increase from 1.0 to 12.0 across all emailservice Pods",
+                "instruction": "检查emailservice的Pod进程数是否在异常时间段内从1.0急剧增加到12.0，变化率约为1.6923。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Significant rise from 0.0 to 0.4 (median change ratio 2.0) on all emailservice Pods",
+                "instruction": "检查emailservice的Pod CPU使用率是否从接近0突增至0.4，且所有Pod表现一致。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max for emailservice",
+                "expected_pattern": "Extreme latency spike from ~700ms to over 40,281ms (57x increase)",
+                "instruction": "分析emailservice的rrt_max（最大响应时间）是否出现数十倍的激增，并确认该异常是否沿调用链向上游（checkoutservice, frontend）传播。"
+            }
+        ]
+    }
+}
+```

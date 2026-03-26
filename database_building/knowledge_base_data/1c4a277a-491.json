@@ -1,0 +1,46 @@
+{
+  "uuid": "1c4a277a-491",
+  "fault_type": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "High network latency and increased round-trip time between services, specifically from recommendationservice to productcatalogservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [recommendationservice, productcatalogservice] experienced [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [recommendationservice, productcatalogservice] (From Ground Truth). The Full Context confirms these service names exist in the system (e.g., in `unique_entities.service_name`).",
+      "Step 2: Check Observation - Found keyword [http.resp.status, 302] specified as a key feature in Log (From GT key_observations). The Full Context's log analysis result states: '系统未检测到任何错误日志' and 'filtered_logs为null'. This absence must be noted as part of the observation pattern.",
+      "Step 3: Check Observation - Found keywords [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] specified as key features in Metric (From GT key_observations and key_metrics).",
+      "Step 4: Derive Root Cause - Based on the specified network metric keywords being the core fault features, determined cause is [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entry containing the status code 302 is present.",
+        "instruction": "Search for keyword 'http.resp.status' and value '302' in log entries within the fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Abnormal increase in value indicating high network receive traffic.",
+        "instruction": "Check if metric `pod_network_receive_bytes` for pods belonging to services `recommendationservice` or `productcatalogservice` shows anomalous values during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Abnormal increase in value indicating high packet receive rate.",
+        "instruction": "Check if metric `pod_network_receive_packets` for pods belonging to services `recommendationservice` or `productcatalogservice` shows anomalous values during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal increase in value indicating high network transmit traffic.",
+        "instruction": "Check if metric `pod_network_transmit_bytes` for pods belonging to services `recommendationservice` or `productcatalogservice` shows anomalous values during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Abnormal increase in value indicating high packet transmit rate.",
+        "instruction": "Check if metric `pod_network_transmit_packets` for pods belonging to services `recommendationservice` or `productcatalogservice` shows anomalous values during the fault window."
+      }
+    ]
+  }
+}

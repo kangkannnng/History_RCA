@@ -1,0 +1,33 @@
+{
+  "uuid": "5cb1626b-401",
+  "fault_type": "Database_Performance",
+  "symptom_vector": "User-facing 5xx errors (HTTP 500), upstream service latency spike (from seconds to tens of seconds), database query failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiKV存储节点Region不可用，导致数据库查询失败，引发上游服务连锁故障。",
+    "reasoning_chain": [
+      "Step 1: 从日志数据中观察到 `productcatalogservice` 频繁报告数据库错误 `'failed to query product by id: Error 9005 (HY000): Region is unavailable'`。",
+      "Step 2: 分析指标数据，发现TiDB相关组件出现异常：`tidb-tidb` 的 `failed_query_ops` 和 `duration_99th` 飙升，`tidb-pd` 的 `store_unhealth_count` 从0.0升至0.5，这共同指向TiDB集群存储层（TiKV）的可用性问题。",
+      "Step 3: 确认调用链数据，`productcatalogservice` 的响应时间 `rrt` 从正常秒级激增至数千万毫秒，且其上游服务 `frontend`、`checkoutservice` 均因此出现高延迟和大量错误状态码（如500和9005），验证了根因 `tidb-tikv` 的故障向上传导形成系统级连锁故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error 9005",
+        "expected_pattern": "Contains error message 'Error 9005 (HY000): Region is unavailable' in logs from services dependent on TiDB (e.g., productcatalogservice).",
+        "instruction": "搜索从 TiDB 依赖服务（如 productcatalogservice）产生的日志，检查其中是否包含关键词 'Error 9005' 或 'Region is unavailable'。"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending, grpc_qps, qps",
+        "expected_pattern": "Sudden spike or significant abnormal change in TiKV-related metrics like `region_pending`, `grpc_qps`, and general `qps`.",
+        "instruction": "查询时间段内 TiKV 相关的关键性能指标，特别是 `region_pending` 数量、`grpc_qps` 和 `qps`，观察是否存在突增或异常波动。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.ProductCatalogService/GetProduct",
+        "expected_pattern": "Significant latency increase (e.g., from milliseconds to tens of seconds) and high occurrence of error status codes (like 2 for gRPC internal error or 13 for application error) for traces involving `productcatalogservice` operations.",
+        "instruction": "分析涉及 `productcatalogservice` 服务（特别是 `GetProduct` 操作）的调用链，关注其响应时间 `rrt` 是否发生激增，以及状态码是否出现大量错误。"
+      }
+    ]
+  }
+}

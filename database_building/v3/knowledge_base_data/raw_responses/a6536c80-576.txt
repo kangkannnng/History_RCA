@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "a6536c80-576",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-05 节点因 node_memory_usage_rate 指标异常导致内存压力故障",
+        "reasoning_chain": [
+            "Step 1: 观察到故障时间段内 aiops-k8s-05 节点上运行的 cartservice-2 和 productcatalogservice-1 服务出现显著延迟异常",
+            "Step 2: 分析 aiops-k8s-05 节点的 node_memory_usage_rate 指标，发现故障期间该指标异常变化（从正常中位数28.12%变化到故障中位数23.52%，但P99值从42.97%下降到24.98%，表明内存使用率分布异常）",
+            "Step 3: 确认 aiops-k8s-05 节点是故障实例，且该节点上运行的关键服务（cartservice-2）出现14.5倍延迟增长，与节点内存压力症状一致"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "异常变化模式：中位数下降但分布异常，或持续高值",
+                "instruction": "检查 aiops-k8s-05 节点的 node_memory_usage_rate 指标在故障时间段内的变化模式，关注中位数和P99值的异常关系"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "可用内存显著减少或异常波动",
+                "instruction": "检查 aiops-k8s-05 节点的 node_memory_MemAvailable_bytes 指标是否显示可用内存异常"
+            },
+            {
+                "modality": "Trace",
+                "target": "cartservice->redis HGET",
+                "expected_pattern": "延迟显著增加（5-13倍增长）",
+                "instruction": "检查运行在 aiops-k8s-05 节点上的 cartservice-2 调用 redis 的 HGET 操作延迟是否异常增加"
+            }
+        ]
+    }
+}
+```

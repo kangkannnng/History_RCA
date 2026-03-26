@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "343ba04c-129",
+    "fault_type": "应用程序异常",
+    "symptom_vector": "Frontend services report rpc errors and fail to retrieve ads.",
+    "expert_knowledge": {
+        "root_cause_desc": "Byteman agent 在 adservice 的 getRandomAds 方法中注入了错误，导致服务抛出 java.lang.Error 异常，进而使依赖它的 frontend 服务调用失败。",
+        "reasoning_chain": [
+            "Step 1: 在 Log 数据中发现 adservice 实例 (如 adservice-0) 频繁出现 `Rule.execute called for AdService-getRandomAds-exception-1749323409_10:0` 及 `java.lang.Error: Injected error` 等关键字，表明该服务存在人为触发的代码级异常注入。",
+            "Step 2: 观察到所有三个 frontend 实例 (frontend-0, frontend-1, frontend-2) 均出现大量 `failed to get ads: rpc error: code = Unknown desc =` 日志。Trace 数据也显示 frontend 调用 `hipstershop.AdService/GetAds` 的延迟显著增加，表明 adservice 的故障已向上游传播。",
+            "Step 3: Metric 数据显示，受影响的 adservice-0 实例的 `client_error_ratio` 与 `error_ratio` 指标在 P99 分位数上显著上升（变化率 47.36%），与此异常时间窗口完全吻合，从指标角度确认了错误率的升高。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice 实例 (pod_name: adservice-*) 日志",
+                "expected_pattern": "Contains keywords such as 'AdService-getRandomAds-exception', 'Rule.execute', 'java.lang.Error: Injected error', 'grpc-default-executor'.",
+                "instruction": "请检索 adservice 相关Pod的日志，检查在故障时间窗口内是否存在由 Byteman agent 触发的、针对 `getRandomAds` 方法的错误注入记录，特别是包含 'Injected error' 的 java.lang.Error 异常栈。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend 服务对 adservice 的调用（operation_name: `hipstershop.AdService/GetAds`）",
+                "expected_pattern": "Increased latency and/or error statuses propagated from adservice.",
+                "instruction": "分析调用链路数据，检查 frontend 服务调用 `hipstershop.AdService/GetAds` 的延迟是否异常增高，并关联检查前端服务自身是否因此产生了大量错误状态。注意，错误注入可能表现为 RPC 调用失败而非单纯的高延迟。"
+            },
+            {
+                "modality": "Metric",
+                "target": "service:adservice, metric_name: client_error_ratio, error_ratio",
+                "expected_pattern": "Sudden increase (spike) in error ratios, especially at higher percentiles (e.g., P99).",
+                "instruction": "聚焦于 adservice 服务的错误率指标（client_error_ratio, error_ratio）。对比故障窗口与正常基线，确认其错误率是否有显著提升。"
+            }
+        ]
+    }
+}
+```

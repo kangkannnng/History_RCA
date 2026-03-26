@@ -1,0 +1,28 @@
+{
+  "uuid": "7db04792-496",
+  "fault_type": "region_pending tidb-tikv",
+  "symptom_vector": "Pod failure symptoms including crash, unexpected termination, container exit, and pod failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component tidb-tikv experienced region_pending and tidb-tikv fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is tidb-tikv (From Ground Truth instance, and present in Full Context service_name list).",
+      "Step 2: Check Observation - Search for keyword 'failure' in Log data (From GT key_observations, but in Full Context log analysis, no error logs were detected, indicating absence in this dataset).",
+      "Step 3: Check Observation - Search for keyword 'region_pending' in Metric data (From GT key_observations, but not found in Full Context available_metric_names list).",
+      "Step 4: Derive Root Cause - Based on Ground Truth, if keywords are observed, determined cause is region_pending and tidb-tikv (From GT key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing the word 'failure' indicating pod issues, such as error messages related to pod crash or termination.",
+        "instruction": "Search for keyword 'failure' in log data during the fault period (2025-06-24T09:10:37Z to 2025-06-24T09:31:37Z)."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Abnormal values or spikes in region_pending metric, potentially indicating performance issues in tidb-tikv service.",
+        "instruction": "Check metric region_pending for anomalies in tidb-tikv service metrics during the fault time range."
+      }
+    ]
+  }
+}

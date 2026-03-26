@@ -1,0 +1,43 @@
+```json
+{
+    "uuid": "cd81a09b-101",
+    "fault_type": "client_error, client_error_ratio, error, error_ratio, pod_processes, request, response",
+    "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [recommendationservice] experienced [client_error, client_error_ratio, error, error_ratio, pod_processes, request, response] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [request] and [response] in Metric (From GT key_observations).",
+            "Step 3: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric (From GT key_observations).",
+            "Step 4: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric (From GT key_observations).",
+            "Step 5: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratio, pod_processes, request, response] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Request proportion anomalies involving frontend service in trace data.",
+                "instruction": "Search for keyword 'frontend' in trace data for request proportion anomalies."
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "Abnormal request/response metrics for recommendationservice.",
+                "instruction": "Check if metric names containing 'request' or 'response' show anomalies for recommendationservice."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "pod_memory_working_set_bytes metric dropping to zero indicating pod termination.",
+                "instruction": "Search for metric 'pod_memory_working_set_bytes' for recommendationservice pods to detect drops to zero."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "Network metrics dropping to zero indicating pod network activity cessation.",
+                "instruction": "Check network metrics for recommendationservice pods to detect drops to zero during fault window."
+            }
+        ]
+    }
+}
+```

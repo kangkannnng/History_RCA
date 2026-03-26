@@ -1,0 +1,37 @@
+```json
+{
+    "uuid": "fb327034-184",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown, application runtime error with exception stack trace.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice-1] experienced [adservice-getrandomads-exception] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice-1] (From Ground Truth). Verified in Full Context `raw_log_result.unique_entities.pod_name`.",
+            "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log. Specifically in log line: 'RuleTriggerMethodAdapter.injectTriggerPoint : inserting trigger into hipstershop.AdService.getRandomAds() java.util.List for rule AdService-getRandomAds-exception-1749525035' (From GT key_observations, From Full Context `raw_log_result.filtered_logs`).",
+            "Step 3: Check Observation - Found keyword [invocationtargetexception] in Log. Specifically in log line: 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' (From GT key_observations, From Full Context `raw_log_result.filtered_logs`).",
+            "Step 4: Check Observation - Found keyword [transformlistener] in Log. Specifically in log line: 'org.jboss.byteman.agent.Transformer : possible trigger for rule AdService-getRandomAds-exception-1749525035 in class hipstershop.AdService' (From GT key_observations, From Full Context `raw_log_result.filtered_logs`).",
+            "Step 5: Derive Root Cause - Based on the combined presence of the faulty component [adservice-1] and the specific keywords [adservice-getrandomads-exception, invocationtargetexception, transformlistener] in its logs, determined cause is [adservice-getrandomads-exception] (From Ground Truth `key_metrics`)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getrandomads-exception",
+                "expected_pattern": "Log line containing 'AdService-getRandomAds-exception' appears, indicating a Byteman rule trigger was injected into the `AdService.getRandomAds()` method.",
+                "instruction": "Search for keyword 'AdService-getRandomAds-exception' in the logs of pod 'adservice-1' within the fault time window."
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Log line containing 'java.lang.reflect.InvocationTargetException' appears, indicating a JVM exception occurred during reflection.",
+                "instruction": "Search for keyword 'InvocationTargetException' in the logs of pod 'adservice-1' within the fault time window."
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Log line containing 'Transformer' (from 'transformlistener' keyword) appears, indicating Byteman agent bytecode transformation activity.",
+                "instruction": "Search for keyword 'Transformer' in the logs of pod 'adservice-1' within the fault time window."
+            }
+        ]
+    }
+}
+```

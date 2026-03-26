@@ -1,0 +1,39 @@
+{
+  "uuid": "bd4bafd7-567",
+  "fault_type": "node_memory",
+  "symptom_vector": "Multiple service latency spikes (rrt_max P99 degradation), redis HMSET operation 10.8x slower, node memory availability anomaly",
+  "expert_knowledge": {
+    "root_cause_desc": "节点内存异常导致redis-cart服务延迟恶化并引发连锁反应",
+    "reasoning_chain": [
+      "Step 1: 观察到aiops-k8s-08节点的node_memory_MemAvailable_bytes指标出现42%的异常增加，从6.5GB上升到10GB，同时检测到node_memory_usage_rate的异常波动",
+      "Step 2: 分析节点Pod映射关系，发现redis-cart-0运行在aiops-k8s-08节点上，同时还有paymentservice-0等其他6个服务",
+      "Step 3: 检查调用链数据，发现redis-cart的HMSET操作延迟增加了10.8倍（从1.4秒到14.7秒），并且paymentservice-0的rrt_max P99延迟增加了138%"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Sudden increase (42% in this case)",
+        "instruction": "检查节点的可用内存是否出现异常增加，这通常表明内存压力导致进程重启或内存泄漏后的释放"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Abnormal fluctuation or spike",
+        "instruction": "检查节点内存使用率是否有异常波动，特别是与内存可用性变化相反的趋势"
+      },
+      {
+        "modality": "Trace",
+        "target": "redis-cart->HMSET",
+        "expected_pattern": "Latency spike (10.8x increase)",
+        "instruction": "检查运行在问题节点上的redis-cart服务的HMSET操作延迟是否显著增加，这是典型的内存压力导致的存储层性能劣化"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis",
+        "expected_pattern": "Propagated latency increase in dependent services",
+        "instruction": "检查依赖redis服务的上层服务（如cartservice）是否出现延迟传播，确认故障影响链"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "6574656a-250",
+    "fault_type": "pod_processes",
+    "symptom_vector": "pod kill or forceful termination, leading to client errors and service unavailability.",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice 组件发生 pod kill 故障，通过 pod_processes 指标归零及关联业务错误指标得以体现。",
+        "reasoning_chain": [
+            "Step 1: 观察到故障时段（2025-06-12T22:10:13Z至2025-06-12T22:10:14Z）内，多个服务的 client_error、error、request 和 response 指标可能出现显著变化，表明业务层面出现故障。",
+            "Step 2: 分析 paymentservice 的 pod_processes 指标，确认是否在故障窗口内从正常值（通常为1.0）骤降至0.0，这是 Pod 被强制终止或重启的直接证据。",
+            "Step 3: 结合故障描述（pod killed, forceful pod termination），确认 paymentservice 的 Pod 进程终止是引发关联业务指标异常的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "从基准值（如1.0）急剧降至0.0",
+                "instruction": "检查 paymentservice 组件的 pod_processes 指标在故障窗口内是否归零，这直接指示 Pod 被杀死或重启。"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error",
+                "expected_pattern": "数值出现异常上升",
+                "instruction": "检查 paymentservice 服务的 client_error 指标在故障时段是否出现突增。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error",
+                "expected_pattern": "数值出现异常上升",
+                "instruction": "检查 paymentservice 服务的 error 指标在故障时段是否出现突增。"
+            }
+        ]
+    }
+}
+```

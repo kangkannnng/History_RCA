@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "4e221a94-277",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "Payment service connection refused, increased service latency (RRT spike), pod restart indicated by process count change.",
+    "expert_knowledge": {
+        "root_cause_desc": "Paymentservice-1 因内存使用过高导致Pod重启，进而引发服务不可用与调用链错误。",
+        "reasoning_chain": [
+            "Step 1: 指标分析发现 paymentservice-1 的 pod_processes 指标 P99 值在异常期间从 1.0 变为 2.0（变化率 66.67%），这是Pod发生重启或进程异常的直接证据，而Pod重启通常是资源压力（如内存耗尽）的结果。",
+            "Step 2: 日志分析发现来自 frontend 服务的错误日志，明确报告连接 paymentservice（IP: 10.233.55.4，端口: 50051）时被拒绝，同时 paymentservice-1 自身存在模块加载失败的启动阶段日志，这与Pod重启后重新初始化的场景相符。",
+            "Step 3: 追踪分析确认了调用链故障路径，checkoutservice 调用 paymentservice 时出现 'connection refused' 错误（状态码14）且延迟增加了4.72倍，这直接证实了 paymentservice 的不可用状态是导致上游服务异常的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "对于特定Pod（如 paymentservice-1），其P99值从 1.0 突增至 2.0（或类似整数变化），表明在观测窗口内进程数发生突变，通常代表Pod重启或进程崩溃后恢复。",
+                "instruction": "检查疑似故障Pod的 pod_processes 指标，重点关注其P99或类似高百分位数在故障时间段相对于基线是否有显著的整数值突变（例如从1变到2）。"
+            },
+            {
+                "modality": "Log",
+                "target": "connect: connection refused",
+                "expected_pattern": "上游服务（如 frontend, checkoutservice）的日志中包含指向特定下游服务（如 paymentservice）IP和端口的 'connection refused' 错误。",
+                "instruction": "搜索异常时间段内，错误日志中是否包含 'connection refused' 或类似连接失败的关键词，并确认其指向的IP和端口属于哪个服务。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->paymentservice calls",
+                "expected_pattern": "在调用链数据中，从 checkoutservice 到 paymentservice 的调用出现高错误率（如状态码14、13等表示不可用的错误）和显著增加的延迟。",
+                "instruction": "分析调用链，定位从核心业务流程（如 checkoutservice）调用疑似故障服务（paymentservice）的链路，检查其错误状态码和延迟是否出现异常。"
+            }
+        ]
+    }
+}
+```

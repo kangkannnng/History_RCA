@@ -1,0 +1,33 @@
+{
+  "uuid": "f18b68cd-119",
+  "fault_type": "metric",
+  "symptom_vector": "Service latency spike (e.g., emailservice rrt_max p99 from 9.3s to 62.8s), node CPU saturation.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-07 自身 CPU 资源耗尽，导致运行其上的服务（如 emailservice-0）出现性能退化。",
+    "reasoning_chain": [
+      "Step 1: 观察到 Metric 数据中，节点 aiops-k8s-07 的 `node_cpu_usage_rate` 中位值从正常时期的 21.41% 激增至故障期的 87.34%（变化率 121.25%），其 P99 值也从 25.3% 升至 92.85%。这是全数据集中最显著且变化率最高的异常指标。",
+      "Step 2: 分析 `node_pod_mapping` 发现，受影响的节点 aiops-k8s-07 上运行着 emailservice-0、cartservice-0 等多个服务 Pod。然而，同一节点的 Pod 层级资源指标（如 `pod_cpu_usage`）并未出现类似的飙升，例如 frontend-1 的 CPU 使用率反而下降。这表明节点的 CPU 压力并非由其承载的已知应用 Pod 直接造成，符合'节点自身资源问题'的故障模式。",
+      "Step 3: Trace 数据证实了运行在该节点上的服务出现了性能问题，例如 emailservice-0 的 `rrt_max` P99 从 9260.23ms 恶化至 62778.8ms。Log 数据在该时间段内未发现任何应用层错误日志，排除了功能性错误，但未能记录到底层资源问题，这从侧面说明问题可能发生在系统/内核层面。综合来看，节点自身的 CPU 资源耗尽是导致服务延迟的根本原因，而下游的 cartservice/redis 延迟是资源瓶颈引发的次生现象。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike or sustained high usage (e.g., median change ratio > 0.5, value > 70%)",
+        "instruction": "扫描所有节点的 CPU 使用率指标，识别出变化率最高且绝对值进入高负载区间（如>70%）的节点。这是首要怀疑对象。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage (for pods on the suspected node)",
+        "expected_pattern": "No corresponding spike or even decreased usage compared to node_cpu_usage_rate.",
+        "instruction": "定位到可疑节点后，检查该节点上运行的所有 Pod 的 CPU 使用率。如果 Pod 层级的 CPU 使用率没有与节点层级的飙升同步，则强烈表明是节点自身问题（如系统进程、内核占用、或其他非容器化进程），而非 Pod 应用导致。"
+      },
+      {
+        "modality": "Log",
+        "target": "error, fatal, OOM, kill, stress, throttle",
+        "expected_pattern": "Absence of relevant error logs during the fault period.",
+        "instruction": "在故障时间段内搜索包含错误、内存不足、进程被杀、资源限制等关键词的日志。如果日志层面是干净的，无法提供直接证据，这常见于底层资源竞争或系统级问题，需要结合 Metric 数据做判断。"
+      }
+    ]
+  }
+}

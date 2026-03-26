@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "eaf978d7-208",
+    "fault_type": "Pod生命周期异常",
+    "symptom_vector": "Multiple pods experience simultaneous network traffic drop to zero; Latency increase observed in a specific service call chain; No corresponding error logs found within the anomaly time window.",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice-2 所在的节点（aiops-k8s-07）发生故障，导致该节点上的 Pod 被强制终止，引发一系列连锁异常。",
+        "reasoning_chain": [
+            "Step 1: 观察到多个 Pod（如 frontend-1, shippingservice-1, currencyservice-2, adservice-1）的 pod_network_transmit_packets 和 pod_network_receive_packets 指标在故障时间窗口内同步归零，且变化率均为 200%，表明这些 Pod 的网络活动在同一时刻突然中断。",
+            "Step 2: 分析节点与 Pod 的映射关系（node_pod_mapping），发现这些网络流量归零的 Pod 都位于节点 aiops-k8s-07 上，指向了节点级别的故障，而非单个服务问题。",
+            "Step 3: 结合故障描述中的关键词（pod killed, forceful pod termination, pod eviction）以及 Metric 数据中网络活动瞬间停止的特征，确认 aiops-k8s-07 节点发生故障（如节点宕机、重启或被驱逐），导致其上的所有 Pod（包括 currencyservice-2）被强制终止。Trace 中观察到的 frontend->productcatalogservice 延迟异常，可能是由于前端服务尝试处理因节点故障引发的上游服务不可用或超时，属于连锁反应。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets, pod_network_receive_packets",
+                "expected_pattern": "Sudden drop to zero for multiple pods at the same timestamp with identical change ratio (e.g., 200%)",
+                "instruction": "检查故障时间点前后，是否有多个 Pod 的网络发送和接收包指标同步归零。重点筛选变化率异常的指标，并将这些 Pod 按节点进行分组，识别是否存在某个节点上的所有 Pod 都表现出此异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value drops from a positive number to 0.0",
+                "instruction": "检查疑似故障节点（如 aiops-k8s-07）上所有 Pod 的 pod_processes 指标。寻找在故障时间点前后，是否有 Pod 的进程数从 1.0 降至 0.0，这直接指示了 Pod 的进程终止。"
+            },
+            {
+                "modality": "Log",
+                "target": "pod eviction, killed, termination",
+                "expected_pattern": "Lack of logs in a narrow time window for pods that show metric anomalies",
+                "instruction": "在极其短暂的故障时间窗口（如 1-2 秒）内，查询相关节点（如 aiops-k8s-07）上 Pod 的日志。由于节点可能突然宕机，应用可能来不及记录标准错误日志，因此日志的'静默'（No data available）本身，结合指标异常，是支持节点级强制终止的有力证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Latency spike or error increase in calls from upstream services, but not directly involving the faulty pods.",
+                "instruction": "分析调用链，查找是否存在因底层服务（如 currencyservice）突然不可用而导致的，其上游调用方（如 frontend, shippingservice）的请求比例异常、延迟增加或错误率上升。这种间接影响模式符合基础设施层故障的特征。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,51 @@
+```json
+{
+    "uuid": "52c080d4-556",
+    "fault_type": "region_pending, io_util, raft_apply_wait, memory_usage, tidb, io",
+    "symptom_vector": "Database performance degradation with filesystem call errors including read/write operation errors, permission denied errors, and file descriptor errors",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, memory_usage, tidb, io] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data with latency anomalies (From GT key_observations: trace/latency_anomalies)",
+            "Step 3: Check Observation - Found keyword [region_pending] in Metric data showing significant drop (From GT key_observations: metric/region_pending)",
+            "Step 4: Check Observation - Found keyword [io_util] in Metric data (From GT key_observations: metric/io_util)",
+            "Step 5: Check Observation - Found keyword [raft_apply_wait] in Metric data (From GT key_observations: metric/raft_apply_wait)",
+            "Step 6: Check Observation - Found keyword [memory_usage] in Metric data (From GT key_observations: metric/memory_usage)",
+            "Step 7: Derive Root Cause - Based on above features, determined cause is [region_pending, io_util, raft_apply_wait, memory_usage, tidb, io] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice",
+                "expected_pattern": "ProductCatalogService响应时间显著增加：正常平均10秒，异常时段达到101-194秒（延迟倍数10-19倍）",
+                "instruction": "Search for keyword 'productcatalogservice' in trace data and check for latency anomalies (10-19x increase)"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "region_pending dropped from 10086 to 710 (change rate 1.74)",
+                "instruction": "Check metric [region_pending] for significant decrease from normal median 10086 to fault median 710"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "IO utilization metric showing abnormal patterns",
+                "instruction": "Search for metric [io_util] in available metric data for abnormal values"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "Raft apply wait time showing abnormal increase",
+                "instruction": "Search for metric [raft_apply_wait] in available metric data for abnormal values"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Memory usage metric showing abnormal patterns",
+                "instruction": "Search for metric [memory_usage] in available metric data for abnormal values"
+            }
+        ]
+    }
+}
+```

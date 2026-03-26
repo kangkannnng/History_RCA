@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "fb20d6d2-350",
+    "fault_type": "dns",
+    "symptom_vector": "DNS lookup failure, DNS resolution timeout, incorrect DNS response, DNS server unreachable, truncated DNS packet",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-2 组件因 dns 解析故障导致服务异常，表现为 http.resp.status 302 重定向",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-2 作为故障组件，其服务模式 patterns 显示与 shippingservice.* 相关",
+            "Step 2: 分析关键指标 dns 和 http.resp.status 302，表明存在DNS解析问题导致HTTP重定向",
+            "Step 3: 确认故障特征符合DNS故障的典型表现：解析失败、超时、服务器不可达等"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "HTTP 302 status code in logs",
+                "instruction": "在 checkoutservice-2 的日志中搜索 http.resp.status 字段，检查是否出现 302 状态码"
+            },
+            {
+                "modality": "Metric",
+                "target": "dns",
+                "expected_pattern": "DNS resolution failure metrics",
+                "instruction": "检查 dns 相关指标（如DNS解析成功率、延迟、错误率）是否异常"
+            },
+            {
+                "modality": "Trace",
+                "target": "shippingservice",
+                "expected_pattern": "Failed or abnormal calls to shippingservice",
+                "instruction": "分析调用链数据，检查从 checkoutservice-2 到 shippingservice 的调用是否存在异常（如DNS解析失败导致的调用失败）"
+            }
+        ]
+    }
+}
+```

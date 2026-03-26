@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Multiple error logs indicate "i/o timeout" when attempting to connect to a specific service, along with "context canceled" errors in upstream services.
+- Metric anomaly pattern: Extreme spikes in response time metrics, particularly the maximum response time for a downstream service increasing from milliseconds to seconds.
+- Trace anomaly pattern: Call traces show severe latency increases and failures in operations involving communication between services, with timeouts propagating upward.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Log entries showing "transport: Error while dialing dial tcp [address]: i/o timeout" for connections to a service – this indicates a fundamental failure in establishing communication, pointing to the service as the source of the issue.
+- Evidence 2: Metric data revealing a dramatic increase in the p99 percentile of maximum response time for a service, from baseline values to over a thousand times higher – this quantifies a severe degradation in the service's ability to respond, supporting the log evidence.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Logs of "context canceled" errors in services that depend on the affected service – these are consequences of upstream timeouts, as dependent services abandon requests after prolonged waits, not primary causes.
+- Evidence 4: Metric anomalies such as increased error ratios in entry-level services – these are propagated effects from the core communication failure, indicating impact but not root cause.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the direct i/o timeout errors in logs and corroborating extreme response time spikes for a specific service, we suspect a condition where that service cannot accept or complete incoming connections."
+
+Step 2: Verification or elimination
+"If this were caused by a problem in the calling services, we would expect error patterns originating there, such as resource exhaustion or internal failures; however, actual observations show that errors consistently point to connection attempts failing at the target service, with timeout messages. This rules out issues originating in the upstream services as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of direct timeout evidence from logs and the quantified response degradation from metrics indicates that the service experienced a persistent inability to handle connection requests, leading to cascading failures in dependent workflows."
+
+[Conclusion]
+The root cause is a service's failure to establish or maintain communication channels, resulting in timeouts that prevent dependent services from completing their operations, causing a cascade of errors through the system.
+
+[Next Action]
+- Verify whether there are any additional logs or metrics showing resource usage anomalies for the affected service.
+- Check for patterns of intermittent connectivity or packet-level issues in network monitoring data that might explain the connection failures.

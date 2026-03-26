@@ -1,0 +1,27 @@
+{
+  "uuid": "a0d5329b-489",
+  "fault_type": "log",
+  "symptom_vector": "Increased response time (rrt_max) for shippingservice; checkoutservice downstream call latency spike; absence of explicit error logs in system logs.",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice在调用shippingservice时，因网络/DNS解析问题，导致返回了HTTP 302状态码。",
+    "reasoning_chain": [
+      "Step 1: 观察到Trace数据中，`checkoutservice`对`shippingservice`的调用存在显著的延迟异常。例如，`checkoutservice-1`调用`shippingservice-1`的`hipstershop.ShippingService/GetQuote`操作，平均延迟从185微秒增至674微秒，出现了3次异常。这表明调用链路存在性能瓶颈。",
+      "Step 2: 分析Metric数据，发现`shippingservice-0`服务的rrt_max（最大响应时间）中位数变化率达到37.83%，从4.03毫秒增加到5.90毫秒，进一步证实了该服务的响应时间出现异常。",
+      "Step 3: 结合故障的根因定义，综合判断该问题属于网络/应用层交互问题，其特征是调用返回了特定的HTTP状态码（302）。尽管在本次提供的全量Log上下文中未采集到直接的报错日志，但根据Trace和Metric数据中观察到的下游服务（shippingservice）响应延迟异常，以及调用链路（checkoutservice->shippingservice）的源头位置，可推断此异常模式符合HTTP重定向/网络问题导致的故障场景。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "call latency from checkoutservice to shippingservice",
+        "expected_pattern": "Sudden spike in call duration (e.g., GetQuote, ShipOrder operations).",
+        "instruction": "分析调用链数据，筛选出parent_pod为checkoutservice-*，child_pod为shippingservice-*的调用记录，检查operation_name包含'ShippingService'的调用，观察其anomaly_avg_duration相较于normal_avg_duration是否有显著增长（例如，数倍以上）。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max for service shippingservice",
+        "expected_pattern": "Significant increase in median or P99 value.",
+        "instruction": "在服务级（service）指标中，筛选service_name为'shippingservice'的rrt_max指标，检查其fault_median或fault_p99相较于normal_median或normal_p99是否有大幅上升（例如，变化率超过30%）。"
+      }
+    ]
+  }
+}

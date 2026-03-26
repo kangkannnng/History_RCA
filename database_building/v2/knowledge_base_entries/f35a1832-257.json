@@ -1,0 +1,27 @@
+{
+  "uuid": "f35a1832-257",
+  "fault_type": "JVM Performance Latency",
+  "symptom_vector": "Elevated application latency (rrt_max, rrt), with error logs indicating agent failure and rule injection issues.",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-0因Byteman代理规则注入失败导致JVM响应延迟。",
+    "reasoning_chain": [
+      "Step 1: 从日志数据中观察到，在故障时间段内，adservice-0的日志出现了多个严重异常，包括'Agent failed to start!'、'java.lang.reflect.InvocationTargetException'以及'Caused by: java.lang.Exception: Main : attempting to load Byteman agent more than once'。同时，日志显示存在针对'hipstershop.AdService.getRandomAds()'方法的规则'AdService-getRandomAds-latency-1749791449'的触发器和注入操作。这些证据表明adservice-0的JVM代理存在启动和规则注入异常。",
+      "Step 2: 分析指标数据，发现cartservice-0的rrt_max从6531.0上升到9011.0，rrt从1760.16上升到1820.64，表明存在性能退化，这可能是上游服务（如adservice）延迟导致的级联效应。",
+      "Step 3: 结合节点与Pod的映射关系，观察到adservice-0和cartservice-0都运行在同一个节点aiops-k8s-03上。虽然链路追踪数据显示redis延迟很高，但日志和规则关键词'AdService-getRandomAds-latency-1749791449'直接指向了adservice的getRandomAds方法被注入了延迟规则，这是JVM层面引入延迟的直接证据。因此，根因被确定为adservice-0的JVM代理异常导致的服务性能劣化。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-0 pod log messages",
+        "expected_pattern": "Contains error keywords 'Agent failed to start!', 'InvocationTargetException', 'Byteman agent', 'AdService-getRandomAds-latency'",
+        "instruction": "请检查异常时间段内adservice-0 Pod的日志，重点关注是否存在Byteman代理启动失败、规则注入失败或触发异常延迟规则的错误信息。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cartservice-0 rrt_max, rrt",
+        "expected_pattern": "Significant increase in p99 values or median values, indicating performance degradation potentially cascaded from upstream.",
+        "instruction": "请检查cartservice-0服务的rrt_max及rrt指标在异常时间段前后的变化，特别是p99值的变化，确认是否存在延迟突增。"
+      }
+    ]
+  }
+}

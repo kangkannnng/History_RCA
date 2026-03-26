@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "ee77456a-222",
+    "fault_type": "latency_anomalies",
+    "symptom_vector": "Severe network latency spike with massively increased round-trip time (RTT) affecting checkout flow, causing cascading performance degradation across frontend and downstream services.",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice及其依赖的网络组件发生严重延迟，导致下游checkoutservice和前端的请求响应时间急剧增加，形成系统级性能瓶颈。",
+        "reasoning_chain": [
+            "Step 1: 观察到cartservice的rrt_max和rrt指标在所有实例上均出现灾难性增长，例如cartservice-2的rrt_max从3090飙升至2,590,357（变化率199.52%），rrt从1348.41升至274,717.54，表明cartservice自身或其依赖组件存在严重延迟问题。",
+            "Step 2: 分析Trace数据发现，checkoutservice调用cartservice的调用链成为关键瓶颈，GetCart操作延迟从8.5秒激增至72秒，EmptyCart操作从18秒激增至719秒，证实cartservice的延迟问题直接阻塞了下单流程。",
+            "Step 3: 确认checkoutservice和frontend的延迟增加（rrt_max分别激增195.8%和193.95%）是cartservice问题的直接传播结果，形成从cartservice→checkoutservice→frontend的逐级放大效应，而日志数据无错误记录则指向该故障是性能/网络延迟问题而非逻辑错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Sudden and massive spike in values across multiple cartservice pods during anomaly period, with change ratios exceeding 190%",
+                "instruction": "检查cartservice所有实例（cartservice-0, cartservice-1, cartservice-2）的rrt_max指标，确认是否在故障时间段内出现数量级增长（如从千级升至百万级），并通过比较故障前后中位数或p99值计算变化率。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->cartservice call chain",
+                "expected_pattern": "Dramatic increase in operation duration for cartservice operations (GetCart, EmptyCart) called by checkoutservice during PlaceOrder flow",
+                "instruction": "分析从checkoutservice到cartservice的调用链，重点检查GetCart和EmptyCart操作，对比正常时段的平均延迟与故障时段的平均延迟，确认延迟增长倍数（如8.5倍至40倍）。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_transmit_bytes",
+                "expected_pattern": "Abnormal patterns or sharp changes in network traffic metrics for cartservice pods",
+                "instruction": "检查cartservice实例的网络收发字节数指标，确认是否存在与rrt延迟增长时间窗口对应的异常模式（如流量突增、速率异常等），以辅助判断是否由网络问题导致延迟。"
+            }
+        ]
+    }
+}
+```

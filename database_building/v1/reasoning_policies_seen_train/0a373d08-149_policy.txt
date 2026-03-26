@@ -1,0 +1,31 @@
+[Trigger]
+- Metric anomaly pattern: adservice-0 error_ratio and client_error_ratio show a significant shift, with the p99 value changing drastically during the fault period.
+- Metric anomaly pattern: redis-cart-0 pod_cpu_usage exhibits a severe increase, with the p99 value rising sharply and showing the largest change ratio among all monitored metrics.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: redis-cart-0 pod_cpu_usage p99 value increased from 0.01 to 0.09, a change ratio of 161.79% - this is the most severe resource consumption anomaly observed, indicating a component under extreme internal stress.
+- Evidence 2: The node (aiops-k8s-08) hosting redis-cart-0 shows a correlated minor increase in node_cpu_usage_rate - this suggests the pod-level resource anomaly is localized and affecting its host.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: adservice-0 error_ratio shows anomalous change - this is likely a consequence, as the error manifests in a service that may depend on the stressed component.
+- Evidence 4: Multiple services (currencyservice-2, frontend-2, etc.) show variations in rrt_max - these are widespread latency effects that appear secondary to the primary resource consumption anomaly.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the extreme spike in CPU usage specifically within redis-cart-0, we suspect an internal process within that component has entered a state causing excessive computation or resource contention."
+
+Step 2: Verification or elimination
+"If this were caused by a generalized node-level issue, we would expect uniform CPU increases across all pods on aiops-k8s-08;
+However, actual observation shows the CPU increase is isolated to redis-cart-0 with only minor node-level impact;
+This rules out node-level resource exhaustion as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of the severe, isolated CPU consumption in redis-cart-0 and the timing-correlated error rate increase in adservice-0 indicates the component experiencing internal computational stress is causing failure propagation to its dependents."
+
+[Conclusion]
+"The root cause is a component entering a state of excessive internal processing that consumes disproportionate CPU resources, leading to degraded performance and subsequent failure in dependent services."
+
+[Next Action]
+- Verify whether application logs from the affected component show specific error patterns or stack traces.
+- Check for patterns of repeated operations or resource contention in the component's internal metrics.

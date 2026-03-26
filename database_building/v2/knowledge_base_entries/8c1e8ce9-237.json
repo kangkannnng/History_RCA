@@ -1,0 +1,33 @@
+{
+  "uuid": "8c1e8ce9-237",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "high latency and timeout errors in upstream services, particularly for the AdService/GetAds operation",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman混沌工程压力注入导致adservice-0的JVM CPU使用率飙升，进而引发服务性能严重下降和上游调用超时。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到，故障期间adservice-0的`pod_cpu_usage`从0.01飙升至0.6，变化率达193.44%，同时其服务响应时间指标`rrt`和`rrt_max`也分别增加146.87%和130.3%。这表明adservice-0 Pod自身存在严重的CPU资源过载问题。",
+      "Step 2: 在Log数据中搜索adservice-0的日志，发现大量关于`AdService--stress-1749715369`的`Rule.execute`调用记录，同时伴随`Agent failed to start!`和`InvocationTargetException`等错误信息。这些是Byteman混沌代理进行CPU压力注入的典型特征。",
+      "Step 3: 在Trace数据中确认故障影响，发现`frontend`服务内部调用`AdService/GetAds`操作的延迟从正常平均约5.5秒增加到异常平均约51秒，延迟倍数高达9.25倍，并且出现了状态码为4（`context deadline exceeded`）的调用失败。这证实了adservice-0的性能瓶颈直接导致了其调用方的超时和延迟激增。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden and significant spike (e.g., change ratio > 150%)",
+        "instruction": "检查故障时间段内，哪个Pod的`pod_cpu_usage`指标存在远超阈值的突然飙升。重点关注变化率最大的Pod，并关联查看其服务响应时间指标（如rrt, rrt_max）是否同步恶化。"
+      },
+      {
+        "modality": "Log",
+        "target": "stress, Byteman",
+        "expected_pattern": "Contains keywords related to stress injection or chaos engineering rules (e.g., '*stress*', 'Byteman', 'Rule.execute')",
+        "instruction": "在疑似异常的Pod对应的日志中，搜索`stress`、`Byteman`等关键词。如果发现明确的压力注入规则执行日志（例如`Rule.execute for *stress*`），则指向混沌工程测试导致的人为故障。"
+      },
+      {
+        "modality": "Trace",
+        "target": "AdService/GetAds",
+        "expected_pattern": "Latency spike (e.g., >= 5x normal avg duration) and timeout errors (status code 4)",
+        "instruction": "分析Trace数据，找出调用链路中存在显著延迟增加的操作，特别是`AdService/GetAds`。确认是否存在超时错误（status code 4, message `deadline exceeded`），并将其与Metric和Log中发现的问题Pod进行关联。"
+      }
+    ]
+  }
+}

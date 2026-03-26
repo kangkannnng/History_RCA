@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "0efb9550-160",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "High memory usage, memory saturation, memory exhaustion, memory leak, memory stress during stress test",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [productcatalogservice-2] experienced [pod_memory_working_set_bytes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [productcatalogservice-2] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations keyword list)",
+            "Step 3: Derive Root Cause - Based on pod_processes anomaly indicating Pod lifecycle event, determined cause is [pod_memory_working_set_bytes] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "pod_processes changed from 1.0 to 2.0 (66.67% p99 change rate) in metric anomaly data",
+                "instruction": "Search for metric [pod_processes] with pod_name=productcatalogservice-2 and check for value change from 1.0 to 2.0"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Memory usage metric showing high values or abnormal patterns",
+                "instruction": "Check if metric [pod_memory_working_set_bytes] for pod productcatalogservice-2 shows abnormal values during fault window"
+            }
+        ]
+    }
+}
+```

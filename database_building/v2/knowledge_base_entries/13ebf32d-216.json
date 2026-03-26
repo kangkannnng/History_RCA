@@ -1,0 +1,33 @@
+{
+  "uuid": "13ebf32d-216",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "Latency spike on adservice causing cascading performance issues and high CPU usage",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman stress agent异常重复加载导致adservice容器CPU使用率飙升，进而引发调用链性能严重劣化。",
+    "reasoning_chain": [
+      "Step 1: 观察到adservice所有实例（pod_cpu_usage）指标出现异常飙升，例如adservice-0从0.01涨至0.6（增长193%），同时其rrt和rrt_max指标也显著增加。",
+      "Step 2: 在adservice的日志中，同时发现了与Byteman相关的报错（'Agent failed to start!'）和重复加载的异常（'attempting to load Byteman agent more than once'），以及大量与'AdService--stress'相关的规则执行记录。这表明有外部注入的故障演练规则因异常而持续执行，消耗大量CPU。",
+      "Step 3: 调用链数据确认了根因的影响范围，frontend调用AdService/GetAds的平均延迟从约5.5秒激增至61.5秒（11.3倍），形成了性能瓶颈。结合前两步的观察，可以确认adservice的CPU过载（由Byteman stress agent导致）是导致调用延迟和性能下降的根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden spike (e.g., >100% increase) for adservice pods",
+        "instruction": "检查adservice各个Pod的CPU使用率指标，是否存在在故障时间段内突然、显著的增长（例如，从正常值的个位数百分比飙升至50%以上）。"
+      },
+      {
+        "modality": "Log",
+        "target": "AdService--stress",
+        "expected_pattern": "Contains keywords related to stress injection and repeated loading",
+        "instruction": "搜索adservice的日志，查找包含'AdService--stress'的规则执行记录，以及'Byteman agent'、'attempting to load ... more than once'或'Agent failed to start!'等表明外部故障注入代理存在异常行为的错误日志。"
+      },
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Significant increase in rrt_max for calls involving adservice (e.g., frontend->adservice)",
+        "instruction": "分析调用链数据，重点关注涉及adservice（例如frontend调用AdService/GetAds）的调用路径，检查其最大响应时间(rrt_max)是否在故障期间激增数倍以上，确认性能瓶颈点。"
+      }
+    ]
+  }
+}

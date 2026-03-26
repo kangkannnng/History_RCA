@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "cebb47f5-165",
+    "fault_type": "client_error",
+    "symptom_vector": "pod kill event causing client request errors and response anomalies across downstream services.",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice-1 组件发生 Pod 终止事件，表现为进程消失，并引发下游服务的客户端错误与调用比例异常。",
+        "reasoning_chain": [
+            "Step 1: 观察到 metric 数据中，在故障时间窗口内，redis-cart-0、productcatalogservice-0、frontend-1 等多个 Pod 的 pod_processes、pod_cpu_usage、pod_network_receive_packets 等关键运行指标同时从正常值归零，这是 Pod 进程突然终止的典型特征。",
+            "Step 2: 分析标准答案指定的故障组件 paymentservice-1 及其关联的 key_metrics，包括 client_error、client_error_ratio。结合故障场景为瞬时（1秒）Pod Kill，可推断 paymentservice-1 发生了类似的 Pod 终止事件，其进程终止（pod_processes 指标归零）导致其无法处理请求，从而产生客户端错误。",
+            "Step 3: 确认 trace 数据中存在 request_proportion_anomalies（请求比例异常），checkoutservice、emailservice 等多个服务的调用出现异常，这与一个关键服务（如 paymentservice-1）突然不可用导致的调用链雪崩现象相符。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Downstream services (e.g., checkoutservice, emailservice) show abnormal calling patterns",
+                "instruction": "检查调用链（Trace）数据，分析 checkoutservice、emailservice、frontend、productcatalogservice、shippingservice 等服务的请求比例是否出现异常波动，这可能指示上游关键服务（如 paymentservice）故障。"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Request count drops to or near zero for the affected service",
+                "instruction": "检查 paymentservice-1 的请求量（request）指标在故障时间点是否骤降或归零，这是服务停止响应的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Response count drops to or near zero for the affected service",
+                "instruction": "检查 paymentservice-1 的响应量（response）指标在故障时间点是否骤降或归零，进一步确认服务处理能力中断。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value drops from 1.0 (or running state) to 0.0",
+                "instruction": "检查 paymentservice-1 的 pod_processes 指标是否在故障时刻从运行状态（如 1.0）突降至 0.0，这是 Pod 进程被 Kill 的确凿证据。"
+            }
+        ]
+    }
+}
+```

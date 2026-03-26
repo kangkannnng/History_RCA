@@ -1,0 +1,33 @@
+{
+  "uuid": "c4b46577-499",
+  "fault_type": "service_error",
+  "symptom_vector": "Severe latency spike in user-facing `PlaceOrder` operation (increased 10-13x), accompanied by a sharp increase in service error ratio (up to 30%). Downstream dependency calls, especially to email service, are failing with network/connection errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 因 DNS 解析失败而无法调用 emailservice，导致下单流程出错和级联延迟。",
+    "reasoning_chain": [
+      "Step 1: 首先在日志分析中发现 checkoutservice 实例持续抛出明确的 DNS 解析错误：`transport: Error while dialing dial tcp: lookup emailservice on 10.233.33.139:53: server misbehaving`，并标记为 `Unavailable` 状态，这表明 checkoutservice 无法解析 emailservice 的域名。",
+      "Step 2: 指标数据证实了此故障的影响：checkoutservice 的 `server_error_ratio` 和 `error_ratio` 从 0.0 激增至 25.98，同时 `rrt_max` 与 `rrt` 响应时间也出现数倍到数十倍的增长，符合因依赖服务不可用而导致自身服务质量和性能恶化的特征。",
+      "Step 3: 链路追踪数据完整展示了故障传播路径：checkoutservice 调用 `EmailService/SendOrderConfirmation` 的操作因前述 DNS 错误而大量失败（状态码 14），导致该操作延迟激增 70 倍，并进一步引发上游 frontend 调用 `CheckoutService/PlaceOrder` 的延迟飙升 10-13 倍。所有证据链闭合，指向 DNS 解析故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "checkoutservice",
+        "expected_pattern": "Contains error messages indicating DNS lookup failure, such as `lookup`, `dial tcp`, `server misbehaving`.",
+        "instruction": "在异常时间窗口内，搜索来自 checkoutservice 服务的错误日志，重点查找包含 'lookup', 'dial tcp', 'server misbehaving' 等关键词的条目，确认是否存在对特定服务（如 emailservice）的 DNS 解析失败记录。"
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio, error_ratio, rrt_max",
+        "expected_pattern": "Sudden and significant increase (e.g., from 0 to >20%) in error ratios, accompanied by a sharp spike in maximum response time (rrt_max).",
+        "instruction": "检查 checkoutservice 的 `server_error_ratio` 和 `error_ratio` 指标在故障时段内是否出现从接近零值的陡增。同时，检查其 `rrt_max` 指标是否也出现数量级的增长，以确认服务错误与性能恶化同时发生。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->emailservice, hipstershop.EmailService/SendOrderConfirmation",
+        "expected_pattern": "High failure rate (non-zero error status code like 14) and dramatically increased latency (e.g., 10x or more) for calls from checkoutservice to emailservice.",
+        "instruction": "分析 checkoutservice 调用 emailservice 的链路，特别是 `EmailService/SendOrderConfirmation` 操作。查看其状态码是否大量返回错误（如 14），并对比其异常时段的平均延迟与基线，确认是否出现数十倍的延迟增长。"
+      }
+    ]
+  }
+}

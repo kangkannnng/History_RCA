@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "9d5bc038-419",
+    "fault_type": "TiDB/IO",
+    "symptom_vector": "The system experiences a massive latency spike in `productcatalogservice`'s `GetProduct` operation (from ~10s to ~39 million seconds), accompanied by widespread 'Error 9005 (HY000): Region is unavailable' database errors. This propagates to cause 500 errors in `frontend` services, failing product recommendations and order placements.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiKV存储节点不健康导致数据库Region不可用，进而使得依赖数据库的productcatalogservice服务发生请求超时和失败。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到 `tidb-pd` 组件的 `store_unhealth_count` 指标中位数从故障前的0.0突增至故障时的1.0，变化率为200%，这是一个明确的信号，表明有一个TiKV存储节点状态异常或不健康。",
+            "Step 2: 在Log数据中发现，`productcatalogservice-0` 产生了高达495次的 'failed to query product by id: Error 9005 (HY000): Region is unavailable' 警告日志。这表明数据库访问层出现了Region（数据分片）不可用的具体错误，与Step 1的存储节点故障形成了因果关联。",
+            "Step 3: 在Trace数据中确认，故障的核心表现是服务链路的极端延迟。具体地，`productcatalogservice` 的 `GetProduct` 操作平均延迟从正常的约10毫秒飙升至3900万秒，并且大量调用链的状态码为2，错误消息正是 'Error 9005 (HY000): Region is unavailable'。这证明了存储层故障直接导致了上层应用服务的性能灾难和功能失效。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "store_unhealth_count",
+                "expected_pattern": "Sudden increase from 0 to a positive value (typically 1)",
+                "instruction": "立即检查TiDB PD组件的`store_unhealth_count`指标。若其值从0变为1或更大，表明至少一个TiKV存储节点已标记为不健康，这是数据库存储层故障的强有力前置信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "Error 9005 (HY000): Region is unavailable",
+                "expected_pattern": "Contains error message 'Error 9005 (HY000): Region is unavailable'",
+                "instruction": "在`productcatalogservice`服务的日志中搜索关键词'Error 9005'或'Region is unavailable'。若高频出现此错误，结合异常的Metric指标，可确认数据库Region不可用是导致服务失败的直接原因。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt (or latency) for productcatalogservice GetProduct operation",
+                "expected_pattern": "Extreme spike in latency (rrt) values, with associated error status codes and messages.",
+                "instruction": "分析调用链路数据，聚焦于`productcatalogservice`服务的`GetProduct`操作。检查其平均响应时间(rrt)是否出现灾难性飙升（如从毫秒级到万秒级），并查看关联的调用状态码和错误消息，确认其根因为数据库Region不可用。"
+            }
+        ]
+    }
+}
+```

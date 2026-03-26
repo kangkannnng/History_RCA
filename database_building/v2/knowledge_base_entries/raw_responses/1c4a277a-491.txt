@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "1c4a277a-491",
+    "fault_type": "网络延迟",
+    "symptom_vector": "multiple service response time degradation (rrt_max spike), high network latency, increased RTT, no error logs reported",
+    "expert_knowledge": {
+        "root_cause_desc": "pod网络收发指标（字节数、包数）异常导致的高网络延迟，进而影响了关键服务（如productcatalogservice, recommendationservice）的响应性能。",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据中，productcatalogservice-0的rrt_max指标的P99分位数显著增加了71.77%（从26189.42到55507.0），且recommendationservice-0的rrt_max中位数下降了22.26%，这指示了关键服务的响应时间存在剧烈波动和性能劣化。",
+            "Step 2: 分析Trace数据发现，多个涉及productcatalogservice、cartservice的调用链路延迟成倍增加（例如cartservice从3998ms增加到21396ms，延迟约5.35倍），这符合网络延迟导致的跨服务调用变慢的特征。",
+            "Step 3: 综合确认，Metric与Trace中观察到的延迟症状，与Ground Truth中描述的'pod_network_receive_bytes', 'pod_network_receive_packets'等网络指标异常以及'high network latency', 'increased RTT'等故障描述高度吻合。同时，Log数据中未发现错误日志，排除了应用层逻辑错误，进一步将问题范围指向底层基础设施（网络）或资源层。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+                "expected_pattern": "显著偏离基线（例如突增或突降），可能伴随丢包或吞吐量异常",
+                "instruction": "检查故障时间段内，所有Pod级别的网络收发字节数和包数指标。寻找是否存在特定Pod（尤其是productcatalogservice, recommendationservice相关Pod）的这些指标出现异常波动或趋势性变化，这直接指向网络层面的根本原因。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max, rrt",
+                "expected_pattern": "关键服务调用链的响应时间（rrt/rrt_max）出现大幅、普遍的上涨（例如P99值翻倍或数倍增长）",
+                "instruction": "分析服务间调用链路（尤其是涉及productcatalogservice和recommendationservice的链路），对比故障时段与正常时段的平均耗时（avg_duration）和最大响应时间（rrt_max）。确认延迟增长是否具有普遍性，并定位延迟最严重的调用路径。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "出现大量非200状态码（如302或其他5xx/4xx错误），或特定错误关键词",
+                "instruction": "在故障时间段内，检索productcatalogservice和recommendationservice服务的日志，筛选包含'http.resp.status'字段的记录。检查状态码分布，看是否有异常状态码（如302重定向过多）或其他指示网络或应用问题的错误信息。注意：本次案例中日志干净，但此检查用于排除应用层问题。"
+            }
+        ]
+    }
+}
+```

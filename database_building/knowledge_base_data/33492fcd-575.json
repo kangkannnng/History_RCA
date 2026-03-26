@@ -1,0 +1,48 @@
+{
+  "uuid": "33492fcd-575",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, overload, usage spike, and stress leading to system performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component currencyservice experienced pod_cpu_usage fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is currencyservice (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword checkoutservice and frontend in Trace data, indicating latency anomalies (From GT key_observations).",
+      "Step 3: Check Observation - Keyword http.resp.status and 302 not found in Log data, but monitoring detected failure (From GT key_observations).",
+      "Step 4: Check Observation - Found keyword rrt and rrt_max in Metric and Trace data, showing increased response times (From GT key_observations).",
+      "Step 5: Check Observation - Found keyword pod_cpu_usage and pod_processes in Metric data, showing surge for currencyservice pods (From GT key_observations).",
+      "Step 6: Derive Root Cause - Based on above features, especially pod_cpu_usage anomaly, determined cause is pod_cpu_usage (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, frontend",
+        "expected_pattern": "Latency anomalies observed in trace data involving checkoutservice and frontend services, with increased duration for CurrencyService calls, e.g., frontend->CurrencyService showing high latency.",
+        "instruction": "Search for trace entries with service names 'checkoutservice' and 'frontend' to detect latency spikes in calls to CurrencyService."
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "No specific error logs found with these keywords in the provided context, but fault was detected by monitoring systems.",
+        "instruction": "Search for log entries containing 'http.resp.status' and status code '302' to identify HTTP response issues during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Significant increase in rrt and rrt_max metrics for currencyservice, e.g., rrt_max increased from 6277.5 to 299647.0 for currencyservice-1, indicating response time degradation.",
+        "instruction": "Check metric data for 'rrt' and 'rrt_max' to verify response time anomalies, focusing on currencyservice instances."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Surge in pod_cpu_usage from 0.0 to 0.4 for currencyservice pods, e.g., for currencyservice-0, indicating high CPU utilization.",
+        "instruction": "Monitor 'pod_cpu_usage' metric for abnormal increases, specifically for currencyservice pods during the fault timeframe."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormal increase in pod_processes from 1.0 to 11.0 for currencyservice pods, e.g., for currencyservice-0, suggesting process anomalies or restarts.",
+        "instruction": "Check 'pod_processes' metric for unexpected changes in process count, particularly for currencyservice pods."
+      }
+    ]
+  }
+}

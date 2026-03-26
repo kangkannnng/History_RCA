@@ -1,0 +1,33 @@
+{
+  "uuid": "2ff9d8a6-501",
+  "fault_type": "Node_Resource_Exhaustion",
+  "symptom_vector": "Extreme latency spike (up to ~1.6 hours) in frontend calls to productcatalogservice from specific node (aiops-k8s-06), accompanied by connection refused errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06节点内存耗尽，导致该节点上的frontend-1等POD性能严重劣化，表现为极端延迟及下游连接错误。",
+    "reasoning_chain": [
+      "Step 1: 观察到从故障节点（aiops-k8s-06）上的frontend-1服务发起的、指向productcatalogservice的调用链（GetProduct）出现极端延迟，平均故障持续时间从正常的约11秒激增至约1.62小时。",
+      "Step 2: 分析该节点（aiops-k8s-06）的POD部署情况，发现其承载了emailservice-2, currencyservice-1, frontend-1三个POD。这些服务的性能指标（如rrt_max）均出现剧烈变化，且前端日志显示其在下游调用时开始频繁出现连接拒绝错误。",
+      "Step 3: 确认故障特征与节点级资源瓶颈高度吻合。Trace数据中出现的极端延迟（数量级增长）、Log中反复出现的连接错误（可能由节点资源紧张导致进程异常、网络栈问题或超时引起）、以及Metric数据中部分服务的响应时间异常变化（如productcatalogservice-2的rrt_max急剧下降可能因请求未到达或快速失败），共同构成了节点（aiops-k8s-06）资源耗尽的证据链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend-1 -> productcatalogservice latency",
+        "expected_pattern": "Sudden spike",
+        "instruction": "检查在故障期间，部署在疑似问题节点（例如aiops-k8s-06）上的前端服务（如frontend-1）调用下游服务（如productcatalogservice）的延迟是否出现数个数量级的异常增长。"
+      },
+      {
+        "modality": "Log",
+        "target": "dial tcp ... connect: connection refused",
+        "expected_pattern": "Contains error",
+        "instruction": "检查前端或相关服务日志中，是否存在指向特定下游服务端口的连接拒绝错误，这通常指示下游服务或其所在节点不可达。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Error status for frontend-1 operations",
+        "expected_pattern": "Contains error",
+        "instruction": "分析前端服务调用链的详细状态，确认失败的具体原因是否为下游连接问题。"
+      }
+    ]
+  }
+}

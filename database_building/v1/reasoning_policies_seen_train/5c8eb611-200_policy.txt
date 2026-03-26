@@ -1,0 +1,30 @@
+[Trigger]
+- Metric anomaly pattern: Response time metrics for a specific service instance show extreme increase from normal baseline to fault period
+- Trace anomaly pattern: Multiple upstream services experience severe latency when calling operations on a downstream service, with the most significant delays occurring in calls from frontend instances
+- Log anomaly pattern: No error logs detected during the fault period despite severe performance degradation
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: A specific pod's response time metrics show an extreme increase from 1362.2ms to 283515.09ms - This indicates a severe performance degradation localized to a single instance rather than the entire service
+- Evidence 2: Trace data shows the affected pod's operation latency increased from 2.3 seconds to 16.4 seconds - This confirms the performance issue at the specific operation level and establishes it as the most downstream point of failure
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: All frontend instances show response time increases from approximately 12 seconds to 190-200 seconds - This is a consequence of calling the degraded service, not the root cause
+- Evidence 4: Some services show increased error ratios during the fault period - This is a secondary effect caused by timeouts or failures resulting from the primary performance issue
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the extreme increase in response time metrics for a specific pod instance, we suspect a performance degradation affecting that particular instance's ability to process requests"
+
+Step 2: Verification or elimination
+"If this were caused by a service-wide issue, we would expect all instances of the service to show similar degradation; However, actual observation shows only one instance exhibits the extreme performance issue while other instances of the same service remain normal; This rules out a service-level configuration or deployment problem"
+
+Step 3: Convergence to conclusion
+"The combination of localized performance degradation in a single instance and the cascading latency effects on all upstream callers indicates a specific instance failure that creates a bottleneck in the request processing flow"
+
+[Conclusion]
+"The root cause is a severe performance degradation in a specific service instance that created a processing bottleneck, causing cascading latency throughout the dependent service chain without generating explicit error conditions"
+
+[Next Action]
+- Verify whether resource utilization metrics for the affected pod show any anomalies
+- Check for patterns in network traffic or inter-process communication that might explain the performance degradation

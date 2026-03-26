@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "bbfefe10-321",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload leading to performance degradation of hosted services",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06 节点因 node_cpu_usage_rate 指标异常飙升，导致节点CPU压力过高，并影响了其承载的Pod性能。",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-06 节点的 node_cpu_usage_rate 指标在故障期间中位数从 40.56% 飙升至 94.52%，变化率达 79.89%，这是最显著的硬件资源异常。",
+            "Step 2: 分析 aiops-k8s-06 节点上运行的 Pod（productcatalogservice-1, checkoutservice-2, emailservice-2），发现 productcatalogservice-1 的 rrt_max 指标也从 30755.5ms 上升到 44276.0ms，表明服务性能因节点资源瓶颈而恶化。",
+            "Step 3: 确认日志 (Log) 和追踪 (Trace) 数据均未发现应用层错误，这排除了应用代码故障的可能性，进一步将根因锁定在基础设施层（节点资源）上。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden and sustained increase (e.g., median change > 50%)",
+                "instruction": "检查节点层面 node_cpu_usage_rate 指标在故障时间段内是否存在异常的、持续性的飙升，并与基准期进行对比。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_receive_packets_total",
+                "expected_pattern": "May correlate with CPU usage spike if caused by network traffic",
+                "instruction": "如果监控指标中存在，检查 aiops-k8s-06 节点的网络接收包数指标，观察是否与CPU使用率飙升存在时间或趋势上的关联，以辅助判断CPU压力来源。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Increase on Pods running on the high-CPU node",
+                "instruction": "检查高CPU使用率节点（aiops-k8s-06）上所有运行中的Pod的服务性能指标（如 rrt_max），观察其响应时间是否在节点CPU升高后出现同步恶化，以确认影响范围。"
+            }
+        ]
+    }
+}
+```

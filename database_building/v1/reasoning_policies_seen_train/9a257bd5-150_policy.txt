@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Multiple instances of "DeadlineExceeded" errors in a calling service, correlated with specific rule execution logs ("Rule.execute called for AdService-getRandomAds-latency") and agent lifecycle errors in a downstream service.
+- Metric anomaly pattern: A significant increase in the CPU usage metric for a specific pod instance of the downstream service, alongside elevated response time metrics in the calling service.
+- Trace anomaly pattern: Trace data was unavailable for analysis.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs from the downstream service instance show repeated execution of a named latency-injection rule ("AdService-getRandomAds-latency-1749399002 execute()") and agent transformation activities ("inserting trigger into ... getRandomAds()"). This matters because it directly points to an active, external process modifying the behavior of a critical service method, which is a primary causal candidate.
+- Evidence 2: Metric data shows a substantial increase in CPU usage (pod_cpu_usage) for the same downstream service instance where the rule execution logs were found. This matters because it provides a resource consumption correlate to the rule injection activity, suggesting the modification has a tangible performance cost.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: The calling service logs show numerous "DeadlineExceeded" errors when attempting to communicate with the downstream service. This is a consequence, not a cause, as it is the expected failure mode when the downstream service's processing is delayed beyond the caller's timeout threshold.
+- Evidence 4: Other services show metric anomalies (e.g., error ratio spikes). These can be deprioritized as they lack the direct, low-level evidence of behavioral modification found in the primary service's logs, and may be side effects or unrelated concurrent issues.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the observation of logs indicating an external agent is actively injecting a rule designed to create latency into a specific service method, and a correlated spike in that service's CPU consumption, we suspect that the externally-induced processing delay is causing upstream timeouts."
+
+Step 2: Verification or elimination
+"If this were caused by a general resource shortage or a problem originating in the calling service, we would expect to see broad resource constraints (e.g., high node CPU) or errors internal to the caller. However, the primary evidence is tightly scoped to a specific rule injection in the downstream service and its associated CPU cost. This rules out the caller as the origin and points the investigation toward the modification of the downstream service's runtime behavior."
+
+Step 3: Convergence to conclusion
+"The combination of the explicit log evidence showing rule injection into the service's core method and the supporting metric evidence of increased resource utilization in that same service instance indicates that the root cause is an external agent modifying the service's execution flow, introducing artificial latency that cascades into timeout failures for its clients."
+
+[Conclusion]
+"The root cause is the injection of an external agent into the service runtime, which modified a critical business method to induce processing delays. This artificial latency consumed additional CPU resources and caused client requests to time out."
+
+[Next Action]
+- "Verify whether the agent configuration or rule definition explicitly specifies a latency delay parameter."
+- "Check for similar rule injection patterns in other instances of the same service to confirm the scope of impact."

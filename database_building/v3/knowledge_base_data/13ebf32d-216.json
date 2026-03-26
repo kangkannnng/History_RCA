@@ -1,0 +1,51 @@
+{
+  "uuid": "13ebf32d-216",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "JVM CPU spike with pod_cpu_usage increase from 0.01 to 0.6 (193% increase) and rrt_max degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 Byteman stress agent 多次加载导致 pod_cpu_usage 异常飙升，引发 JVM CPU 过载",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的 pod_cpu_usage 指标从正常中位数 0.01 飙升至 0.6，增长比例 193.44%，同时 rrt_max 从 42983.5 增加到 197984.0",
+      "Step 2: 分析 adservice 组件的日志发现 Byteman agent 重复加载异常：'java.lang.Exception: Main : attempting to load Byteman agent more than once' 和 'AdService--stress-1749640247 execute()' 高频执行",
+      "Step 3: 确认 Trace 数据显示 frontend 调用 AdService/GetAds 延迟从 5.5 秒激增至 61.5 秒（11.3 倍），形成级联性能影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice--stress",
+        "expected_pattern": "Contains stress-related execution logs",
+        "instruction": "在 adservice 组件的日志中搜索 'AdService--stress' 关键词，检查是否存在高频执行的 stress 规则"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Contains InvocationTargetException error",
+        "instruction": "在 adservice 组件的日志中搜索 'InvocationTargetException' 关键词，检查是否存在 Byteman agent 加载异常"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Contains Transformer or TriggerThread related logs",
+        "instruction": "在 adservice 组件的日志中搜索 'Transformer' 或 'TriggerThread' 关键词，检查 Byteman agent 注入情况"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Latency anomalies in frontend->adservice calls",
+        "instruction": "检查 frontend 调用 adservice 的追踪数据，特别是 GetAds 操作的延迟是否异常增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden spike from baseline (e.g., from 0.01 to 0.6)",
+        "instruction": "检查 adservice 所有实例的 pod_cpu_usage 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Significant increase in maximum response time",
+        "instruction": "检查 adservice 的 rrt_max 指标是否显著恶化，特别是 p99 值的变化"
+      }
+    ]
+  }
+}

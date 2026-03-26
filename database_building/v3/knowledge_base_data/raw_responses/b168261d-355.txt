@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "b168261d-355",
+    "fault_type": "request",
+    "symptom_vector": "target port misconfiguration causing connection refused errors from all frontend instances to paymentservice",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice 组件因端口配置错误导致所有 frontend 实例无法连接到其 50051 端口，表现为 request 和 response 指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到所有 frontend 实例（frontend-0、frontend-1、frontend-2）的日志中均出现相同的连接拒绝错误：'transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused'",
+            "Step 2: 分析 frontend 组件的 server_error_ratio 和 error_ratio 指标在故障窗口期内显著上升至 28-33%，表明服务端错误率异常增高",
+            "Step 3: 确认故障目标为 paymentservice（IP: 10.233.55.4，Port: 50051），所有 frontend 实例均无法连接，符合端口配置错误的特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "connection refused|Error while dialing|dial tcp",
+                "expected_pattern": "Multiple frontend instances reporting consistent connection refused errors to the same target IP and port",
+                "instruction": "在所有 frontend 实例的日志中搜索 'connection refused'、'Error while dialing' 和 'dial tcp' 关键词，检查是否指向相同的 paymentservice IP 和端口"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Abnormal error ratio patterns in services attempting to connect to the target",
+                "instruction": "检查 frontend 服务的 error_ratio 和 server_error_ratio 指标是否在故障时间段内出现异常上升"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Abnormal response patterns or missing responses from the target service",
+                "instruction": "检查 paymentservice 的响应相关指标（如 rrt、rrt_max）是否出现异常模式或完全缺失"
+            }
+        ]
+    }
+}
+```

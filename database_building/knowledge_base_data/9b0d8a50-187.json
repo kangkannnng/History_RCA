@@ -1,0 +1,55 @@
+{
+  "uuid": "9b0d8a50-187",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace observed.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [adservice-getrandomads-exception] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log (From GT key_observations).",
+      "Step 3: Check Observation - Found keyword [Caught] and [throwexception] in Log (From GT key_observations).",
+      "Step 4: Check Observation - Found keyword [grpc-default-executor] in Log (From GT key_observations).",
+      "Step 5: Check Observation - Found keyword [injected] and [error] in Log (From GT key_observations).",
+      "Step 6: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations).",
+      "Step 7: Derive Root Cause - Based on the combination of the above features (JVM exception keywords, injection error, and the specific rule name), determined cause is [adservice-getrandomads-exception] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "Log entries containing the exact string 'AdService-getRandomAds-exception-1749535841', such as 'AdService-getRandomAds-exception-1749535841 execute()' or 'Rule.execute called for AdService-getRandomAds-exception-1749535841'.",
+        "instruction": "Search for keyword 'AdService-getRandomAds-exception-1749535841' in logs from the 'adservice' component."
+      },
+      {
+        "modality": "Log",
+        "target": "Caught, throwexception",
+        "expected_pattern": "Log entry 'caught ThrowException' associated with the 'adservice' component.",
+        "instruction": "Search for the phrase 'caught ThrowException' in logs from the 'adservice' component."
+      },
+      {
+        "modality": "Log",
+        "target": "grpc-default-executor",
+        "expected_pattern": "Log entry containing 'Exception in thread \"grpc-default-executor' associated with the 'adservice' component.",
+        "instruction": "Search for the phrase 'grpc-default-executor' within exception stack traces in logs from the 'adservice' component."
+      },
+      {
+        "modality": "Log",
+        "target": "injected, error",
+        "expected_pattern": "Log entry containing 'java.lang.Error: Injected error' associated with the 'adservice' component.",
+        "instruction": "Search for the phrase 'Injected error' in logs from the 'adservice' component."
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Log entry containing 'java.lang.reflect.InvocationTargetException' associated with the 'adservice' component.",
+        "instruction": "Search for the keyword 'InvocationTargetException' in logs from the 'adservice' component."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network metric data is available for pods, but no specific anomaly pattern is defined as the root cause is a software-level exception injection.",
+        "instruction": "Check for the existence of network metrics (pod_network_receive_bytes, etc.) for the 'adservice' pods, but note that significant anomalies here are not expected for this specific fault type."
+      }
+    ]
+  }
+}

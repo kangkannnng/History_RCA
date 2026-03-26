@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "df892932-168",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "Service latency spike and CPU usage anomaly",
+    "expert_knowledge": {
+        "root_cause_desc": "混沌工程（Chaos Engineering）通过Byteman代理向AdService注入CPU压力测试规则，导致所有实例CPU使用率飙升至峰值，并引发服务响应时间激增。",
+        "reasoning_chain": [
+            "Step 1: 指标数据显示adservice所有实例（pod adservice-0, adservice-1, adservice-2）的pod_cpu_usage在故障期间从接近0.0的基线值急剧飙升至0.6（中位数增长率194%-200%），同时其响应时间指标rrt和rrt_max也出现数倍的显著增长。这表明AdService组件本身存在严重的资源消耗和性能退化。",
+            "Step 2: 日志数据分析发现，在故障时间段内，所有adservice实例的日志中频繁出现与混沌工程工具‘Byteman代理’相关的记录。关键词‘AdService--stress-1749463845’的规则执行日志（Rule.execute called... 和 execute()）出现了超过150次，同时伴随大量压力测试线程（AdService--stress-17494638450至56）的创建、启动和运行日志。这提供了压力测试活动正在执行的直接证据。",
+            "Step 3: 追踪数据分析进一步确认了故障的影响路径。frontend服务对AdService的调用链路（hipstershop.AdService/GetAds）平均耗时从正常的约5.4秒激增至45秒，增长了约8.3倍。这与指标中观察到的rrt_max异常增长以及日志中的压力测试活动在时间上和因果关系上高度吻合，形成了完整的证据链。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage (filtered by service_name: adservice)",
+                "expected_pattern": "Sudden spike from near-zero baseline (e.g., 0.0 or 0.01) to a high value (e.g., 0.6), representing over 100% increase.",
+                "instruction": "检查adservice相关Pod的CPU使用率指标，确认在异常时间窗口内是否出现所有实例CPU使用率从低基线突然飙升到高值的模式，并与正常时段对比变化率。"
+            },
+            {
+                "modality": "Log",
+                "target": "\"AdService--stress\" and \"execute()\"",
+                "expected_pattern": "Contains repeated log entries indicating the execution of a stress-test rule named 'AdService--stress-{id}', along with thread creation/execution logs (e.g., Creating thread, Running thread).",
+                "instruction": "在adservice的日志中搜索关键词‘AdService--stress’和‘execute’，检查是否有大量规则执行记录和压力测试线程活动日志，这直接表明故障注入行为。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->AdService call latency (operation: hipstershop.AdService/GetAds)",
+                "expected_pattern": "Significant increase in average duration (e.g., 8x or higher) during the anomaly period compared to normal periods.",
+                "instruction": "分析从frontend服务到AdService的调用链追踪数据，特别是GetAds操作，确认其平均响应时间在故障期间是否出现数倍异常增长。"
+            }
+        ]
+    }
+}
+```

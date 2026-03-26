@@ -1,0 +1,27 @@
+{
+  "uuid": "e1c6a610-408",
+  "fault_type": "metric",
+  "symptom_vector": "Significant increase in node_filesystem_usage_rate metric, potentially leading to service latency increase or I/O performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-03节点文件系统使用率异常飙升导致磁盘空间不足。",
+    "reasoning_chain": [
+      "Step 1: 在初始的Metric数据全面扫描中，观察到`node_filesystem_usage_rate`指标存在一个最显著的异常：节点`aiops-k8s-03`的该指标中位数从正常的25.73%飙升至故障时的65.14%，变化率达86.74%，P99值更是从36.22%升至94.27%，表明该节点磁盘空间即将耗尽，这是一个严重的节点级基础设施故障信号。",
+      "Step 2: Log分析显示在故障时间段内，系统整体及针对特定服务的日志查询均未发现任何错误日志。这表明应用层代码未抛出异常，该现象符合底层基础设施（如磁盘、网络）发生故障的特征，即应用表现为“静默失败”或性能下降，而非直接报错，间接支持了磁盘IO性能下降这类根因的可能性。",
+      "Step 3: 结合Trace数据进行分析，发现节点`aiops-k8s-03`上仅有2个异常调用，且其服务（如`recommendationservice-1`）的延迟增幅相对温和（如rrt_max中位数从11869.5ms变为11626.0ms）。同时，Metric数据中该节点上运行的Pod（如`recommendationservice-1`, `adservice-0`）的CPU使用率、服务错误率等指标未见明显异常，说明节点资源问题是初始原因，但尚未导致其承载的所有服务出现严重、一致的性能问题，更符合磁盘空间逐步耗尽的前期表现。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden spike and sustained high value, indicating disk space exhaustion.",
+        "instruction": "检查所有节点的文件系统使用率指标，找出中位数和P99值异常飙升的节点。重点关注变化率超过特定阈值（例如50%）的节点。"
+      },
+      {
+        "modality": "Log",
+        "target": "error, exception, disk full, no space left",
+        "expected_pattern": "Absence of application-level error logs during the anomaly period, indicating silent infrastructure failure.",
+        "instruction": "在整个系统及故障节点关联服务的日志中搜索错误、异常或磁盘空间相关的关键词。确认在故障时间窗口内是否缺乏直接的应用层报错，这支持对基础设施问题的假设。"
+      }
+    ]
+  }
+}

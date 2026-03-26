@@ -1,0 +1,63 @@
+{
+  "uuid": "a7b21b38-262",
+  "fault_type": "client_error_ratio",
+  "symptom_vector": "pod crash with client error ratio spike and connection refused errors",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice 组件因连接拒绝导致 client_error_ratio 飙升，引发级联故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 服务的 client_error_ratio 和 error_ratio 指标从 0.0 飙升至 2.12，表明服务完全不可用",
+      "Step 2: 分析日志发现多个 frontend 实例报告 'transport: Error while dialing dial tcp 10.233.27.213:50051: connect: connection refused' 错误，指向 shippingservice 连接问题",
+      "Step 3: 确认 trace 数据中所有调用 shippingservice 的请求都返回 connection refused 错误，且错误集中在端口 50051，表明 shippingservice 完全不可用"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "从正常值0.0突然飙升至2.12以上",
+        "instruction": "检查 frontend 服务的 client_error_ratio 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "从正常值0.0突然飙升至2.12以上",
+        "instruction": "检查 frontend 服务的 error_ratio 指标是否同步异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "内存使用异常波动或持续高位",
+        "instruction": "检查 shippingservice pod 的内存使用情况是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "网络接收流量异常变化",
+        "instruction": "检查 shippingservice pod 的网络接收流量指标"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused",
+        "expected_pattern": "包含 'connect: connection refused' 错误信息",
+        "instruction": "在 frontend 和 checkoutservice 日志中搜索 connection refused 关键词"
+      },
+      {
+        "modality": "Log",
+        "target": "transport: Error while dialing",
+        "expected_pattern": "包含 'transport: Error while dialing' 的RPC连接错误",
+        "instruction": "搜索涉及 shippingservice 调用的RPC连接错误日志"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->shippingservice",
+        "expected_pattern": "调用链失败且状态码为14（连接错误）",
+        "instruction": "检查 frontend 调用 shippingservice 的trace是否大量失败"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->shippingservice",
+        "expected_pattern": "调用链失败且状态码为14（连接错误）",
+        "instruction": "检查 checkoutservice 调用 shippingservice 的trace是否大量失败"
+      }
+    ]
+  }
+}

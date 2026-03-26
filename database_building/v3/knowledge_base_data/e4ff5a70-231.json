@@ -1,0 +1,21 @@
+{
+  "uuid": "e4ff5a70-231",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full with high disk utilization and disk space exhaustion",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点因 node_filesystem_usage_rate 指标异常飙升至80.83%导致磁盘空间耗尽",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-08 节点的 node_filesystem_usage_rate 指标从正常值53.67%异常飙升至80.83%，增长40.39%",
+      "Step 2: 分析 aiops-k8s-08 节点同时出现 node_cpu_usage_rate 从16.92%上升至28.98%，表明节点资源压力",
+      "Step 3: 确认该节点上运行的 redis-cart-0 等服务出现响应时间增加，符合节点资源瓶颈导致的级联影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden increase from baseline to high level (e.g., >80%)",
+        "instruction": "检查 aiops-k8s-08 节点的 node_filesystem_usage_rate 指标是否异常飙升，重点关注是否超过80%阈值"
+      }
+    ]
+  }
+}

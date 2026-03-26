@@ -1,0 +1,33 @@
+{
+  "uuid": "98eacd31-244",
+  "fault_type": "client_error_ratio",
+  "symptom_vector": "connection refused errors leading to client error ratio spikes and response time degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "emailservice 端口配置错误导致连接被拒绝，并引发 client_error_ratio 等指标异常",
+    "reasoning_chain": [
+      "Step 1: 从日志数据中观察到 checkoutservice 调用 emailservice (10.233.49.244:5000) 时产生 'connection refused' 和 'Error while dialing' 错误，这是端口配置错误的典型表现。",
+      "Step 2: 分析指标数据发现，作为 emailservice 调用方的 cartservice-0 的 client_error_ratio 和 error_ratio 指标从 0 激增至 19.29%，同时 emailservice 多个实例的 rrt_max 指标严重恶化（变化率最高达161.33%），符合上游服务不可用导致下游调用失败并引发延迟的连锁反应模式。",
+      "Step 3: 结合系统拓扑与上述日志、指标证据，确认故障根因为 emailservice 端口配置错误，该错误直接导致了 client_error_ratio 的飙升。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused|Error while dialing",
+        "expected_pattern": "Log messages containing 'connection refused' or 'Error while dialing' targeting a specific service IP:port",
+        "instruction": "搜索指向特定服务（如emailservice）IP和端口（例如 :5000）的 'connection refused' 或 'Error while dialing' 日志错误。"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "Sudden and significant increase from a baseline of near-zero values",
+        "instruction": "检查调用方服务（如cartservice）的 client_error_ratio 指标是否在故障时段内从接近0的水平（如0.0）急剧上升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Significant increase in P99 response time (high change ratio)",
+        "instruction": "检查被调用服务（如emailservice各实例）的 rrt_max 指标的P99值是否出现显著恶化（如变化率超过100%）。"
+      }
+    ]
+  }
+}

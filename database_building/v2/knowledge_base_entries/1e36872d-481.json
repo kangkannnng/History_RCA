@@ -1,0 +1,33 @@
+{
+  "uuid": "1e36872d-481",
+  "fault_type": "metric",
+  "symptom_vector": "database performance degradation with high response latency in productcatalogservice and cartservice APIs",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB-TiKV组件因region_pending和io_util异常导致数据库性能下降，引发上游服务延迟",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据观察到tidb-tikv组件的region_pending指标变化率164.14%（从11018.0降至1085.0），cpu_usage的p99变化率104.18%（从0.11增至0.35），io_util变化率77.68%（从0.03增至0.07），表明数据库层出现严重性能异常",
+      "Step 2: 从Trace数据发现productcatalogservice的GetProduct接口延迟异常激增（正常10-11秒激增至16.8-34.3秒），延迟倍数达到14.8-17.7倍，同时cartservice与redis交互延迟也从1.5秒激增至15秒，形成完整的故障传播链",
+      "Step 3: Log数据未检测到错误日志，符合数据库性能静默下降而非应用层错误的特征，结合架构依赖关系（productcatalogservice依赖TiDB），确认数据库组件异常为根本原因"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden drop with change rate > 100%",
+        "instruction": "检查TiDB-TiKV组件的region_pending指标，关注变化率超过100%的异常下降，这通常表示数据库region处理能力严重下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Significant increase in utilization percentage",
+        "instruction": "检查TiDB-TiKV的io_util指标，关注从正常值（如0.03）到异常值（如0.07）的显著增长，这可能表明磁盘I/O瓶颈"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice GetProduct interface",
+        "expected_pattern": "Latency spike with 10x+ increase",
+        "instruction": "分析前端调用productcatalogservice的GetProduct接口延迟，当观察到延迟从秒级激增至数十秒且倍数超过10倍时，需要向下游数据库层排查"
+      }
+    ]
+  }
+}

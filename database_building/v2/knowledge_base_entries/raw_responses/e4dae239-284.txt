@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "e4dae239-284",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "High latency spikes in downstream services (cartservice, checkoutservice, emailservice, shippingservice), particularly in operations involving HMSET and HGET on Redis.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-05 的磁盘使用率过高导致运行在该节点上的服务性能严重下降，并通过调用链向上游扩散影响整个购物流程。",
+        "reasoning_chain": [
+            "Step 1: 在 Metric 分析中观察到节点 `aiops-k8s-05` 的 `node_filesystem_usage_rate` 从中位数 25.18% 异常飙升到 63.61%，变化率达 86.56%。其 P99 值从 36% 上升到 91.42%，表明在故障期间，该节点磁盘已达到或接近饱和状态。",
+            "Step 2: 结合拓扑数据 (`node_pod_mapping`)，确认节点 `aiops-k8s-05` 上运行了 `cartservice-1` 和 `currencyservice-0` 等关键服务。Metric 数据显示 `cartservice-1` 的 `rrt` 和 `rrt_max` 均有轻微异常。",
+            "Step 3: Trace 数据分析发现，与 `aiops-k8s-05` 节点相关的 `cartservice-1` 对 Redis 的 `HMSET` 操作延迟出现显著增加（从正常的 1655ms 飙升至 14311ms，倍数约 8.6x），且下游 `checkoutservice` 调用 `cartservice-1` 的 `EmptyCart` 操作延迟也异常（正常 2880ms，故障 29637ms，倍数约 10.3x）。这表明性能问题通过调用链传播。",
+            "Step 4: 综合研判，节点级磁盘资源瓶颈（`node_filesystem_usage_rate` 异常）是源头。磁盘 I/O 阻塞导致运行其上的 Pod 性能下降，首先表现为依赖该节点上服务的操作（如 `cartservice-1` 的 Redis 操作）延迟，进而引发依赖这些服务的上游操作（如 `checkoutservice` 的购物车操作）连锁延迟。Log 数据中未发现明确错误，符合因资源争用（如磁盘 I/O 等待）而非程序错误导致的性能问题特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate{node=\"aiops-k8s-05\"}",
+                "expected_pattern": "Sudden spike in median value (>50% increase) and high P99 value (>90%) indicating disk saturation.",
+                "instruction": "查询并重点关注节点 `aiops-k8s-05` 在故障时间窗口内的 `node_filesystem_usage_rate` 指标，特别是其中位数（median）和 P99 分位数的变化。磁盘使用率超过 60% 并急剧上升是核心风险信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "disk full, no space left, I/O error, read-only filesystem",
+                "expected_pattern": "Contains error messages related to disk space exhaustion or I/O failures.",
+                "instruction": "搜索所有运行在节点 `aiops-k8s-05` 上的 Pod 的日志，查找与磁盘空间不足、文件系统只读或 I/O 错误相关的关键字。尽管本次数据中日志未采集到此类错误，但在实际诊断中，这是确认磁盘问题的直接证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "Services or pods running on node `aiops-k8s-05` (e.g., cartservice-1)",
+                "expected_pattern": "Increased latency in operations (e.g., HMSET, HGET, HTTP calls) originating from pods on the affected node.",
+                "instruction": "分析调用链数据，筛选出源（parent）或目标（child）Pod 位于 `aiops-k8s-05` 节点（如 `cartservice-1`）的调用记录。查看这些调用的 `normal_avg_duration` 与 `anomaly_avg_duration` 对比，识别延迟异常的起点。"
+            }
+        ]
+    }
+}
+```

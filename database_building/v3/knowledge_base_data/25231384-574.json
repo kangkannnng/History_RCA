@@ -1,0 +1,57 @@
+{
+  "uuid": "25231384-574",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault with filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 组件因 region_pending 指标异常飙升152.83%和节点内存资源耗尽导致IO故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 的 region_pending 指标从正常中位数9566.5飙升至故障中位数1279.0，变化率152.83%，表明数据库层面存在严重的region处理延迟问题",
+      "Step 2: 分析 aiops-k8s-05 节点的 node_memory_usage_rate 从30.15%急剧上升到64.45%（增加72.52%），node_memory_MemAvailable_bytes 从11.46GB减少到5.72GB（减少66.8%），表明内存资源严重不足",
+      "Step 3: 确认 productcatalogservice 的 GetProduct 接口延迟从正常8-11秒增加到异常69-211秒（延迟倍数6.9-18.4倍），这是下游TiDB异常的直接表现，而非独立问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Significant latency increase in productcatalogservice GetProduct interface (6.9-18.4x)",
+        "instruction": "检查调用链数据中 productcatalogservice 的 GetProduct 接口是否存在严重的延迟异常，特别是从 frontend 和 checkoutservice 调用的路径"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization spike or abnormal patterns",
+        "instruction": "检查 tidb-tikv 组件相关的IO利用率指标是否出现异常飙升或异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden increase in region pending count (152.83% change ratio)",
+        "instruction": "检查 tidb-tikv 的 region_pending 指标是否从正常值9566.5异常增加到1279.0，变化率超过150%"
+      },
+      {
+        "modality": "Metric",
+        "target": "snapshot_apply_count",
+        "expected_pattern": "Abnormal snapshot apply count patterns",
+        "instruction": "检查 tidb-tikv 的 snapshot_apply_count 指标是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Store size anomalies or rapid changes",
+        "instruction": "检查 tidb-tikv 的 store_size 指标是否存在异常变化或异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage rate spike (72.52% increase on aiops-k8s-05)",
+        "instruction": "检查 aiops-k8s-05 节点的 node_memory_usage_rate 是否从30.15%急剧上升到64.45%，以及相关节点的内存使用情况"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU usage anomalies",
+        "instruction": "检查 tidb-tikv 及相关组件的cpu_usage指标是否存在异常模式"
+      }
+    ]
+  }
+}

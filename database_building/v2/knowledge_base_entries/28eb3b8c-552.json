@@ -1,0 +1,33 @@
+{
+  "uuid": "28eb3b8c-552",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "rrt_max spike on critical service calls (checkoutservice->shippingservice, checkoutservice->cartservice, cartservice->redis) and node-level memory usage increase.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-03节点内存使用率从31.03%上升至39.12%，导致运行于该节点上的关键服务出现性能延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到，节点`aiops-k8s-03`的`node_memory_usage_rate`指标中位数从31.03%上升至39.12%，变化率达23.05%，是唯一显著的节点级资源异常。",
+      "Step 2: 在Trace数据中观察到，最严重的延迟异常集中发生在`aiops-k8s-03`节点上的服务调用链上，例如`checkoutservice->shippingservice`延迟从9.35ms增至57.11ms（6.1倍），`checkoutservice->cartservice`延迟从2.62ms增至41.18ms（15.7倍）。",
+      "Step 3: 结合节点-Pod映射关系(`node_pod_mapping`)确认，`aiops-k8s-03`节点上运行着`checkoutservice-2`和`cartservice-1`等Pod，节点内存压力直接影响这些服务的性能，并且Log数据中未发现应用层错误，排除了代码问题，更符合基础设施资源争用的特征。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sudden increase or sustained high values (e.g., median_change_ratio > 0.2).",
+        "instruction": "检查所有K8s节点的`node_memory_usage_rate`指标，找出在故障时间段内中位数变化率最高的节点。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max for calls involving services on the suspect node (e.g., checkoutservice->shippingservice, checkoutservice->cartservice).",
+        "expected_pattern": "Significant latency spike (e.g., 5x or more increase in average duration) for services located on the same node with high memory usage.",
+        "instruction": "分析调用链数据(`filtered_traces`)，筛选出`node_name`为高内存使用率节点的调用，检查其`anomaly_avg_duration`与`normal_avg_duration`的比值，确认延迟异常是否与节点相关。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error logs (e.g., 'Out of memory', 'OOMKilled') from pods on the suspect node.",
+        "expected_pattern": "Absence of explicit error logs, indicating the issue might be at the resource contention level rather than application crash.",
+        "instruction": "检查在故障时间段内，运行于可疑节点上的Pod的日志，确认是否有直接的内存错误或OOM事件。若没有，则支持节点级资源压力导致性能下降而非应用崩溃的推断。"
+      }
+    ]
+  }
+}

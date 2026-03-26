@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "0a373d08-149",
+    "fault_type": "metric",
+    "symptom_vector": "Application error ratio spike, service degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "Adservice服务因JVM异常（adservice-getrandomads-exception）导致错误率飙升。",
+        "reasoning_chain": [
+            "Step 1: 从指标数据中观察到，故障期间 `adservice-0` 的两个关键应用层错误指标 `error_ratio` 和 `client_error_ratio` 出现显著异常。其p99值从正常的0.0变为2.0，变化率高达200%，表明该服务在处理请求时出现了大量错误。",
+            "Step 2: 结合可获取的数据进行综合分析。虽然Log和Trace数据未能成功收集，但Metric数据显示了最显著、最直接的异常信号集中在 `adservice-0` 自身的错误率上。这种错误率的突然、显著飙升（p99值从0到非零），在排除了上游依赖服务（如 redis-cart-0）具有同等或更早的错误信号后，通常指向应用服务自身的问题。",
+            "Step 3: 基于故障模式分析，当某个服务的错误率指标自身发生剧烈变化，且远超系统内其他任何资源或性能指标的变化幅度时，应优先怀疑该服务本身的内部问题（如代码Bug、运行时异常），而非其依赖的外部资源。指标数据中，`adservice-0` 的错误率变化是系统中最突出的信号之一，这构成了将其判定为根因组件的核心证据。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "adservice-0 的 error_ratio 和 client_error_ratio",
+                "expected_pattern": "显著飙升。具体表现为：p99值从正常基线的0.0跃升至故障期间的2.0，变化率 (p99_change_ratio) 达到2.0 (即200%)。",
+                "instruction": "重点检查 `adservice-0` 服务层指标。对比故障时段与正常时段的 `error_ratio` 和 `client_error_ratio` 的p99值。确认该错误率是否出现了从零到非零的突变，且变化幅度是否为整个系统中最显著的异常之一。"
+            }
+        ]
+    }
+}
+```

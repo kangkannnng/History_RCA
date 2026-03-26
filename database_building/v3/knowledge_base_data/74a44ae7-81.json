@@ -1,0 +1,45 @@
+{
+  "uuid": "74a44ae7-81",
+  "fault_type": "network_corruption",
+  "symptom_vector": "data corruption and bit errors on network leading to connection timeouts and rrt_max spike",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 与 shippingservice 之间的网络数据包损坏（packet corruption）导致 rrt_max 激增、error_ratio 飙升及连接超时",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice 和 shippingservice 的关键指标 rrt_max 与 error_ratio 出现急剧异常。shippingservice-1 的 error_ratio 从 0.0 激增至 50.0，checkoutservice 到 shippingservice 调用的 rrt_max 激增 2550 倍（从 9.3s 至 2385s）。",
+      "Step 2: 分析 shippingservice 的日志，发现大量 `transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout` 和 `timed out waiting for server handshake` 错误，表明网络层面的 TCP 连接与握手异常。",
+      "Step 3: 确认故障根因为 checkoutservice 与 shippingservice 间的网络链路出现数据包损坏（packet corruption），表现为持续的网络 I/O 超时和握手失败，进而导致上游服务的级联失败。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error while dialing|i/o timeout|timed out waiting for server handshake",
+        "expected_pattern": "持续出现网络连接与握手超时错误",
+        "instruction": "在 checkoutservice 和 shippingservice 的日志中搜索关键词 'Error while dialing', 'i/o timeout', 'timed out waiting for server handshake'，检查是否出现持续的网络连接错误。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->shippingservice",
+        "expected_pattern": "调用延迟（如 rrt_max）激增数个数量级，并伴随大量 timeout 或 canceled 状态码",
+        "instruction": "分析 checkoutservice 调用 shippingservice（如 GetQuote 操作）的调用链，检查其平均耗时（anomaly_avg_duration）与正常值的比率是否异常增高（例如 >1000倍），并检查状态码是否为 14 (Unavailable) 或 1 (Canceled)。"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio|error_ratio",
+        "expected_pattern": "指标值从基线（如 0.0）突增至高位（如 >50%）",
+        "instruction": "检查 shippingservice 各实例（如 shippingservice-1, shippingservice-2）的 client_error_ratio 和 error_ratio 指标，确认其在故障期间是否出现从零开始的陡增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt|rrt_max",
+        "expected_pattern": "响应时间指标（特别是 p99 或 max 值）出现数量级级别的飙升",
+        "instruction": "检查 shippingservice、checkoutservice 及 frontend 服务的 rrt 与 rrt_max 指标，特别是 p99 或 fault_median 值，确认其相比正常值（normal_p99/normal_median）是否发生数倍乃至数千倍的异常增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_transmit_bytes",
+        "expected_pattern": "网络吞吐量指标可能出现剧烈波动或异常（如断崖式下跌或与基线不符的异常值）",
+        "instruction": "检查涉及故障服务（checkoutservice, shippingservice）所在节点的网络指标，如 pod_network_receive_bytes 和 pod_network_transmit_bytes，观察是否存在与基线模式严重不符的异常波动或中断。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "fb327034-184",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown, runtime error with exception stack trace",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-1 组件因 Byteman 代理规则注入失败，触发了 adservice-getrandomads-exception 异常",
+    "reasoning_chain": [
+      "Step 1: 观察到日志中 adservice-1 出现大量 Java 异常，包括 java.lang.reflect.InvocationTargetException 和 Agent failed to start!",
+      "Step 2: 分析异常详情，发现 Byteman 代理尝试多次加载失败，并在 adservice-1 的 getRandomAds 方法中触发了名为 AdService-getRandomAds-exception-1749525035 的规则",
+      "Step 3: 确认该故障模式与日志中的关键词 adservice-getrandomads-exception、invocationtargetexception、transformlistener 完全匹配，且影响范围仅限于 adservice-1"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "包含特定规则名 AdService-getRandomAds-exception-1749525035 的日志条目",
+        "instruction": "检查 adservice-1 的日志，搜索是否出现 AdService-getRandomAds-exception-1749525035 规则触发相关的异常信息"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "包含 java.lang.reflect.InvocationTargetException 的异常堆栈",
+        "instruction": "检查 adservice-1 的日志，搜索 java.lang.reflect.InvocationTargetException 关键词，确认是否存在代理调用失败"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "包含 Byteman 代理 Transformer 或 RuleTriggerMethodAdapter 相关的日志",
+        "instruction": "检查 adservice-1 的日志，搜索 Transformer、RuleTriggerMethodAdapter 等 Byteman 代理相关的关键词，确认是否存在规则注入异常"
+      }
+    ]
+  }
+}

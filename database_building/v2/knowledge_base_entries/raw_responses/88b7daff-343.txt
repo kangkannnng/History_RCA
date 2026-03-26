@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "88b7daff-343",
+    "fault_type": "rrt",
+    "symptom_vector": "Severe latency spike in Redis operations, cascading to dependent services (cartservice, frontend, checkoutservice), elevated error rates in some services, no error logs detected.",
+    "expert_knowledge": {
+        "root_cause_desc": "redis-cart-0实例出现严重的网络延迟或性能恶化，导致其响应时间急剧增加，进而引发依赖它的cartservice等服务链式故障。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到redis-cart-0的rrt指标从正常的219.54ms飙升至371448.18ms（增长199.76%），rrt_max从4494ms升至3040367ms（增长199.41%），表明该Redis实例响应时间出现灾难性恶化。",
+            "Step 2: 在Trace数据中发现所有涉及Redis操作（HGET/HMSET）的调用链延迟激增1600-1800倍（例如从1.5ms增至2.8ms），且这些调用链均处于依赖链的最下游，指向Redis为性能瓶颈源头。",
+            "Step 3: 观察到cartservice所有实例的rrt和rrt_max指标也出现近200倍的增长，并伴随高错误率（如cartservice-0 error_ratio达43.7%），而Log数据中未发现错误日志，符合性能瓶颈（如网络延迟）而非应用逻辑错误的特征。结合node_pod_mapping，确认cartservice-0与redis-cart-0存在依赖关系，形成了从redis-cart-0 -> cartservice -> frontend/checkoutservice的级联故障路径。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Sudden spike (increase > 1000%) for service 'redis' and pod 'redis-cart-0'",
+                "instruction": "检查redis-cart-0服务的rrt和rrt_max指标在故障时间窗口内是否出现急剧飙升，正常中位数与故障中位数的变化率是否超过1000%。"
+            },
+            {
+                "modality": "Trace",
+                "target": "HGET, HMSET",
+                "expected_pattern": "Latency multiplier > 1000x for Redis operations (HGET/HMSET) compared to normal baseline",
+                "instruction": "分析调用链数据，筛选出service_name为'redis'且operation_name为'HGET'或'HMSET'的条目，计算anomaly_avg_duration与normal_avg_duration的比值，确认延迟增长是否超过1000倍。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio, client_error_ratio",
+                "expected_pattern": "Elevated error rates (>30%) for services directly dependent on redis (e.g., cartservice), while upstream services (e.g., frontend) show lower error rates.",
+                "instruction": "检查cartservice各实例的error_ratio和client_error_ratio指标是否在故障期间显著升高（例如>30%），同时观察frontend服务的错误率是否相对较低，以确认故障传播方向。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "No error logs or minimal error logs detected during the anomaly period, indicating a performance/network issue rather than application logic failure.",
+                "instruction": "在故障时间范围内搜索日志，确认是否缺少应用层错误日志（如异常堆栈），这支持根因是底层性能（网络/资源）问题而非代码缺陷。"
+            }
+        ]
+    }
+}
+```

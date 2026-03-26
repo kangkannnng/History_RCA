@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "c54cf2d2-581",
+    "fault_type": "region_pending",
+    "symptom_vector": "filesystem I/O error leading to read/write operation errors and permission issues",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv 组件因 region_pending 指标飙升 (170.74%) 及 io_util 异常，导致存储层I/O性能瓶颈，并引发依赖其的上游服务（如productcatalogservice）出现延迟异常。",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标出现显著异常，故障期中位数(743) 相较于正常期中位数(9415.5) 变化率达 170.74%。同时，io_util 的 P99 值变化率为 18.18%。",
+            "Step 2: 分析 Trace 数据，发现 productcatalogservice 的 GetProduct 操作（依赖 TiDB）延迟显著增加。例如，checkoutservice-1 调用 productcatalogservice-0 的该操作，平均延迟从正常的 10.77ms 飙升至故障期的 28.15ms，延迟倍数超过2.6倍。这表明 TiDB 存储层响应缓慢，直接影响了上层业务服务。",
+            "Step 3: 确认服务延迟的传播路径：tidb-tikv 的 I/O 性能问题导致 region_pending 堆积，进而引起下游 productcatalogservice 响应变慢，最终级联影响 frontend 及 checkoutservice 的 rrt_max 指标。同时，日志分析未发现错误记录，符合‘静默性能下降’的 I/O 类故障特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "数值显著飙升，变化率超过阈值（例如 >50%）",
+                "instruction": "检查 tidb-tikv 服务的 region_pending 指标，分析其在故障窗口内的中位数或 P99 值相较于正常基线是否出现显著增长。"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "P99值出现异常波动或增长",
+                "instruction": "检查 tidb-tikv 服务的 io_util 指标，重点关注其 P99 值在故障期间的变化。"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "数值出现异常增长",
+                "instruction": "检查 TiDB 相关组件（特别是 tidb-tikv）的 raft_apply_wait 指标，该指标能反映存储层的写入延迟，是 I/O 性能的重要观测点。"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "P99值出现异常增长",
+                "instruction": "检查 tidb-tikv 服务的 cpu_usage 指标，观察其 P99 值是否有伴随 I/O 问题而产生的异常变化。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice",
+                "expected_pattern": "包含 productcatalogservice 的调用链（特别是 GetProduct 操作）出现显著延迟",
+                "instruction": "分析所有调用 productcatalogservice 的 trace 数据（尤其是 GetProduct 操作），计算其平均延迟在故障窗口相较于正常窗口的倍数变化，识别是否存在因下游存储（如TiDB）缓慢导致的延迟瓶颈。"
+            },
+            {
+                "modality": "Log",
+                "target": "filesystem call error | read operation error | write operation error | permission denied error | file descriptor error",
+                "expected_pattern": "日志中出现与 I/O 操作、文件系统、权限或文件描述符相关的错误关键词",
+                "instruction": "在 tidb-tikv 及所在节点的日志中，搜索包含 'error' 关键词以及上述 I/O 相关错误描述的条目，即使没有明确错误，也需记录“无错误日志”这一静默故障特征。"
+            }
+        ]
+    }
+}
+```

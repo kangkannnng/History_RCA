@@ -1,0 +1,46 @@
+{    "uuid": "4153e4c6-397",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets anomalies",
+    "symptom_vector": "Packet corruption and data corruption on network causing service errors, latency spikes, and connection issues",
+    "expert_knowledge": {
+        "root_cause_desc": "Component cartservice experienced rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is cartservice (From Ground Truth instance list, chosen as it appears in Full Context).",
+            "Step 2: Check Observation - Found keyword 'context canceled' in Log (From GT key_observations), observed in frontend logs as 'rpc error: code = Canceled desc = context canceled' indicating cartservice response timeouts.",
+            "Step 3: Check Observation - Found keyword 'rrt' and 'rrt_max' in Metric (From GT key_observations), showing cartservice rrt_max increased from 1553ms to 49590ms and P99 values spiking in Full Context metric data.",
+            "Step 4: Check Observation - Found keyword 'pod_network_receive_bytes' in Metric (From GT key_observations), indicating potential network corruption issues aligned with fault_description.",
+            "Step 5: Derive Root Cause - Based on above features, determined cause is anomalies in key metrics rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "Log entries containing 'context canceled' error messages, e.g., 'could not retrieve cart: rpc error: code = Canceled desc = context canceled' in frontend service logs",
+                "instruction": "Search for keyword 'context canceled' in log data within the specified time range"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "rrt metric value abnormally high, e.g., frontend-2 rrt increased from 12140.95ms to 13435422.36ms in Full Context metric data",
+                "instruction": "Check rrt metric for cartservice and frontend services for significant deviations"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Deviation in network receive bytes metric indicating packet corruption or anomalies",
+                "instruction": "Monitor pod_network_receive_bytes metric for cartservice or related pods for unusual patterns"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "Log entries with 'rpc error' indicating communication failures, e.g., 'rpc error: code = Unavailable desc = transport is closing'",
+                "instruction": "Search for keyword 'rpc error' in log data to identify RPC-level issues"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace data showing latency anomalies for frontend service calls to cartservice, e.g., frontend调用 cartservice GetCart operation delay increased from 25581ms to 59026874ms",
+                "instruction": "Analyze trace data for frontend service to detect latency spikes and request proportion anomalies"
+            }
+        ]
+    }
+}

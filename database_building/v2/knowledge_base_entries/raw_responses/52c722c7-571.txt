@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "52c722c7-571",
+    "fault_type": "Storage_IO_Performance_Degradation",
+    "symptom_vector": "High latency on database queries, downstream service response time spikes, no explicit error logs observed.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB存储层TiKV组件因IO性能退化导致region处理堆积，进而引发上游依赖服务（如productcatalogservice、checkoutservice）的响应时间激增。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据中发现，故障时段内`tidb-tikv`组件的`region_pending`指标中位数变化率达164.93%，p99变化率达177.73%；`io_util`的p99值从0.22上升至0.56；`cpu_usage`的p99值也从0.09上升至0.28。这些指标同时异常表明TiKV存储层出现了严重的IO和CPU性能瓶颈。",
+            "Step 2: 分析Trace数据发现，多个依赖TiDB的上游服务响应时间显著增加。例如，`productcatalogservice`的GetProduct操作，平均耗时从9988.6ms增至31460.6ms（延迟倍数3.15）；`checkoutservice`到`productcatalogservice`的GetProduct调用，平均耗时从14466.3ms激增至624678.0ms（延迟倍数43.2）。这些延迟异常的调用链均涉及对TiDB的查询操作。",
+            "Step 3: 检查Log数据，在故障时间窗口内未检测到任何错误日志。这排除了由显式的应用错误（如代码异常、权限错误）导致故障的可能性，结合Metric和Trace的证据，推断为底层存储IO性能的静默退化（silent degradation），导致数据库处理能力急剧下降并向上传导。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending, io_util, cpu_usage",
+                "expected_pattern": "Sudden spike in region_pending (e.g., median change rate > 100%) coinciding with high io_util (>0.5) and elevated cpu_usage, specifically for the tidb-tikv component.",
+                "instruction": "请检查TiDB TiKV组件的核心性能指标，重点关注region_pending队列是否发生急剧堆积，并同步观察io_util和cpu_usage是否出现异常升高。这组指标的组合异常是存储层IO性能问题的核心表征。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.ProductCatalogService/GetProduct, hipstershop.CheckoutService/PlaceOrder",
+                "expected_pattern": "Significant increase in average duration (e.g., >3x) for traces that involve database query operations, especially those with the tidb-tikv component as the underlying data source.",
+                "instruction": "请分析调用链路数据，识别是否存在依赖数据库（如TiDB）的服务的响应时间出现数量级增长。重点检查如ProductCatalogService/GetProduct这类查询操作的耗时，并向上追溯到调用方（如frontend, checkoutservice），以构建从底层存储问题到上层服务延迟的传播链。"
+            },
+            {
+                "modality": "Log",
+                "target": "error, fatal, permission denied, filesystem error",
+                "expected_pattern": "Absence of explicit error logs related to the suspected faulty component (tidb-tikv) during the anomaly window.",
+                "instruction": "请检索故障时间窗口内，可疑故障组件（tidb-tikv）及相关服务（如productcatalogservice）的日志，确认是否没有出现明确的错误信息。这有助于将故障类型归类为‘静默性能退化’而非‘显式功能故障’。"
+            }
+        ]
+    }
+}
+```

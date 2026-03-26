@@ -1,0 +1,45 @@
+{
+  "uuid": "d99a98a0-233",
+  "fault_type": "pod_processes",
+  "symptom_vector": "pod killed with forceful pod termination and container killed",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice-0 组件因 pod_processes 指标归零导致 Pod 被强制终止",
+    "reasoning_chain": [
+      "Step 1: 观察到 paymentservice-0 的 pod_processes 指标从正常值降为 0.0，表明进程完全中断",
+      "Step 2: 分析 paymentservice-0 的 pod_cpu_usage 和网络传输指标同时归零，确认服务停止",
+      "Step 3: 调用链分析显示 frontend 到 shippingservice 的请求比例异常，符合 paymentservice 故障导致的流量重分布"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "frontend 到 shippingservice 的调用比例异常变化",
+        "instruction": "检查调用链中 frontend 到 shippingservice 的请求比例是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "请求量异常下降或归零",
+        "instruction": "检查 paymentservice-0 的请求量指标是否异常下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "响应量异常下降或归零",
+        "instruction": "检查 paymentservice-0 的响应量指标是否异常下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "内存使用量异常变化",
+        "instruction": "检查 paymentservice-0 的内存使用指标是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "进程数从正常值降为 0.0",
+        "instruction": "检查 paymentservice-0 的 pod_processes 指标是否归零"
+      }
+    ]
+  }
+}

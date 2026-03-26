@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "1573cbd5-588",
+    "fault_type": "region_pending",
+    "symptom_vector": "increased service latency, decreased pending region count, storage performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0/tidb-tikv 存储组件因 region_pending 指标骤降指示 IO 性能瓶颈，导致下游服务响应延迟",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 组件的 region_pending 指标从正常中位值 10371.0 骤降至故障期中位值 707.0，变化率达 174.47%，同时 cpu_usage 指标上升 20%",
+            "Step 2: 分析 tidb-tikv-0/tidb-tikv 作为关键存储组件，其 region_pending 的急剧下降（通常意味着 region 无法及时处理）是存储层 IO 性能瓶颈的典型指标",
+            "Step 3: 确认下游依赖 TiDB 的 productcatalogservice-0 的 GetProduct 接口延迟激增 15.3 倍（从 9974ms 至 152594ms），且日志中未发现显式错误，符合存储层性能瓶颈向上传播至应用层的模式"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "High IO utilization rate, potentially approaching or at 100%",
+                "instruction": "检查 tidb-tikv 组件所在节点的磁盘 IO 使用率指标，确认是否存在 IO 瓶颈"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sharp decrease from baseline, indicating processing backlog or stall",
+                "instruction": "检查 TiDB-TiKV 组件的 region_pending 指标是否出现显著下降（如变化率 > 150%）"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "Increased latency for raft log application",
+                "instruction": "检查 TiDB-TiKV 组件的 raft_apply_wait 相关指标是否异常升高，指示存储层写入延迟"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_size",
+                "expected_pattern": "Abnormal growth or unexpected change in store data size",
+                "instruction": "检查 TiDB-TiKV 组件的 store_size 指标，判断数据量是否出现异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "Elevated CPU usage, often correlating with IO wait",
+                "instruction": "检查 tidb-tikv 组件的 cpu_usage 指标是否异常升高，通常与 IO 等待相关"
+            }
+        ]
+    }
+}
+```

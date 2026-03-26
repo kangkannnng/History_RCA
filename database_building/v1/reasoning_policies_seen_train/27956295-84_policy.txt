@@ -1,0 +1,32 @@
+[Trigger]
+- Log anomaly pattern: Frontend services repeatedly report failures during payment processing, with error messages indicating "i/o timeout" and "timed out waiting for server handshake" when attempting to connect to a specific service endpoint.
+- Metric anomaly pattern: The maximum request response time (rrt_max) for a critical service operation shows an extreme spike, increasing by a factor of over 1,900 times compared to its normal baseline.
+- Trace anomaly pattern: Calls to a specific downstream service operation exhibit severe latency degradation, escalating from milliseconds to tens of seconds, accompanied by status codes indicating connection failures.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Trace data shows the latency for the "Charge" operation on a specific service increased from 12.8ms to over 24,427ms during the anomaly. This matters because it pinpoints the exact operation with the most severe performance degradation, representing the epicenter of the delay.
+- Evidence 2: Logs from upstream services consistently contain errors stating connection attempts to the IP and port of this specific service are timing out ("i/o timeout"). This matters because it confirms the failure mode is an inability to establish or complete a connection to that service instance, corroborating the trace evidence.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Multiple frontend service instances show elevated error ratios and increased response times. This is a consequence, not the cause, because their errors all reference the failure to connect to the same downstream service, indicating a cascading failure pattern.
+- Evidence 4: Other services in the broader call chain show minor latency increases. This can be deprioritized because the magnitude of change is orders of magnitude smaller than the primary evidence, suggesting they are affected by the overall system strain rather than being the source.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the trace data shows a catastrophic increase in latency for a single downstream service operation, and logs from its callers report timeouts connecting to that service's network address, we suspect a severe degradation in that specific service instance's ability to accept or process incoming connections."
+
+Step 2: Verification or elimination
+"If this were caused by a general resource shortage (like CPU) on the node hosting the affected service, we would expect to see correlated metric anomalies (like pod_cpu_usage) spiking on that node for that pod;
+However, the primary evidence shows network-level connection timeouts and handshake failures are the immediate symptom, without such correlated resource metrics being prominently anomalous;
+This makes a generic resource constraint less likely as the primary driver and focuses attention on the service's network listener or the immediate path to it."
+
+Step 3: Convergence to conclusion
+"The combination of the extreme, isolated latency spike for a specific service operation and the consistent 'connection timeout' errors from all callers indicates that the root cause is a condition where that particular service instance became severely unresponsive to new network connections, causing upstream requests to fail after waiting excessively."
+
+[Conclusion]
+"The root cause is a critical degradation in the responsiveness of a specific service instance, preventing it from completing connection handshakes with its clients within the expected time, which cascaded into failures for all dependent operations."
+
+[Next Action]
+- Verify whether internal logs from the identified service instance during the anomaly period exist to understand its state.
+- Check for patterns of packet loss or corruption metrics on the network path to the specific pod identified by the IP address in the error messages.

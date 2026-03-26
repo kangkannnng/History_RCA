@@ -1,0 +1,56 @@
+{
+  "uuid": "20f9c3bc-558",
+  "fault_type": "pod_processes timeout",
+  "symptom_vector": "Service method error, code error causing runtime panic and cascading failures",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [currencyservice] experienced [pod_processes timeout] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [currencyservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [context canceled] in Log (From GT key_observations log with keywords 'context', 'canceled')",
+      "Step 3: Check Observation - Found keyword [request error] in Log (From GT key_observations log with keyword 'request error')",
+      "Step 4: Check Observation - Found keyword [rpc error] in Log (From GT key_observations log with keywords 'rpc', 'error')",
+      "Step 5: Check Observation - Found keyword [latency_anomalies] in Trace (From GT key_observations trace with subtype 'latency_anomalies')",
+      "Step 6: Check Observation - Found keyword [request response timeout] in Metric (From GT key_observations metric with keywords 'request', 'response', 'timeout')",
+      "Step 7: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations metric with keyword 'pod_cpu_usage')",
+      "Step 8: Derive Root Cause - Based on above features, determined cause is [pod_processes timeout] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "context canceled",
+        "expected_pattern": "Multiple log entries with 'context canceled' error in frontend service logs during fault window",
+        "instruction": "Search for keyword 'context canceled' in logs from 2025-06-26T23:10:16Z to 2025-06-26T23:34:16Z"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Frontend service logs showing 'request error' with RPC cancellation messages",
+        "instruction": "Search for keyword 'request error' in logs, particularly in frontend service"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "RPC error messages with 'code = Canceled desc = context canceled' in frontend logs",
+        "instruction": "Search for keyword 'rpc error' in logs during fault timeframe"
+      },
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "CurrencyService/Convert operation showing extreme latency increase from 2325.68ms to 10921885.85ms (4696x)",
+        "instruction": "Check trace data for latency anomalies in CurrencyService/Convert calls"
+      },
+      {
+        "modality": "Metric",
+        "target": "request response timeout",
+        "expected_pattern": "rrt_max metric spiking to 60001777.5ms on frontend services",
+        "instruction": "Check metric 'rrt_max' for timeout patterns during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "currencyservice-2 pod_cpu_usage dropping from 0.01 to 0.0 indicating process issues",
+        "instruction": "Check pod_cpu_usage metric for currencyservice pods during fault period"
+      }
+    ]
+  }
+}

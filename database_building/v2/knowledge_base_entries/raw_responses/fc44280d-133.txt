@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "fc44280d-133",
+    "fault_type": "latency_anomalies",
+    "symptom_vector": "severe latency spike in SendOrderConfirmation operation causing cascade failure with extreme RRT increase",
+    "expert_knowledge": {
+        "root_cause_desc": "emailservice的SendOrderConfirmation操作出现极端延迟激增，导致级联故障",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据观察到emailservice所有实例的rrt_max和rrt指标出现数量级增长，rrt_max从约3000ms上升至290万ms（变化率199%），rrt从1700ms上升至47万ms（变化率198%），表明emailservice出现严重性能退化",
+            "Step 2: 从Trace数据分析发现EmailService/SendOrderConfirmation操作延迟从正常20ms激增至8,404秒，延迟倍数达416倍，是所有调用链中最严重的异常点",
+            "Step 3: 检查Log数据未发现错误日志，排除代码错误，结合网络相关指标异常和故障描述中的'high network latency'，确认为网络延迟导致的性能问题"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max, rrt",
+                "expected_pattern": "Sudden spike with 190%+ change rate",
+                "instruction": "检查emailservice所有实例的rrt_max和rrt指标，确认是否出现数量级增长（变化率>190%），并对比正常基线值"
+            },
+            {
+                "modality": "Trace",
+                "target": "EmailService/SendOrderConfirmation",
+                "expected_pattern": "Extreme latency increase (400x+) in downstream service operation",
+                "instruction": "分析调用链中EmailService的SendOrderConfirmation操作，检查延迟是否从正常约20ms激增至8000+秒，并确认这是最下游的严重延迟异常"
+            },
+            {
+                "modality": "Log",
+                "target": "error, exception, timeout",
+                "expected_pattern": "No error logs during fault window (silent degradation)",
+                "instruction": "检查emailservice在故障时间段的日志，确认是否缺少错误日志，这符合网络延迟而非代码错误的特征"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "e955714b-280",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "Multiple microservices (productcatalogservice, checkoutservice, emailservice) on the same node experiencing severe latency spikes (rrt_max increase) concurrently.",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06节点CPU使用率异常飙升至接近饱和，导致该节点上运行的所有服务性能严重下降。",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据中，节点`aiops-k8s-06`的`node_cpu_usage_rate`指标的p99值在故障期间从31.67%飙升至96.87%，变化率高达101.44%，表明节点CPU资源几乎耗尽。",
+            "Step 2: 分析Trace数据，发现部署在`aiops-k8s-06`节点上的服务（如`productcatalogservice-0`, `checkoutservice-2`, `emailservice-2`）的`rrt_max`（最大响应时间）均出现显著恶化，呈现出全局性的性能下降模式。",
+            "Step 3: 检查Log数据，在故障时间窗口内未发现任何应用级别的错误日志（如Connection refused, OOM等）。结合步骤1和2，这符合节点级硬件资源（CPU）瓶颈导致的服务性能下降，而非特定应用功能故障的特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden spike and sustained high value (e.g., p99 > 90% or change rate > 50%)",
+                "instruction": "检查目标节点的node_cpu_usage_rate指标，确认其在故障时间窗口内的p99或中位数值是否出现急剧且持续的飙升，接近或达到饱和状态（如>90%）。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Concurrent latency increase across multiple services deployed on the same node.",
+                "instruction": "定位出现CPU异常的节点，检查该节点上运行的所有服务的调用链数据，特别是rrt_max等延迟指标。确认是否多个不相关的服务在同一时间窗口内都出现了显著的响应时间增长。"
+            },
+            {
+                "modality": "Log",
+                "target": "N/A (lack of error logs)",
+                "expected_pattern": "No application-level error logs (e.g., 'Out of memory', 'timeout', 'connection refused') found during the anomaly window.",
+                "instruction": "在故障时间窗口内，搜索从目标节点或该节点上运行的Pod产生的应用日志。观察结果是否没有发现明确的功能性错误日志，这可以作为资源瓶颈（而非逻辑错误）的辅助证据。"
+            }
+        ]
+    }
+}
+```

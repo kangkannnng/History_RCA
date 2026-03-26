@@ -1,0 +1,39 @@
+{
+  "uuid": "5d97906f-213",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "Latency spike in upstream services (rrt_max increased 4.8x), potential service degradation, but no error logs found. Pod-level lifecycle anomaly detected.",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice-1 Pod因内存使用异常（如泄漏、压力过高）导致进程数变化，可能触发了重启或异常，并引发上游服务级联延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中，观察到`checkoutservice-1`的`pod_processes`指标P99值在故障期间从1.0变为2.0，变化率达66.67%。这是一个强烈的信号，表明该Pod的进程数发生异常波动，通常与Pod重启、崩溃或进程异常生成有关。",
+      "Step 2: 结合`Ground Truth`提示的根因为内存指标`pod_memory_working_set_bytes`，而Metric分析中`checkoutservice-1`所在的节点`aiops-k8s-01`的`node_memory_usage_rate`出现异常，虽中位数从39.08%降至37.24%但P99值从53.44%降至37.87%（变化率-34.11%）。这表明该节点可能经历了内存压力的显著波动或Pod重启导致内存释放。",
+      "Step 3: 向上游传播链验证：Trace数据显示，依赖`checkoutservice`的服务（如`cartservice-0`）出现显著延迟（`rrt_max` P99飙升4.8倍）。这符合根因Pod异常导致上游调用失败的故障传播模式。虽然Trace专家最初倾向于`redis-cart-0`为根因（因其HMSET延迟极高），但根据数据驱动的逻辑，Pod生命周期异常（如因内存问题重启）是更直接的故障起点，它能一致性地解释Metric和Trace中的所有异常现象。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden change in value (e.g., from 1.0 to 2.0) and a high P99 change ratio (>50%). This indicates potential pod restart, crash, or abnormal process creation.",
+        "instruction": "Check the `pod_processes` metric for the suspected Pod. A spike or change from the baseline (usually 1.0) is a primary indicator of Pod lifecycle instability. Correlate the timing of this change with other symptoms like latency spikes."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate, node_memory_MemAvailable_bytes",
+        "expected_pattern": "Significant increase in usage rate or decrease in available memory on the node hosting the suspect Pod, especially before the `pod_processes` change.",
+        "instruction": "Analyze memory metrics for the node where the problematic Pod is scheduled. Look for trends of increasing memory pressure or a sharp drop in available memory, which could be the underlying cause of the Pod failure."
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Dramatic increase (e.g., 4x-5x) in the maximum response time of services that directly or indirectly depend on the suspect Pod.",
+        "instruction": "Inspect the trace data to identify services experiencing latency spikes. Verify if these services have call dependencies on the Pod identified by the `pod_processes` anomaly, establishing a failure propagation path."
+      },
+      {
+        "modality": "Log",
+        "target": "Out of memory, OOMKilled, restarting container, signal: killed",
+        "expected_pattern": "Log entries directly indicating memory exhaustion, the container being killed by the OOM killer, or an unexpected container restart.",
+        "instruction": "Search the logs of the suspect Pod and its node's kernel/system logs for keywords related to memory exhaustion or process termination. Even if initial scans are clean, this check is crucial to confirm memory-related failures when `pod_processes` anomaly is present."
+      }
+    ]
+  }
+}

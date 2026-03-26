@@ -1,0 +1,39 @@
+{
+  "uuid": "81a145a5-394",
+  "fault_type": "request/response error due to port misconfig",
+  "symptom_vector": "service port mismatch causing connection refused errors and error ratio spike",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice 组件因端口配置错误导致连接被拒绝，引发错误率（error_ratio）异常飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 服务的 error_ratio 与 server_error_ratio 指标从正常值 0.0 飙升至中位数 0.3 左右，表明服务层面出现大规模错误。",
+      "Step 2: 分析日志数据，发现所有错误均来自 frontend 调用 checkoutservice 时出现的 “connection refused” 错误，且具体信息指向目标地址 10.233.55.4:50051。",
+      "Step 3: 确认 tracing 数据中 checkoutservice 调用 paymentservice (hipstershop.PaymentService/Charge) 的状态为连接错误，相同错误消息出现 220 次，结合日志信息确认为 paymentservice 的端口 (50051) 无法访问，导致服务间请求（request）与响应（response）链路失败。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused|dial tcp|50051",
+        "expected_pattern": "服务（如 frontend, checkoutservice）日志中出现针对特定 IP:Port (如 10.233.55.4:50051) 的 'connection refused' 错误。",
+        "instruction": "搜索并筛选包含 'connection refused'、'dial tcp' 及疑似错误端口号（如 50051）的日志条目，定位发起失败连接的服务和目标地址。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio|server_error_ratio",
+        "expected_pattern": "服务级错误率指标出现从零或低基线的突然、显著飙升。",
+        "instruction": "检查前端及关键下游服务（如 frontend, checkoutservice）的 error_ratio 和 server_error_ratio 指标，确认异常时间窗口和峰值。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max|rrt",
+        "expected_pattern": "下游关键服务（如 paymentservice）的响应时间可能出现异常下降（快速失败）或上游调用方（如 checkoutservice）响应时间因错误积累而上升。",
+        "instruction": "检查故障传播链路上各服务的响应时间（rrt, rrt_max）指标变化，分析是延迟增加还是快速失败导致的延迟降低。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Unavailable|connection error",
+        "expected_pattern": "调用链状态（status_code/status_message）中大量出现 ‘Unavailable’ 或 ‘connection error’ 描述，且错误消息与日志中的连接拒绝信息匹配。",
+        "instruction": "分析 tracing 数据中的状态组合，查找状态码为错误（如13,14）且消息包含连接错误的调用链，确认故障的起点和传播路径。"
+      }
+    ]
+  }
+}

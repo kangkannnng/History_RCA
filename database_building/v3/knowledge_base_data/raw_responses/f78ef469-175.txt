@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "f78ef469-175",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-01 节点因 node_memory_usage_rate 指标异常导致内存压力故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-01 节点的 node_memory_usage_rate 指标在故障期间出现显著变化，p99变化率达到35.19%",
+            "Step 2: 分析 aiops-k8s-01 节点的 node_memory_usage_rate 从正常中位数40.88%下降到故障中位数35.28%，p99从50.51%下降到35.40%，表明内存使用率异常波动",
+            "Step 3: 确认日志分析未发现错误日志，但Metric数据显示节点级内存指标异常，符合节点内存压力特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Significant change in memory usage rate (p99 change rate > 30%)",
+                "instruction": "检查 aiops-k8s-01 节点的 node_memory_usage_rate 指标是否出现异常变化，重点关注p99百分位的变化率"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Increased disk read activity indicating potential memory swapping",
+                "instruction": "检查 aiops-k8s-01 节点的 node_disk_read_bytes_total 指标是否异常增加，这可能表明内存压力导致交换活动"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increased disk read time indicating I/O contention",
+                "instruction": "检查 aiops-k8s-01 节点的 node_disk_read_time_seconds_total 指标是否异常增加，这可能反映内存压力相关的磁盘I/O问题"
+            }
+        ]
+    }
+}
+```

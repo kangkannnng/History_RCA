@@ -1,0 +1,33 @@
+{
+  "uuid": "fe4efdc8-364",
+  "fault_type": "error_rate_spike",
+  "symptom_vector": "HTTP 500 errors returned by frontend service, checkout process failures, high latency and server error ratio spike in checkoutservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "DNS服务（10.233.33.139:53）异常，导致paymentservice域名解析失败，进而引发checkoutservice的支付调用完全不可用，错误向上传播至前端。",
+    "reasoning_chain": [
+      "Step 1: 在指标数据中观察到 checkoutservice-2 的 `server_error_ratio` 和 `error_ratio` 从 0.0 异常飙升至 42.11，同时其 `rrt_max` 从 206942.5 激增至 2817341.0，表明该组件出现严重错误和性能瓶颈。",
+      "Step 2: 结合日志分析，发现 frontend 服务的多条错误日志中均包含关键信息：`transport: Error while dialing dial tcp: lookup paymentservice on 10.233.33.139:53: server misbehaving`。这表明问题源于 checkoutservice 尝试调用 paymentservice 时发生的 DNS 解析失败。",
+      "Step 3: 分析追踪数据，确认了错误传播路径 `frontend->checkoutservice->paymentservice`。`checkoutservice` 到 `paymentservice` 的调用（如 `hipstershop.PaymentService/Charge`）出现大量失败，状态码为14，状态消息明确指向 DNS 服务器 `10.233.33.139:53` 行为异常。该故障导致前端订单支付相关 API (`/cart/checkout`) 返回 HTTP 500 错误。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio, error_ratio, rrt_max",
+        "expected_pattern": "Sudden spike (e.g., from 0.0 to >40)",
+        "instruction": "首先检查 checkoutservice 和 frontend 服务的 error_ratio、server_error_ratio 和 rrt_max 指标。查找在故障时间窗口内，这些指标是否出现从零或正常基线值的急剧、持续飙升。这通常是下游依赖服务故障或自身严重问题的首要信号。"
+      },
+      {
+        "modality": "Log",
+        "target": "lookup, paymentservice, server misbehaving, Error while dialing",
+        "expected_pattern": "Contains error messages indicating DNS resolution failure for specific service (paymentservice)",
+        "instruction": "搜索 frontend 和 checkoutservice 的 ERROR 级别日志。重点关注包含 `lookup`、`paymentservice`、`server misbehaving` 以及 `Error while dialing` 等关键词的错误信息。这类日志能直接指向服务间调用因 DNS 解析问题而失败的根因。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->paymentservice, status_code:14, status_message",
+        "expected_pattern": "High failure rate and error messages pointing to DNS/connection issues",
+        "instruction": "分析 `checkoutservice` 调用 `paymentservice` 的调用链（如 `hipstershop.PaymentService/Charge`）。筛选状态码为 14 (UNAVAILABLE) 或失败的调用，检查其状态消息详情。确认失败原因是否为域名解析失败（如包含 `lookup ... server misbehaving`），并评估其失败比例和影响范围。"
+      }
+    ]
+  }
+}

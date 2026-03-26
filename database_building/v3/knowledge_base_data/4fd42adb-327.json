@@ -1,0 +1,39 @@
+{
+  "uuid": "4fd42adb-327",
+  "fault_type": "memory stress and pod restart",
+  "symptom_vector": "High memory usage leading to pod restart and connection errors in adservice",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 服务因内存压力导致 Pod 重启，进而引发连接拒绝错误",
+    "reasoning_chain": [
+      "Step 1: 观察到所有 adservice Pod (adservice-0, adservice-1, adservice-2) 的 pod_processes 指标 p99 值从 1.0 变为 2.0，变化率达 0.6667，表明存在 Pod 重启或进程异常",
+      "Step 2: 分析 adservice Pod 在重启期间出现端口连接问题，日志显示 transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused，这符合 Pod 生命周期异常导致的临时不可用",
+      "Step 3: 确认 frontend 服务因 adservice 不可用而产生 deadline_exceeded 和 connection closed 错误，故障描述中的 high memory usage, memory saturation 等与 Pod 因内存压力重启的现象一致"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded|rpc error|unavailable",
+        "expected_pattern": "Contains 'context deadline exceeded', 'rpc error: code = Unavailable' or 'connection closed'",
+        "instruction": "在 frontend 服务日志中搜索与 adservice 调用相关的 RPC 错误，包括超时和不可用错误"
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "Contains 'transport: Error while dialing' and 'connection refused'",
+        "instruction": "检查 frontend 调用 adservice 的日志中是否存在指向特定IP端口（如10.233.8.174:9555）的连接拒绝错误"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "HTTP 响应状态码为 302",
+        "instruction": "如果存在相关日志，检查是否有 HTTP 302 状态码的响应记录"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Value changes from baseline (e.g., 1.0 to 2.0)",
+        "instruction": "检查 adservice Pod 的 pod_processes 指标是否发生异常变化，特别是 p99 值从 1.0 变为 2.0，这可能表明 Pod 重启"
+      }
+    ]
+  }
+}

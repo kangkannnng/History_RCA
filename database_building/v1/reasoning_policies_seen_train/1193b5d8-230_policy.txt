@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Multiple frontend instances report "connection refused" errors when attempting to connect to a specific service on port 7070, with error messages indicating dialing failures.
+- Metric anomaly pattern: A specific service instance shows a severe spike in maximum response time, increasing by over 170%, alongside a significant rise in client and overall error ratios.
+- Trace anomaly pattern: Calls from multiple upstream services to a downstream service fail consistently, showing "connection refused" statuses, and operations involving the downstream service exhibit extreme latency increases.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs from distinct upstream services explicitly state a connection was refused when trying to reach a specific network address and port. This matters because it directly points to a failure in establishing a network connection to a critical service, suggesting the service is unreachable or misconfigured.
+- Evidence 2: Metrics for the suspected unreachable service instance show its maximum response time degraded dramatically and its error ratio reached a high percentile. This matters because it confirms the service instance is not functioning normally, correlating performance degradation with the connection errors.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Another node in the system showed increased memory usage. This is a consequence or unrelated noise because the affected service instance was not located on this node, and the primary error pattern is not typically caused by memory pressure on a separate host.
+- Evidence 4: Other services exhibited increased response times in their percentile metrics. This is a consequence not a cause because these services depend on the failing service; their performance issues are a downstream effect of being unable to connect to it, as shown in the trace data.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the explicit 'connection refused' errors targeting a specific service's port, we suspect that instance of the service has become unreachable to its clients, possibly due to a process termination, configuration error, or network isolation."
+
+Step 2: Verification or elimination
+"If this were caused by a general network partition or a upstream service bug, we would expect connection errors to be more widespread or to different endpoints; However, actual observation shows errors consistently pointing to one service instance's specific IP and port, and the metrics for that instance show severe performance degradation; This rules out a problem originating solely in the calling services or a broad network failure."
+
+Step 3: Convergence to conclusion
+"The combination of direct connection refusal logs and the correlated, severe performance metric anomaly for the same service instance indicates that the root cause is the failure or unavailability of that specific service instance, preventing its clients from communicating with it."
+
+[Conclusion]
+"The root cause is the failure of a specific service instance, making it unreachable on its designated port and causing connection attempts from dependent services to be refused, which in turn led to cascading performance issues and errors."
+
+[Next Action]
+- Verify whether process health or lifecycle events for the implicated service instance exist in system logs.
+- Check for recent configuration changes or deployment events related to the service's network or port configuration.

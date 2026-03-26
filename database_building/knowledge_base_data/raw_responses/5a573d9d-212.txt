@@ -1,0 +1,46 @@
+{    "uuid": "5a573d9d-212",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "Packet corruption and data corruption on the network causing bit errors and corrupted packets, leading to service connection failures and latency spikes.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component cartservice experienced rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is cartservice (from Ground Truth instance list, with cartservice selected based on Full Context evidence).",
+            "Step 2: Check Observation - Found keyword 'Error while dialing' in Log, specifically in log entries: 'transport: Error while dialing dial tcp 10.233.46.196:7070: i/o timeout' (from Full Context filtered_logs).",
+            "Step 3: Check Observation - Found keyword 'rrt' and 'rrt_max' in Metric, with abnormal increases: e.g., cartservice-1 rrt_max increased 2750x from 37.7s to 22,501s (from Full Context metric_analysis_findings).",
+            "Step 4: Check Observation - Found keyword 'timeout' and 'unavailable' in Log, as seen in errors like 'i/o timeout' and 'code = Unavailable' (from Full Context filtered_logs).",
+            "Step 5: Derive Root Cause - Based on network-related keywords (e.g., 'Error while dialing', 'timeout') and metric anomalies (e.g., rrt spikes), determined cause is network corruption affecting key metrics including rrt, rrt_max, and network packet metrics."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Error while dialing",
+                "expected_pattern": "Log entries contain the exact phrase 'transport: Error while dialing dial tcp 10.233.46.196:7070: i/o timeout' indicating connection failures to cartservice.",
+                "instruction": "Search for keyword 'Error while dialing' in the log data of frontend and checkoutservice services."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "rrt metric values show significant increase during the fault period, e.g., from normal median ~7s to fault median ~3-4 million ms for checkoutservice.",
+                "instruction": "Check the rrt metric for services like checkoutservice and cartservice for abnormal spikes between normal and fault time ranges."
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Log entries include 'i/o timeout' or 'timed out waiting for server handshake' errors related to cartservice connections.",
+                "instruction": "Search for keyword 'timeout' in error logs to identify connection timeouts."
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace data shows latency anomalies for frontend service, with increased duration in operations like hipstershop.CheckoutService/PlaceOrder.",
+                "instruction": "Analyze trace spans for frontend service to detect latency increases and error propagations from cartservice."
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error",
+                "expected_pattern": "client_error_ratio metric is elevated, e.g., p99 from 0% to 47.65% for cartservice, indicating client-side errors.",
+                "instruction": "Examine client_error_ratio metric for cartservice and other services during the fault window."
+            }
+        ]
+    }
+}

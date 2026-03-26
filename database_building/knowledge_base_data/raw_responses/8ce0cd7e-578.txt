@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "8ce0cd7e-578",
+    "fault_type": "abnormal_region_count, region_health, leader_count, tidb-pd",
+    "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure affecting the tidb-pd service.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-pd] experienced [abnormal_region_count, region_health, leader_count, tidb-pd] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-pd] (From Ground Truth). The service name 'tidb-pd' is present in the metric data's unique_entities list (Full Context: raw_metric_result.unique_entities.service_name).",
+            "Step 2: Check Observation - Found keyword [timeout] in [Log] (From GT key_observations). The log data contains numerous entries with 'PD server timeout' messages (Full Context: filtered_logs).",
+            "Step 3: Check Observation - Found keyword [failure] in [Log] (From GT key_observations). The log data contains numerous entries with 'failed to query product by id' and 'failed to get product recommendations' messages (Full Context: filtered_logs).",
+            "Step 4: Derive Root Cause - Based on the above features (timeout and failure logs pointing to the tidb-pd service), the determined cause is the combination of metrics [abnormal_region_count, region_health, leader_count, tidb-pd] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Log entries containing 'PD server timeout' or 'timeout' related to the tidb-pd service.",
+                "instruction": "Search for keyword 'timeout' in logs, specifically looking for 'PD server timeout' errors."
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Log entries containing 'failed to' phrases (e.g., 'failed to query', 'failed to get') that trace back to database/TiDB issues.",
+                "instruction": "Search for keyword 'failed' in logs to identify downstream service failures."
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb-pd",
+                "expected_pattern": "The service name 'tidb-pd' is listed among the monitored services and shows anomalous metric behavior.",
+                "instruction": "Check if the service 'tidb-pd' is present in the metric data's service_name list and review its associated metrics for anomalies."
+            }
+        ]
+    }
+}
+```

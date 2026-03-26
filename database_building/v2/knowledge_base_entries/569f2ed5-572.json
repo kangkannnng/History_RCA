@@ -1,0 +1,33 @@
+{
+  "uuid": "569f2ed5-572",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Significant latency spikes in Redis HMSET operations (13.4x increase) and dependent CartService operations (e.g., AddItem latency 7.9x increase).",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-05内存使用率激增导致节点级资源压力，进而引发其上运行的Redis及CartService性能严重下降。",
+    "reasoning_chain": [
+      "Step 1: 通过Metric数据观察到故障时间段内，节点aiops-k8s-05的`node_memory_usage_rate`从39.04%激增至57.63%（增长47.4%），同时`node_memory_MemAvailable_bytes`从9.97GB下降至6.83GB。这指示该节点存在严重的、系统级别的内存压力。",
+      "Step 2: Log分析显示在故障窗口期内未发现应用层错误日志，这一现象排除了应用代码错误或配置问题，并符合资源瓶颈类故障的特征。",
+      "Step 3: 结合Trace数据与拓扑信息(`node_pod_mapping`)分析，发现延迟激增最严重的Redis HMSET操作(1361ms→18310ms)以及CartService的AddItem操作(3583ms→28491ms)均发生在节点aiops-k8s-05上。这明确了节点内存压力与其上关键服务性能衰退之间的直接因果关系。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate, node_memory_MemAvailable_bytes",
+        "expected_pattern": "Sudden and significant increase in `node_memory_usage_rate` (e.g., >30% absolute or >40% relative increase) and corresponding sharp decrease in `node_memory_MemAvailable_bytes`, pinpointed to a specific node.",
+        "instruction": "请检查在故障时间范围内，是否存在特定节点的内存使用率(`node_memory_usage_rate`)和可用内存(`node_memory_MemAvailable_bytes`)指标发生剧烈异常变化。这是识别节点级内存资源瓶颈的直接证据。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error/Exception keywords (general search)",
+        "expected_pattern": "Absence of application error logs during the fault window. A clean log (i.e., no critical errors) supports the hypothesis of an infrastructure/resource bottleneck rather than an application logic failure.",
+        "instruction": "请检查故障时间范围内的应用和系统日志。如果未发现与故障现象（如高延迟）直接相关的错误或异常日志，这本身是支持'资源瓶颈'而非'代码错误'这一假设的重要证据。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max, operation_name (e.g., HMSET, AddItem)",
+        "expected_pattern": "Severe latency spikes (`rrt_max`) in specific operations performed by services (e.g., Redis, CartService) that are co-located on the same node identified by the memory metrics anomaly.",
+        "instruction": "请分析调用链数据，定位出现严重延迟（如延迟增加10倍以上）的服务和方法。然后，结合节点-Pod映射关系(`node_pod_mapping`)，确认这些高延迟的服务是否恰好运行在之前通过Metric识别的内存异常节点上。这种空间共置性是建立因果链的关键。"
+      }
+    ]
+  }
+}

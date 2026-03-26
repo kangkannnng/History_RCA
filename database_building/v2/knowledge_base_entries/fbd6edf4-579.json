@@ -1,0 +1,33 @@
+{
+  "uuid": "fbd6edf4-579",
+  "fault_type": "TiDB/IO",
+  "symptom_vector": "Severe latency spike in upstream productcatalogservice (7.8-11x increase). Downstream TiDB KV storage layer shows abnormal region_pending queue surge.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB-TiKV存储层出现region_pending队列严重积压，导致依赖其的上游服务（如productcatalogservice）出现性能瓶颈和延迟激增。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到，组件`tidb-tikv`的关键指标`region_pending`发生剧烈异常，其中位数从正常时的11139激增至故障期的1078，变化率达164.7%。这直接表明数据库存储层存在严重的请求队列积压。",
+      "Step 2: 结合Log数据分析，发现在异常时间段内未检测到任何错误日志。这种“无报错”状态与底层数据库（或存储）性能瓶颈的特征相符，因为底层I/O或队列问题通常不会在应用日志中直接产生错误。",
+      "Step 3: 在Trace数据中，观察到上游`productcatalogservice`服务的`GetProduct`接口延迟从8-11秒激增至67-125秒（约7.8-11倍），成为系统最严重的延迟瓶颈。根据系统拓扑依赖关系（`productcatalogservice` -> `tidb`），并结合Metric已发现的底层存储异常，可以推理出`productcatalogservice`的延迟激增是`tidb-tikv`性能问题的直接表现。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden and significant surge (>100% increase) in median value.",
+        "instruction": "检查TiDB-TiKV组件的`region_pending`指标在故障窗口内是否出现中位数或高分位值的异常激增，这是TiDB存储层出现处理积压的核心信号。"
+      },
+      {
+        "modality": "Log",
+        "target": "productcatalogservice, tidb-tikv",
+        "expected_pattern": "Absence of error logs, consistent with silent performance degradation.",
+        "instruction": "在`productcatalogservice`及`tidb-tikv`相关日志中搜索，确认在故障时间段内没有出现连接超时、查询失败、权限错误等明确的错误日志。无错误日志是数据库性能瓶颈而非功能故障的典型特征。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice -> GetProduct latency",
+        "expected_pattern": "Significant latency spike (e.g., >5x increase) in calls to `productcatalogservice` that depend on TiDB.",
+        "instruction": "分析调用链，定位延迟激增最严重的下游服务。检查所有调用`productcatalogservice`（特别是`GetProduct`接口）的链路的平均耗时，是否在故障期间出现数倍甚至十倍以上的增长。这通常是底层TiDB性能问题的上层表现。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "b67cbc30-102",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload, node high CPU usage, node CPU saturation, node CPU spike, node cpu stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-01 节点因 node_cpu_usage_rate 从 16.28% 飙升至 92.95% 导致 CPU 过载",
+        "reasoning_chain": [
+            "Step 1: 观察到 node_cpu_usage_rate 指标在 aiops-k8s-01 节点上从正常中位数 16.28% 异常升至故障中位数 92.95%，变化率达 140.38%",
+            "Step 2: 分析 aiops-k8s-01 节点承载的 pod 包括 checkoutservice-1, emailservice-1, shippingservice-1, recommendationservice-1",
+            "Step 3: 确认 trace 数据中 checkoutservice->emailservice 和 checkoutservice->shippingservice 的 rrt_max 异常与节点资源瓶颈时间窗口相符，日志分析未发现错误日志，进一步支持资源瓶颈假设"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_network_receive_packets_total",
+                "expected_pattern": "异常波动或显著变化",
+                "instruction": "检查 node_network_receive_packets_total 指标在故障时间窗口内是否有异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_transmit_packets_total",
+                "expected_pattern": "异常波动或显著变化",
+                "instruction": "检查 node_network_transmit_packets_total 指标在故障时间窗口内是否有异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "从基准值突然大幅飙升（如从 <20% 升至 >90%）",
+                "instruction": "检查各节点的 node_cpu_usage_rate 指标，寻找异常飙升的节点"
+            }
+        ]
+    }
+}
+```

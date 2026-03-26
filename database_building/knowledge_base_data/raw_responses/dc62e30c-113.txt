@@ -1,0 +1,74 @@
+```json
+{
+    "uuid": "dc62e30c-113",
+    "fault_type": "rrt, rrt_max, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "Service timeouts and connection failures due to network packet corruption, leading to RedisTimeoutException and cascading failures in dependent services.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [redis-cart-0] experienced severe degradation in [rrt, rrt_max] and anomalies in network metrics [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] indicating packet corruption. Specifically, rrt increased from 213.79ms to 137271.06ms and rrt_max from 8309ms to 944910.5ms.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [redis-cart-0] (From Ground Truth `instance` list, and it is the specific name appearing in the Full Context's metric data).",
+            "Step 2: Check Observation - Found keyword [failure] and [timeout] in [Log] (From GT `key_observations`). Evidence: Logs show 'RedisTimeoutException' and 'Timeout awaiting response' errors.",
+            "Step 3: Check Observation - Found keyword [frontend] in [Trace] of subtype [latency_anomalies] (From GT `key_observations`). Evidence: Trace data shows frontend service calls (e.g., 'hipstershop.CartService/GetCart') experiencing severe latency increases.",
+            "Step 4: Check Observation - Found keywords [rrt] and [rrt_max] in [Metric] (From GT `key_observations`). Evidence: Metric data shows `redis-cart-0` rrt increased from 213.79ms to 137271.06ms and rrt_max from 8309ms to 944910.5ms.",
+            "Step 5: Check Observation - Found keywords [request] and [response] in [Metric] (From GT `key_observations`). Evidence: The rrt (request response time) metric itself is a direct measure of request/response cycles, and its extreme anomaly confirms the observation.",
+            "Step 6: Derive Root Cause - Based on the combined features of severe latency (rrt, rrt_max), timeouts in logs, cascading frontend trace latency, and the fault description of network packet corruption, the determined cause is the anomaly in the key metrics [rrt, rrt_max, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets]."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Error logs containing the word 'failure' in the context of Redis operations (e.g., 'cart failure', 'failed to add to cart').",
+                "instruction": "Search for keyword 'failure' in the log entries for services like frontend and cartservice during the fault time window."
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Log entries explicitly stating 'timeout' or 'Timeout', particularly 'RedisTimeoutException' and 'timeout is 5000ms'.",
+                "instruction": "Search for keyword 'timeout' or 'Timeout' in all log entries, focusing on cartservice and frontend services."
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace records where the service_name is 'frontend' showing abnormally high duration (e.g., avg_duration increased from ~4 seconds to ~5.9 million ms).",
+                "instruction": "Filter trace data for entries where `service_name` contains 'frontend' and check the `anomaly_avg_duration` value."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "The metric `rrt` for service `redis-cart-0` shows a massive increase in value (median change rate ~199%).",
+                "instruction": "Query the metric `rrt` for the component `redis-cart-0` and compare its `normal_median` and `fault_median` values."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "The metric `rrt_max` for service `redis-cart-0` shows a massive increase in value (median change rate ~196%).",
+                "instruction": "Query the metric `rrt_max` for the component `redis-cart-0` and compare its `normal_median` and `fault_median` values."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Anomalous pattern (e.g., spike, drop, or corruption-induced retransmission pattern) in the network receive bytes metric for the pod `redis-cart-0`.",
+                "instruction": "Check the timeseries data for the metric `pod_network_receive_bytes` associated with pod `redis-cart-0` during the fault period."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "Anomalous pattern in the network receive packets metric for the pod `redis-cart-0`.",
+                "instruction": "Check the timeseries data for the metric `pod_network_receive_packets` associated with pod `redis-cart-0` during the fault period."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "Anomalous pattern in the network transmit bytes metric for the pod `redis-cart-0`.",
+                "instruction": "Check the timeseries data for the metric `pod_network_transmit_bytes` associated with pod `redis-cart-0` during the fault period."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "Anomalous pattern in the network transmit packets metric for the pod `redis-cart-0`.",
+                "instruction": "Check the timeseries data for the metric `pod_network_transmit_packets` associated with pod `redis-cart-0` during the fault period."
+            }
+        ]
+    }
+}
+```

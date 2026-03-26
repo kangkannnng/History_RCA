@@ -1,0 +1,39 @@
+{
+  "uuid": "f625bd45-479",
+  "fault_type": "Database_Performance_Region_Unavailable",
+  "symptom_vector": "latency spike from 10ms to 64.88s, high error ratio up to 60%, 5xx errors from frontend services",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB tikv存储节点Region不可用，导致数据库查询失败并引发服务级联故障",
+    "reasoning_chain": [
+      "Step 1: 从Trace数据观察到，ProductCatalogService的GetProduct操作延迟(rrt_max)从正常的10秒激增至3800万秒，并且所有相关调用链都返回错误码2，错误信息为'Error 9005 (HY000): Region is unavailable'。这表明底层数据库服务出现严重问题。",
+      "Step 2: 从Log数据中确认，productcatalogservice-2节点在故障期间出现了147次'failed to query product by id: Error 9005 (HY000): Region is unavailable'的警告日志。同时，多个frontend服务日志也记录了因该错误导致的产品查询失败。这验证了数据库Region不可用是导致服务层失败的直接原因。",
+      "Step 3: 从Metric数据中验证，tidb-pd组件的store_unhealth_count指标从0上升至1，表明有存储节点健康状态异常。同时，tidb-tidb组件的duration_99th（P99延迟）从10ms激增至64.88s，failed_query_ops出现异常峰值。这些指标共同证实了TiDB数据库集群（特别是存储层tikv）出现了性能与可用性故障，并引发了上游服务（productcatalogservice, frontend等）的级联错误。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "hipstershop.ProductCatalogService/GetProduct",
+        "expected_pattern": "rrt_max (或anomaly_avg_duration) 出现数量级的激增（例如从秒级到百万秒级），且status_code为2，status_message包含'Error 9005 (HY000): Region is unavailable'。",
+        "instruction": "扫描调用链数据，重点关注ProductCatalogService的GetProduct操作。检查其响应时间（rrt_max或anomaly_avg_duration）是否出现灾难性增长，并确认其返回的错误状态码和信息是否为'Error 9005 (HY000): Region is unavailable'。这是识别数据库Region故障的黄金信号。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "在productcatalogservice或直接访问数据库的组件日志中，高频次出现包含'Error 9005 (HY000): Region is unavailable'关键词的错误或警告信息。",
+        "instruction": "在日志中搜索关键词'Error 9005'或'Region is unavailable'。重点检查productcatalogservice组件的日志，确认其是否因数据库查询失败而大量报错。该错误信息是TiDB Region不可用的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_unhealth_count",
+        "expected_pattern": "该指标值从正常状态（通常为0）突变为大于0（例如1），表明有存储节点被标记为不健康。",
+        "instruction": "查询tidb-pd组件的store_unhealth_count指标。检查在故障时间窗口内，该指标是否出现从0到1（或更大值）的跳变。这直接指示了TiDB集群中tikv存储节点的健康状态异常。"
+      },
+      {
+        "modality": "Metric",
+        "target": "duration_99th",
+        "expected_pattern": "对于tidb-tidb组件，该指标出现数个数量级的激增（例如从毫秒级到数十秒级）。",
+        "instruction": "查询tidb-tidb组件的duration_99th（P99延迟）指标。对比故障期间与正常基线，确认数据库查询延迟是否出现灾难性恶化。这反映了数据库层整体性能的严重下降。"
+      }
+    ]
+  }
+}

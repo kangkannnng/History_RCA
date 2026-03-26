@@ -1,0 +1,35 @@
+{
+  "uuid": "0fccdcad-125",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, CPU overload, CPU usage spike, CPU stress",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [recommendationservice] experienced [pod_cpu_usage] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [pod_cpu_usage] in Metric data showing abnormal increase from 0.0/0.01 to 0.4 (2.0x change ratio) (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric data showing abnormal increase from 1.0 to 9.0 (1.6x change ratio) (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [rrt] in Metric data showing abnormal increase from 2.5-2.8k to 43-59k (1.8x change ratio) (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on combined features of pod_cpu_usage spike, pod_processes anomaly, and rrt degradation, determined cause is [pod_cpu_usage] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Value increased from 0.0/0.01 to 0.4 with 2.0x change ratio for recommendationservice pods",
+        "instruction": "Search for metric [pod_cpu_usage] for recommendationservice pods and check if value exceeds 0.3 during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Value increased from 1.0 to 9.0 with 1.6x change ratio for recommendationservice pods",
+        "instruction": "Search for metric [pod_processes] for recommendationservice pods and check if value exceeds 5 during fault window"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Value increased from 2.5-2.8k to 43-59k with 1.8x change ratio for recommendationservice",
+        "instruction": "Search for metric [rrt] for recommendationservice service and check if value exceeds 10k during fault window"
+      }
+    ]
+  }
+}

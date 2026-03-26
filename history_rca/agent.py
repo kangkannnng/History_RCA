@@ -11,12 +11,16 @@ from history_rca.sub_agents.rag_agent.agent import rag_agent
 
 from history_rca.tools import parse_user_input
 
+# Baseline: single agent without sub-agents
+from history_rca.prompt_single import ORCHESTRATOR_PROMPT
+
 # Ablation: without RAG
 # from history_rca.prompt_no_rag import ORCHESTRATOR_PROMPT
-from history_rca.prompt import ORCHESTRATOR_PROMPT
+
+# from history_rca.prompt import ORCHESTRATOR_PROMPT
 
 
-model = LiteLlm(model='openai/qwen3-max')
+model = LiteLlm(model='openai/deepseek-v3.2')
 
 orchestrator_agent = Agent(
     name="orchestrator_agent",

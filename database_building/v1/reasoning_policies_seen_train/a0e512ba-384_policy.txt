@@ -1,0 +1,32 @@
+[Trigger]
+- Metric anomaly pattern: CPU utilization on a specific compute node increased sharply from approximately 18% to over 90%
+- Trace anomaly pattern: Multiple downstream services exhibited significant increases in response latency during the same period
+- Log anomaly pattern: No application error logs were recorded during the anomaly window
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: A single compute node's CPU utilization metric showed a dramatic increase from baseline to near-saturation levels - this matters because it points to a fundamental resource constraint at the infrastructure level
+- Evidence 2: Multiple distinct application components deployed on the same affected node all showed elevated error rates and response times - this matters because concurrent degradation across unrelated services suggests a shared environmental bottleneck rather than isolated application failures
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Distributed trace data showed latency increases in services that depend on components running on the affected node - this is a consequence because slow or failing upstream services naturally cause delays in their dependents
+- Evidence 4: Trace data from other nodes showed service delays but lacked visibility into the affected node's service calls - this can be deprioritized because the absence of data may itself be symptomatic of the node's inability to process requests normally
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the concurrent degradation of multiple independent services and the severe spike in their host node's CPU utilization, we suspect a systemic resource exhaustion that is preventing normal service operation."
+
+Step 2: Verification or elimination
+"If this were caused by an application-level defect in one particular service, we would expect to see error logs from that service and disproportionate impact on its specific functionality;
+However, actual observation shows no application errors and proportional impact across all services on the node;
+This rules out a single faulty application component as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of the node-level resource metric showing saturation and the correlated degradation pattern across all hosted services indicates that infrastructure resource constraints are propagating upward to cause application performance issues."
+
+[Conclusion]
+"The root cause is a severe resource bottleneck at the compute node level, where insufficient processing capacity led to generalized service degradation affecting all hosted applications, with the constraint manifesting as increased error rates and latency rather than application crashes."
+
+[Next Action]
+- Verify whether other resource metrics (memory, disk I/O) from the affected node show correlated patterns
+- Check for scheduling or resource allocation events that coincided with the utilization spike

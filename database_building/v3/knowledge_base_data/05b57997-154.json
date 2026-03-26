@@ -1,0 +1,51 @@
+{
+  "uuid": "05b57997-154",
+  "fault_type": "rrt",
+  "symptom_vector": "packet corruption and data corruption leading to connection timeouts and RPC errors between services",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 与 cartservice 之间的网络链路因数据包损坏（packet corruption）导致 rrt 和 rrt_max 指标异常飙升，引发连接超时与握手失败。",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice-2 的 rrt 和 rrt_max 指标出现极端飙升，中位数分别增长约 200 倍，表明该服务处理请求时遭遇严重延迟。",
+      "Step 2: 分析 frontend 服务的日志，发现大量指向 cartservice (IP: 10.233.46.196:7070) 的连接超时错误，如 'transport: Error while dialing dial tcp ... i/o timeout' 和 'timed out waiting for server handshake'，这是网络层数据包损坏或丢失的典型表现。",
+      "Step 3: 确认故障影响范围涉及 checkoutservice 与 cartservice 之间的通信，且 frontend 服务作为调用方出现错误率上升和响应时间增长，符合因底层网络损坏导致服务间调用失败的故障传播模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error while dialing|i/o timeout",
+        "expected_pattern": "包含 'transport: Error while dialing' 及 'i/o timeout' 关键词的日志条目",
+        "instruction": "在 frontend、checkoutservice 或 cartservice 的日志中搜索 'Error while dialing' 和 'i/o timeout' 关键词，检查网络连接超时错误。"
+      },
+      {
+        "modality": "Log",
+        "target": "timed out waiting for server handshake",
+        "expected_pattern": "包含 'timed out waiting for server handshake' 关键词的日志条目",
+        "instruction": "在相关服务的日志中搜索 'timed out waiting for server handshake'，检查 TCP 握手失败情况。"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc error code canceled desc context canceled",
+        "expected_pattern": "包含 'rpc error: code = Canceled desc = context canceled' 关键词的日志条目",
+        "instruction": "在相关服务日志中搜索 'code = Canceled' 和 'context canceled'，检查因超时导致的请求取消。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "响应时间中位数或 P99 值相比基线出现数倍乃至数百倍的异常增长",
+        "instruction": "检查 checkoutservice 和 frontend 服务的 rrt 指标，确认是否存在极端延迟。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "最大响应时间指标出现异常峰值",
+        "instruction": "检查 checkoutservice 和 frontend 服务的 rrt_max 指标，确认最大延迟是否激增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_transmit_bytes",
+        "expected_pattern": "网络字节收发速率异常波动、丢包或错误包计数增加（尽管当前数据集中未直接体现，但根据故障类型应检查此类指标）",
+        "instruction": "检查故障期间 checkoutservice 和 cartservice 所在 Pod 的网络接收/发送字节数、包数指标，寻找丢包、错误包或流量异常模式。"
+      }
+    ]
+  }
+}

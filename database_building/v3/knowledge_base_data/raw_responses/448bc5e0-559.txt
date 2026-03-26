@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "448bc5e0-559",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion, memory saturation, high memory usage, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-05 节点因 node_memory_usage_rate 指标异常导致内存压力故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-05 节点的 node_memory_usage_rate 指标在故障期间出现异常变化，p99值从53.06%下降到29.72%，变化率为0.56",
+            "Step 2: 分析 aiops-k8s-05 节点上运行的 cartservice-2、paymentservice-1、productcatalogservice-1 等服务可能受到内存压力的影响",
+            "Step 3: 确认 node_memory_MemAvailable_bytes 指标也显示内存可用性模式发生变化，进一步支持内存压力假设"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Increased disk read activity indicating potential memory swapping",
+                "instruction": "检查 aiops-k8s-05 节点的 node_disk_read_bytes_total 指标是否在故障期间异常增加，这可能表明内存压力导致交换活动"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increased disk read time indicating I/O contention",
+                "instruction": "检查 aiops-k8s-05 节点的 node_disk_read_time_seconds_total 指标是否异常，这可能反映内存压力导致的磁盘I/O增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Decreased available memory or abnormal fluctuation",
+                "instruction": "检查 aiops-k8s-05 节点的 node_memory_MemAvailable_bytes 指标是否显示可用内存减少或异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Abnormal memory usage pattern or sudden changes",
+                "instruction": "检查 aiops-k8s-05 节点的 node_memory_usage_rate 指标是否出现异常模式或突然变化，特别是p99值的显著波动"
+            }
+        ]
+    }
+}
+```

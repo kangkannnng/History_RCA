@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "50bce1c4-311",
+    "fault_type": "Runtime/Pod Failure",
+    "symptom_vector": "Add-to-cart requests failing with RPC errors and increased latency",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice运行时进程异常（panic）导致数据库连接失败，引发购物车功能故障",
+        "reasoning_chain": [
+            "Step 1: 观察到多个frontend日志记录了大量失败请求，错误信息明确指出与cartservice的RPC调用失败，状态码为'FailedPrecondition'，详情为'Can't access cart storage'。这表明cartservice是下游服务问题的直接源头。",
+            "Step 2: 分析cartservice自身日志，发现同样存在核心错误'Error status code 'FailedPrecondition' with detail 'Can't access cart storage.' raised.'，且出现次数(158次)极高。同时，该服务指标显示error_ratio P99值从0.0激增至23.4，变化率达2.0，pod_cpu_usage的P99也有显著上升。这表明cartservice内部发生了严重错误并导致资源使用异常。",
+            "Step 3: 结合已知故障描述中的'code error'和'runtime panic'线索，可以确认cartservice的进程因自身代码问题（如panic）而出现运行时故障，这中断了其与后端存储（如Redis）的正常连接，导致所有依赖它的上游服务（如frontend）调用失败。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "cartservice",
+                "expected_pattern": "Contains error messages indicating database/storage connection failures or runtime panic",
+                "instruction": "搜索cartservice的日志，重点关注包含‘FailedPrecondition’, ‘Can't access cart storage’, ‘database error’, ‘SQLException’, ‘panic’等关键词的错误条目。"
+            },
+            {
+                "modality": "Metric",
+                "target": "service_error_ratio, service_client_error_ratio",
+                "expected_pattern": "Sudden spike, especially in P99 values",
+                "instruction": "检查cartservice的error_ratio和client_error_ratio指标，特别是P99分位数，观察其在故障时间段内是否从接近0的水平急剧上升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Abnormal fluctuation or increase",
+                "instruction": "检查cartservice所属Pod的cpu_usage指标，观察其是否出现与故障时间吻合的异常波动或增长。"
+            }
+        ]
+    }
+}
+```

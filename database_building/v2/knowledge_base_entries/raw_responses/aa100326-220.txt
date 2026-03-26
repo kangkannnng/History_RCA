@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "aa100326-220",
+    "fault_type": "latency_anomaly",
+    "symptom_vector": "High latency and DeadlineExceeded errors in frontend services, with upstream AdService calls experiencing extreme response time spikes.",
+    "expert_knowledge": {
+        "root_cause_desc": "Byteman代理注入失败及延迟规则执行导致adservice服务响应时间急剧恶化。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据观察到，adservice的rrt_max指标在故障期间从约5.4秒急剧上升至约500秒，延迟倍数高达92倍，表明AdService服务本身存在严重的性能瓶颈。",
+            "Step 2: 结合Log数据分析，在adservice的日志中发现关键错误信息，包括'Agent failed to start!'、'attempting to load Byteman agent more than once'以及大量出现的'AdService-getRandomAds-latency-1749654655 execute()'日志，表明存在Byteman代理注入故障与一个显式的延迟规则被执行。",
+            "Step 3: 通过Trace数据确认影响链，发现所有frontend实例对AdService/GetAds的调用耗时从约5.5秒飙升至约500秒，并伴随大量'context deadline exceeded'状态码，证实了adservice的延迟直接导致了前端服务的超时错误。综合三类数据，锁定根因为adservice的Byteman代理相关问题。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Sudden spike in the metric value, typically orders of magnitude increase (e.g., from seconds to hundreds of seconds).",
+                "instruction": "检查adservice服务的rrt_max指标在故障时段的中位数或p99值，并与故障前基线对比，确认是否存在剧烈的、数量级的增长。"
+            },
+            {
+                "modality": "Log",
+                "target": "Agent failed to start, AdService-getRandomAds-latency, InvocationTargetException",
+                "expected_pattern": "Log entries containing keywords related to Byteman agent failure, rule execution, and Java exceptions.",
+                "instruction": "在adservice服务的日志中搜索关键词'Agent failed to start'、'AdService-getRandomAds-latency'以及'InvocationTargetException'或'deadlineexceeded'，确认是否存在代理注入失败和延迟规则执行的证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->AdService, status_code 4 (DeadlineExceeded)",
+                "expected_pattern": "High latency and high occurrence of 'context deadline exceeded' status in the call path from frontend to AdService.",
+                "instruction": "分析服务调用链路，聚焦于frontend对AdService/GetAds操作的调用。检查其平均耗时、p99耗时是否激增，并确认状态码中'context deadline exceeded'（或类似超时错误）是否大量出现。"
+            }
+        ]
+    }
+}
+```

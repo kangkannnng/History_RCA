@@ -1,0 +1,33 @@
+{
+  "uuid": "0419ba04-373",
+  "fault_type": "latency_anomalies",
+  "symptom_vector": "High error rate (error_ratio up to 42.89) and connection refused errors observed in frontend and downstream services, accompanied by a drop in CPU usage for a specific currencyservice pod.",
+  "expert_knowledge": {
+    "root_cause_desc": "currencyservice 因端口配置错误或网络问题导致服务完全不可达，表现为所有调用均遭连接拒绝。",
+    "reasoning_chain": [
+      "Step 1: 从 Metric 数据观察到 currencyservice-2 的 pod_cpu_usage 中位数从正常时的 0.04 骤降至故障时的 0.0（变化率 2.0），同时 frontend 服务的 error_ratio 和 server_error_ratio 中位数飙升至约 40-41，表明有核心服务异常并引发上游服务高错误率。",
+      "Step 2: 从 Log 数据发现大量来自 frontend 服务的错误，核心模式为 `transport: Error while dialing dial tcp 10.233.39.78:7000: connect: connection refused`，错误指向 `currencyservice` 和端口 `7000`。同时存在因货币转换失败（`failed to convert price`）引发的 `Internal` 错误，进一步确认 currencyservice 功能失效。",
+      "Step 3: 从 Trace 数据确认调用链故障，所有 frontend 节点对 `CurrencyService/GetSupportedCurrencies` 的调用均失败，状态码为 14，错误信息明确为 `connection refused`，单节点异常频次高达 1709-2226 次。同时，checkoutservice 对 `CurrencyService/Convert` 的调用也出现相同错误。这共同证实 currencyservice 服务完全不可用，是故障传播的源头。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "service_name = 'currencyservice' 或 operation_name 包含 'CurrencyService'",
+        "expected_pattern": "status_code 为 14 (UNAVAILABLE) 或错误信息包含 'connection refused'",
+        "instruction": "检查所有调用 currencyservice 的 trace span，如果发现大量状态码为 14 且错误信息明确指向连接拒绝的失败调用，则 currencyservice 极有可能是根因。"
+      },
+      {
+        "modality": "Log",
+        "target": "关键词：'connection refused', '7000', 'currencyservice'",
+        "expected_pattern": "日志消息中同时包含 'connection refused'、端口号 '7000' 以及 'currencyservice' 或相关服务名",
+        "instruction": "在所有服务的错误日志中搜索同时包含 'connection refused' 和端口 '7000' 的条目。如果此类错误集中出现，且调用方为依赖 currencyservice 的服务（如 frontend, checkoutservice），则表明 currencyservice 存在网络可达性或端口监听问题。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage (for pod_name like 'currencyservice-%'), error_ratio (for service_name like 'frontend')",
+        "expected_pattern": "特定 currencyservice pod 的 CPU 使用率突降至接近零，同时其上游调用方（如 frontend）的 error_ratio 或 server_error_ratio 出现陡增。",
+        "instruction": "联合分析 currencyservice 相关 Pod 的资源指标（如 CPU）和其直接上游服务（如 frontend）的错误率指标。若发现 currencyservice 某 Pod 资源消耗骤降而上游错误率激增，则该 Pod 可能已失活，是故障点。"
+      }
+    ]
+  }
+}

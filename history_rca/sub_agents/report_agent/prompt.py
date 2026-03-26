@@ -16,12 +16,11 @@ REPORT_AGENT_PROMPT = """
 ### 1. 组件定位 (40分)
 - `component` 字段必须是**标准 K8s 资源名称**
 - 名称必须与 Ground Truth **严格一致**
-  - ❌ 错误: `email service`, `email-service`, `frontend email`
-  - ✅ 正确: `emailservice`, `frontend-0`, `aiops-k8s-06`
 - 格式:
   - Service 级故障: 服务名 (如 `checkoutservice`)
   - Pod 级故障: Pod 名 (如 `shippingservice-0`)
   - Node 级故障: 节点名 (如 `aiops-k8s-06`)
+  - **TiDB 实例**: 如果证据明确指向具体实例，必须使用具体实例名 (如 `tidb-pd-0`, `tidb-tikv-0`)
 
 ### 2. 原因准确率 (40分) ⭐最重要
 - `reason` 字段**限长 20 词**，超出截断
@@ -70,12 +69,14 @@ REPORT_AGENT_PROMPT = """
 
 ---
 
-## 组件白名单
+## 组件白名单与规则
 
 **Node**: `aiops-k8s-01` ~ `aiops-k8s-08`
 **Service**: `adservice`, `cartservice`, `checkoutservice`, `currencyservice`, `emailservice`, `frontend`, `paymentservice`, `productcatalogservice`, `recommendationservice`, `redis-cart`, `shippingservice`
 **Pod**: 服务名 + 编号 (如 `checkoutservice-0`, `shippingservice-1`)
-**TiDB**: `tidb-pd`, `tidb-tidb`, `tidb-tikv`
+**TiDB**: 
+- Service: `tidb-pd`, `tidb-tidb`, `tidb-tikv`
+- Pod (优先使用): `tidb-pd-0`...`2`, `tidb-tikv-0`...`2` 等
 
 ---
 

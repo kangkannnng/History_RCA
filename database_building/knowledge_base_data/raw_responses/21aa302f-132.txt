@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "21aa302f-132",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-07] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-07] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found metric [node_memory_usage_rate] in Metric data with abnormal pattern (From GT key_metrics)",
+            "Step 3: Derive Root Cause - Based on metric anomaly, determined cause is [node_memory_usage_rate] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Metric shows abnormal increase in p99 value from 21.47% to 25.11% (15.63% change rate) for node aiops-k8s-07",
+                "instruction": "Search for metric [node_memory_usage_rate] with node_name=aiops-k8s-07 in metric data and check p99 change rate"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Check if other memory-related metrics show anomalies for the same node",
+                "instruction": "Search for memory-related metrics (node_memory_MemAvailable_bytes) for node aiops-k8s-07 to confirm memory pressure"
+            }
+        ]
+    }
+}
+```

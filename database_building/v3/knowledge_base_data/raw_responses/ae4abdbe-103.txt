@@ -1,0 +1,48 @@
+```json
+{
+    "uuid": "ae4abdbe-103",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice-2 组件因内存压力导致 pod_processes 异常变化，引发连接拒绝错误和服务负载不均衡",
+        "reasoning_chain": [
+            "Step 1: 观察到 productcatalogservice-2 的 pod_processes 指标 p99 从 1.0 增加到 2.0，变化率 66.67%，表明 Pod 进程数量异常",
+            "Step 2: 分析 productcatalogservice-2 的 request 指标从 3350.5 骤降到 22.0，同时 productcatalogservice-1 的 request 从 36.0 激增到 3802.0，出现严重负载不均衡",
+            "Step 3: 日志中发现 frontend 到 productcatalogservice 的 connection refused 错误，具体为 'transport: Error while dialing dial tcp 10.233.54.177:3550: connect: connection refused'",
+            "Step 4: Trace 数据确认 frontend 到 productcatalogservice 出现连接错误（状态码 14），且 checkoutservice 到 productcatalogservice 的调用延迟异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection|refused",
+                "expected_pattern": "包含 connection refused 错误信息",
+                "instruction": "在 frontend 和 productcatalogservice 的日志中搜索 'connection refused' 关键词，检查是否有端口连接失败记录"
+            },
+            {
+                "modality": "Log",
+                "target": "Error|while|dialing",
+                "expected_pattern": "包含 Error while dialing 错误信息",
+                "instruction": "检查日志中是否有 'Error while dialing' 关键词，确认网络连接问题"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "包含 unavailable 状态描述",
+                "instruction": "搜索日志中的 'unavailable' 关键词，确认服务不可用状态"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "进程数量异常变化（如从 1.0 增加到 2.0）",
+                "instruction": "检查 productcatalogservice-2 的 pod_processes 指标，观察 p99 值是否有显著变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "内存使用量异常升高或达到饱和",
+                "instruction": "监控 productcatalogservice-2 的 pod_memory_working_set_bytes 指标，检查是否存在内存压力或泄漏"
+            }
+        ]
+    }
+}
+```

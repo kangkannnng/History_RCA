@@ -1,0 +1,71 @@
+{
+  "uuid": "87b43d57-223",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exceptions thrown in adservice leading to application runtime errors and exception stack traces.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [adservice-getrandomads-exception] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth instance).",
+      "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log (From GT key_observations, appears in log as 'Rule.execute called for AdService-getRandomAds-exception-1749665406_39:0').",
+      "Step 3: Check Observation - Found keyword [grpc-default-executor] in Log (From GT key_observations, appears in log as 'Exception in thread \"grpc-default-executor-24206\"').",
+      "Step 4: Check Observation - Found keyword [injected error] in Log (From GT key_observations, appears in log as 'java.lang.Error: Injected error').",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [adservice-getrandomads-exception] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "Log entry 'Rule.execute called for AdService-getRandomAds-exception-1749665406_39:0' appears with high occurrence count.",
+        "instruction": "Search for keyword 'adservice-getrandomads-exception' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "Caught",
+        "expected_pattern": "Log entry 'caught ThrowException' appears in adservice logs.",
+        "instruction": "Search for keyword 'Caught' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "throwexception",
+        "expected_pattern": "Log entry 'caught ThrowException' appears in adservice logs.",
+        "instruction": "Search for keyword 'throwexception' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "grpc-default-executor",
+        "expected_pattern": "Log entry 'Exception in thread \"grpc-default-executor-24206\"' appears in adservice logs.",
+        "instruction": "Search for keyword 'grpc-default-executor' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "injected",
+        "expected_pattern": "Log entry 'java.lang.Error: Injected error' appears in adservice logs.",
+        "instruction": "Search for keyword 'injected' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "error",
+        "expected_pattern": "Log entry 'java.lang.Error: Injected error' appears in adservice logs.",
+        "instruction": "Search for keyword 'error' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Log entry 'java.lang.reflect.InvocationTargetException' appears in adservice logs.",
+        "instruction": "Search for keyword 'invocationtargetexception' in logs from adservice pods."
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Log entry 'org.jboss.byteman.agent.Transformer' appears in adservice logs, indicating transformation activities.",
+        "instruction": "Search for keyword 'transformlistener' in logs from adservice pods."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Metric 'pod_cpu_usage' is monitored in the system, with data available for pods like redis-cart-0.",
+        "instruction": "Check metric 'pod_cpu_usage' for anomalies across all pods, especially adservice-related ones."
+      }
+    ]
+  }
+}

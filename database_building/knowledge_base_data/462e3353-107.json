@@ -1,0 +1,21 @@
+{
+  "uuid": "462e3353-107",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "Node disk space exhaustion leading to high disk utilization and service performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-06] experienced [node_filesystem_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-06] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [node_filesystem_usage_rate] in [Metric] data (From GT key_observations). The metric for node 'aiops-k8s-06' shows a median increase from 54.42% to 78.23% (change rate 35.9%) and a p99 increase from 66.5% to 91.33% (change rate 31.46%).",
+      "Step 3: Derive Root Cause - Based on the significant spike in the [node_filesystem_usage_rate] metric for the identified component, determined cause is [node_filesystem_usage_rate] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "The metric value for node 'aiops-k8s-06' shows a significant increase during the fault window (e.g., from 54.42% to 78.23%). This is found in the `raw_metric_result` -> `anomaly_metrics` CSV data within the Full Context.",
+        "instruction": "Search for metric keyword 'node_filesystem_usage_rate' in the anomaly metrics data and filter for node_name 'aiops-k8s-06' to confirm the spike."
+      }
+    ]
+  }
+}

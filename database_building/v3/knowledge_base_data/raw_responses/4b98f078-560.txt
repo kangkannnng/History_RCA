@@ -1,0 +1,42 @@
+```json
+{
+    "uuid": "4b98f078-560",
+    "fault_type": "rrt异常与网络损坏",
+    "symptom_vector": "network latency spike and timeouts due to packet corruption on the network",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 与 emailservice 之间的网络链路出现损坏，导致 rrt 和 rrt_max 指标极端异常，表现为I/O超时和连接错误。",
+        "reasoning_chain": [
+            "Step 1: 观察到 emailservice-1 的 rrt_max p99 指标从 9013.71ms 飙升至 2287630.17ms (变化率 198.43%)，rrt p99 从 3307.91ms 飙升至 2287288.11ms，指示端到端响应时间出现极端异常。",
+            "Step 2: 分析 checkoutservice-2 的日志，发现大量连接 emailservice (10.233.49.244:5000) 时产生的 `i/o timeout` 和 `connection error` 错误，这是典型的网络层传输失败。",
+            "Step 3: 确认 trace 数据中 checkoutservice->emailservice 的调用链 (hipstershop.EmailService/SendOrderConfirmation) 延迟从正常的 20.2ms 激增至 26305ms，并伴有 status_code 14 的 `transport: Error while dialing dial tcp ...: i/o timeout` 错误，证实了网络调用完全失败。",
+            "Step 4: 综合 rrt 指标异常、连接超时日志以及 trace 调用链失败，证据链指向 checkoutservice 与 emailservice 之间的网络基础设施存在异常，导致数据包损坏或无法送达，进而引发级联故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice, emailservice, latency_anomalies",
+                "expected_pattern": "checkoutservice 调用 emailservice (如 SendOrderConfirmation) 的延迟出现数个数量级的增长，并伴有超时相关的错误状态码。",
+                "instruction": "扫描 trace 数据，聚焦于 checkoutservice 对 emailservice 的调用链，检查其 latency_anomalies 及状态码（如 14, 1, 13），寻找延迟飙升和网络超时证据。"
+            },
+            {
+                "modality": "Log",
+                "target": "transport, Error, while, dialing, i/o timeout, context, canceled, rpc, error, unavailable",
+                "expected_pattern": "包含 'transport: Error while dialing' 或 'i/o timeout' 等网络连接错误的日志条目，以及上游服务因等待超时产生的 'context canceled' 错误。",
+                "instruction": "在 checkoutservice 和 emailservice 的日志中搜索 'timeout'、'Error while dialing'、'context canceled' 及 'unavailable' 等关键词，识别网络层和RPC层错误。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "受影响服务（特别是 emailservice 和 checkoutservice）的 rrt 和 rrt_max 指标，尤其是 p99 分位数，出现超过一个数量级的异常飙升。",
+                "instruction": "检查 emailservice 和 checkoutservice 的 rrt 与 rrt_max 指标，特别是 p99 分位值，对比故障窗口与正常基线，确认是否存在极端峰值。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Pod内存使用量是否存在异常模式（如持续增长、OOM等），但在此故障中可能无明显变化。",
+                "instruction": "作为辅助检查，查看相关服务 pod 的 pod_memory_working_set_bytes 指标，排除内存泄漏或OOM导致服务不可用的可能性。"
+            }
+        ]
+    }
+}
+```

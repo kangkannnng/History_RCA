@@ -1,0 +1,70 @@
+{
+  "uuid": "92e5a649-207",
+  "fault_type": "network_corrupt",
+  "symptom_vector": "packet corruption and data corruption with network bit errors causing corrupted packets",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 与 paymentservice 之间的网络链路存在数据包损坏，导致网络传输错误和连接超时",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice 与 paymentservice 之间的调用链出现大量连接超时和握手超时错误，异常频次高达80次",
+      "Step 2: 分析 checkoutservice 的 rrt 和 rrt_max 指标严重恶化，响应时间从6446ms激增至539224ms，变化率超过195倍",
+      "Step 3: 确认日志中出现 'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout' 和 'timed out waiting for server handshake' 等网络层错误",
+      "Step 4: 追踪数据显示 checkoutservice->paymentservice 调用延迟从正常13-15秒激增至22.7-25.7秒，延迟倍数超过1600倍"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error|while|dialing",
+        "expected_pattern": "包含 'Error while dialing' 关键词的网络连接错误",
+        "instruction": "在 checkoutservice 和 paymentservice 的日志中搜索 'Error while dialing' 关键词，检查网络连接错误"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc|error|code|canceled|desc|context canceled",
+        "expected_pattern": "包含 'Rpc error code canceled desc context canceled' 的RPC调用取消错误",
+        "instruction": "搜索包含 'context canceled' 的RPC错误日志，检查调用链中断情况"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "包含 'timeout' 关键词的超时错误",
+        "instruction": "检查所有服务日志中的超时错误，特别是网络连接超时"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "包含 'unavailable' 关键词的服务不可用错误",
+        "instruction": "搜索服务不可用错误，确认服务状态"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice|frontend",
+        "expected_pattern": "checkoutservice 与 frontend 之间的调用链出现延迟异常",
+        "instruction": "分析 checkoutservice 与 frontend 之间的调用链，检查延迟异常和错误状态"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "响应时间指标异常飙升，变化率显著",
+        "instruction": "检查 checkoutservice 和 paymentservice 的 rrt 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "最大响应时间指标严重恶化",
+        "instruction": "分析 rrt_max 指标的变化情况，确认最大响应时间是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "request|response",
+        "expected_pattern": "请求响应相关指标异常",
+        "instruction": "检查请求响应相关指标，确认服务间通信状态"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+        "expected_pattern": "网络收发字节数和包数指标异常",
+        "instruction": "检查 checkoutservice 和 paymentservice 的网络收发指标，确认网络传输状态"
+      }
+    ]
+  }
+}

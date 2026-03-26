@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: No error logs were detected during the fault period, suggesting the issue does not manifest through logged errors.
+- Metric anomaly pattern: The number of processes in specific service instances surged from 1.0 to 12.0, accompanied by a CPU utilization increase from near zero to 0.4, and maximum response time escalated from approximately 20,000 to over 1,300,000 units.
+- Trace anomaly pattern: Calls to the affected service exhibited latency increases up to 37.5 times normal, with upstream services also showing degraded response times.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Sudden increase in process count from 1.0 to 12.0 in the service instances – this indicates an abnormal proliferation of processes that directly consumes system resources.
+- Evidence 2: Concurrent spike in CPU usage from negligible levels to 0.4 – this demonstrates that the increased processes are actively utilizing CPU, leading to resource contention.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Significant rise in maximum response time from 19,820.5 to 1,394,701.5 units – this is a consequence of resource exhaustion, as high CPU usage impairs processing speed.
+- Evidence 4: Elevated response times in upstream services like frontend – this can be deprioritized as it results from the primary service's performance degradation, not an independent cause.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the abrupt rise in process count and corresponding CPU usage spike in the service instances, we suspect an internal issue where uncontrolled process growth is causing resource exhaustion."
+
+Step 2: Verification or elimination
+"If this were caused by failures in dependent services, we would expect error logs or trace patterns indicating downstream bottlenecks; however, actual observation shows no error logs and traces point to high latency within the service itself, ruling out external dependencies as the primary driver."
+
+Step 3: Convergence to conclusion
+"The combination of process count surge and CPU usage increase directly correlates with the degradation in response times, indicating that the root cause is internal to the service due to abnormal process behavior leading to resource contention and performance slowdown."
+
+[Conclusion]
+"The root cause is an internal service issue where an abnormal increase in processes led to CPU resource exhaustion, which in turn caused severe response time degradation."
+
+[Next Action]
+- "Verify whether there are any recent configuration changes or deployment events that might have initiated the process increase."
+- "Check for patterns in memory usage or other resource metrics to assess if the impact extends beyond CPU contention."

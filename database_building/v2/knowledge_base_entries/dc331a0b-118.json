@@ -1,0 +1,27 @@
+{
+  "uuid": "dc331a0b-118",
+  "fault_type": "network_latency",
+  "symptom_vector": "frontend service experiencing latency spikes, recommendationservice RTT (Round Trip Time) and RTT_max metrics surged drastically, with potential downstream service timeouts or failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice及其所在节点的网络延迟激增，导致上游frontend服务调用超时和性能劣化。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到，recommendationservice-2和recommendationservice-0的`rrt`和`rrt_max`指标在故障期间飙升超过1900%，例如rrt_max从12932.5ms激增至804041ms，这是系统中变化最剧烈的性能异常。",
+      "Step 2: 从Trace数据中确认，前端服务(frontend)调用推荐服务(recommendationservice)的`ListRecommendations`接口延迟从正常的约120-140ms激增至730-735ms，延迟倍数达5-6倍，且出现频率高(34次)，这与Metric观察到的`rrt`飙升直接对应。",
+      "Step 3: 结合Metric数据中所有frontend实例的`rrt`也出现超过150%的显著增长，可以推断由recommendationservice的网络延迟问题已向其调用方(frontend)传播，形成了可观测的故障传播链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Sudden spike (>1000% increase) in median and P99 values for specific services (e.g., recommendationservice). Consecutive services in the call chain (e.g., frontend) show significant but smaller increases.",
+        "instruction": "扫描并对比故障时段与基线时段的`rrt`和`rrt_max`指标。重点关注数值变化率最高的服务及其直接上下游服务，确认是否存在由某个服务引发的延迟传播模式。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->recommendationservice call latency",
+        "expected_pattern": "Latency for calls from frontend to recommendationservice increases by multiple times (e.g., 5-6x) compared to the normal average, with high frequency of occurrence.",
+        "instruction": "分析调用链数据，找出平均延迟（anomaly_avg_duration）相比正常平均延迟（normal_avg_duration）激增最严重、出现次数最多的服务间调用关系，特别是涉及Metric中已识别出的异常服务。"
+      }
+    ]
+  }
+}

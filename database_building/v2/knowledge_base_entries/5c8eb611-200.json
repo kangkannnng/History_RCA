@@ -1,0 +1,39 @@
+{
+  "uuid": "5c8eb611-200",
+  "fault_type": "latency_anomalies",
+  "symptom_vector": "extreme latency spike in cartservice-2 causing cascading frontend delays, no error logs observed",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice-2实例出现极端延迟激增，导致上游frontend服务连锁性能下降",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到cartservice-2的rrt指标从1362.2ms飙升至283515.09ms（增长约208倍），rrt_max从9424.0ms激增至1514016.0ms（增长约160倍），这是最显著的异常信号",
+      "Step 2: 在Trace数据中确认cartservice-2的GetCart操作延迟从正常2.3秒激增至16.4秒，同时frontend调用cartservice的延迟从2.5-3.9秒激增至1378-1419秒（350-530倍增长），呈现明显的下游服务拖累上游模式",
+      "Step 3: 检查Log数据发现故障时间段内无错误日志记录，排除应用层错误，确认问题为静默性能下降而非显式故障"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "cartservice-2.rrt, cartservice-2.rrt_max",
+        "expected_pattern": "Sudden extreme spike in response time metrics (100x+ increase)",
+        "instruction": "检查cartservice-2实例的rrt和rrt_max指标，确认是否存在从毫秒级到秒级的极端增长模式。重点关注中位数和P99分位数的变化率是否超过阈值（如1.5倍以上）"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->cartservice调用链的延迟",
+        "expected_pattern": "Downstream service latency causing upstream service cascading delays",
+        "instruction": "分析frontend调用cartservice的关键操作（如GetCart、AddItem）的延迟变化，确认是否出现延迟激增且呈连锁反应模式。比较正常与故障期间的平均延迟倍数"
+      },
+      {
+        "modality": "Log",
+        "target": "cartservice-2错误日志",
+        "expected_pattern": "No error logs found (silent degradation)",
+        "instruction": "检查故障时间段内cartservice-2的日志，确认是否存在OOM、超时、连接拒绝等显式错误。如无错误日志，则标记为静默性能下降模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "frontend.rrt, frontend.rrt_max",
+        "expected_pattern": "Significant increase in upstream service latency following downstream service degradation",
+        "instruction": "对比所有frontend实例的rrt指标，确认是否都出现显著增长但幅度小于直接故障服务，验证连锁反应模式"
+      }
+    ]
+  }
+}

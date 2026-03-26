@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "f99b1645-137",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory saturation with high usage rate",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-05 由于 node_memory_usage_rate 异常升高导致内存压力",
+        "reasoning_chain": [
+            "Step 1: 观察到 Metric 数据中节点 aiops-k8s-05 的 node_memory_usage_rate 指标 p99 值从正常的 56.21% 异常升高至故障时的 84.37%（变化率 +40.07%）",
+            "Step 2: 分析节点 aiops-k8s-05 的 node_memory_MemAvailable_bytes 指标，确认节点可用内存减少，这是 node_memory_usage_rate 升高的直接证据",
+            "Step 3: 确认故障时间段内，运行在节点 aiops-k8s-05 上的服务（如 cartservice-1, currencyservice-0, paymentservice-2）性能下降，可能是受节点级资源压力的下游影响"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate, node_memory_MemAvailable_bytes",
+                "expected_pattern": "内存使用率显著升高或可用内存显著下降",
+                "instruction": "检查名为 aiops-k8s-05 的节点的 node_memory_usage_rate 和 node_memory_MemAvailable_bytes 指标，确认是否在故障时间段内出现异常升高或下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total, node_disk_read_time_seconds_total",
+                "expected_pattern": "磁盘读取字节数或读取时间显著增加",
+                "instruction": "检查名为 aiops-k8s-05 的节点的磁盘读取相关指标，以排查内存压力是否已引发显著的交换（swap）或缓存刷盘活动"
+            }
+        ]
+    }
+}
+```

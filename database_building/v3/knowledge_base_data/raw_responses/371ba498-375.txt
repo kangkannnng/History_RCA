@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "371ba498-375",
+    "fault_type": "port misconfiguration",
+    "symptom_vector": "connection refused due to port mismatch on critical payment service",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice 服务因端口配置错误导致连接被拒绝，表现为目标端口不可达",
+        "reasoning_chain": [
+            "Step 1: 观察到日志中 frontend 服务出现大量包含 'transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused' 的错误信息，这是端口连接被拒绝的典型特征",
+            "Step 2: 分析 Trace 数据，发现 checkoutservice 调用 paymentservice 的操作（hipstershop.PaymentService/Charge）出现 287 次失败，状态码为 14，对应 'connection refused'，确认 paymentservice 服务完全不可用",
+            "Step 3: 结合指标数据，发现 paymentservice-1 实例的 rrt_max 在故障窗口内从 1,911ms 显著上升至 3,082ms（增加46.9%），这是下游服务不可用导致的响应时间增加的直接表现"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "connection refused|Error while dialing",
+                "expected_pattern": "日志中出现 'connect: connection refused' 或 'Error while dialing dial tcp' 等关键词，指向特定 IP:Port 连接失败",
+                "instruction": "在相关服务的日志中，搜索 'connection refused' 或 'Error while dialing' 关键词，检查是否有指向特定服务端口的连接拒绝错误"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->paymentservice",
+                "expected_pattern": "调用链状态码为14或描述中包含 'connection refused'，表示对 paymentservice 的调用因连接问题失败",
+                "instruction": "分析 checkoutservice 调用 paymentservice 的调用链，检查状态码和错误信息，确认是否为连接拒绝错误"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "故障服务的 rrt_max 指标可能出现显著增加，反映下游依赖不可用导致的请求堆积或超时",
+                "instruction": "检查 paymentservice 及其上游服务（如 checkoutservice）的 rrt_max 指标在故障时间段内是否有异常飙升"
+            }
+        ]
+    }
+}
+```

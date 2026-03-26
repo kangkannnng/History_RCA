@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "50bce1c4-311",
+    "fault_type": "pod_processes",
+    "symptom_vector": "database access failures leading to service errors, including FailedPrecondition RPC errors from cart storage",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 组件因代码错误导致数据库访问异常（表现为 pod_processes 等指标异常），引发 FailedPrecondition: Can't access cart storage 错误。",
+        "reasoning_chain": [
+            "Step 1: 在故障时间段的日志中，观察到多个frontend服务实例报告'failed to add to cart: rpc error: code = FailedPrecondition desc = Can't access cart storage.'，同时cartservice自身也记录'Error status code 'FailedPrecondition' with detail 'Can't access cart storage.''。这明确指示cartservice出现了存储访问问题。",
+            "Step 2: 分析指标数据，发现cartservice-0的error_ratio P99从0.0异常上升到23.4（变化率2.0），同时pod_cpu_usage和pod_processes等容器资源指标也出现异常波动，证实了cartservice组件的异常状态。",
+            "Step 3: 结合日志中的具体错误代码'FailedPrecondition'和指标中的异常，确认cartservice组件因代码错误（数据库访问异常）导致无法访问购物车存储，进而引发上游frontend服务出现rpc error，形成故障传播。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "FailedPrecondition",
+                "expected_pattern": "Error logs containing FailedPrecondition status code",
+                "instruction": "在cartservice的日志中搜索FailedPrecondition关键词，确认是否存在存储访问相关的预处理失败错误。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status 302",
+                "expected_pattern": "HTTP response status code 302 in error logs",
+                "instruction": "检查frontend或cartservice日志中是否有HTTP 302状态码的响应，这可能与请求重定向或错误处理相关。"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "Logs containing request error messages",
+                "instruction": "搜索包含'request error'的日志条目，特别关注与cartservice交互的请求失败情况。"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "RPC error messages in logs",
+                "instruction": "在frontend和cartservice日志中查找'rpc error'关键词，分析RPC调用失败的具体原因和来源。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "CPU usage spike or abnormal pattern",
+                "instruction": "检查cartservice pod的CPU使用率指标是否出现尖峰或异常模式，这可能反映代码执行异常或资源争用。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Process count anomalies",
+                "instruction": "监控cartservice pod的进程数指标是否异常，进程崩溃或异常重启可能是代码错误导致运行时panic的表现。"
+            }
+        ]
+    }
+}
+```

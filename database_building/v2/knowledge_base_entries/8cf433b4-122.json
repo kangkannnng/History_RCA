@@ -1,0 +1,33 @@
+{
+  "uuid": "8cf433b4-122",
+  "fault_type": "metric",
+  "symptom_vector": "Multiple service latency spikes (cartservice rrt_max +132%, redis HMSET operation +368%), node resource usage anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-03内存耗尽导致该节点上的服务性能下降",
+    "reasoning_chain": [
+      "Step 1: 观察到cartservice-1的rrt_max指标从正常中位数13267ms飙升至64922ms，变化率132.13%，表明cartservice性能显著下降",
+      "Step 2: 分析调用链数据发现，cartservice→redis调用链出现显著延迟，HMSET操作从1573ms增加到7367ms（4.7倍），HGET操作从1739ms增加到8316ms（4.8倍）",
+      "Step 3: 检查节点Pod映射关系，发现故障特征指标node_memory_usage_rate在多个节点存在异常，且故障节点aiops-k8s-03上运行着cartservice-2等多个关键服务"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Significant increase or sustained high values indicating memory exhaustion",
+        "instruction": "检查故障节点aiops-k8s-03的内存使用率指标，寻找内存使用率持续高位或突然增长的模式"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice→redis调用延迟",
+        "expected_pattern": "HMSET/HGET操作延迟突增（4-6倍增长），表明Redis响应变慢",
+        "instruction": "分析从cartservice到redis的调用链，重点检查HMSET、HGET等关键操作的延迟变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "cartservice rrt_max",
+        "expected_pattern": "响应时间中位数和P99分位数显著增加（超过100%变化率）",
+        "instruction": "检查cartservice服务的最大响应时间指标，确认性能退化程度和影响范围"
+      }
+    ]
+  }
+}

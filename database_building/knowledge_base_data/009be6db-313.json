@@ -1,0 +1,64 @@
+{
+  "uuid": "009be6db-313",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Database error causing cart storage access failures, forced SQLException, and runtime panic",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [cartservice] experienced [pod_processes] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [cartservice] (From Ground Truth, instance field).",
+      "Step 2: Check Observation - Found keyword [FailedPrecondition] in Log (From Ground Truth key_observations, appears in Full Context as 'Error status code 'FailedPrecondition' with detail 'Can't access cart storage.' raised.' in cartservice-2 logs).",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric (From Ground Truth key_observations and key_metrics, implied as root cause metric).",
+      "Step 4: Derive Root Cause - Based on combined features including log errors and metric anomalies, determined cause is [pod_processes] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Latency anomalies observed in frontend services, e.g., increased rrt_max and error_ratio in trace data",
+        "instruction": "Search for latency anomalies involving 'frontend' in trace data during the fault window"
+      },
+      {
+        "modality": "Log",
+        "target": "FailedPrecondition",
+        "expected_pattern": "Error log entries with 'FailedPrecondition' and 'Can't access cart storage' in cartservice logs, e.g., from cartservice-2",
+        "instruction": "Search for keyword 'FailedPrecondition' in cartservice logs to identify storage access failures"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "HTTP response status 302 logs indicating redirection or errors (based on Ground Truth, though not explicitly found in provided Full Context)",
+        "instruction": "Search for keyword 'http.resp.status' with value '302' in logs to detect HTTP-level anomalies"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log entries with 'request error' and rpc error details, e.g., in frontend logs",
+        "instruction": "Search for keyword 'request error' in logs to capture request failures"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc, error",
+        "expected_pattern": "RPC error messages such as 'rpc error: code = FailedPrecondition' in frontend and cartservice logs",
+        "instruction": "Search for keywords 'rpc' and 'error' together in logs to identify RPC failures"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Abnormal metrics like rrt and rrt_max indicating request-response time issues, e.g., in frontend and checkoutservice metrics",
+        "instruction": "Check metrics related to 'request' and 'response' such as rrt and rrt_max for anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "pod_cpu_usage metric changes, e.g., drop in redis-cart-0 from 0.13 to 0.0 in metric data",
+        "instruction": "Monitor metric 'pod_cpu_usage' for significant deviations in cartservice and related pods"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "pod_processes metric anomalies indicating process-level faults (based on Ground Truth, though not explicitly listed in provided Full Context)",
+        "instruction": "Search for metric 'pod_processes' to assess process health and root cause"
+      }
+    ]
+  }
+}

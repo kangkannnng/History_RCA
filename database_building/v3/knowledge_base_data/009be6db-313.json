@@ -1,0 +1,63 @@
+{
+  "uuid": "009be6db-313",
+  "fault_type": "pod_processes",
+  "symptom_vector": "database error with forced SQLException, runtime panic, cart storage access failures, and latency anomalies",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 组件因代码错误导致数据库连接异常，引发 pod_processes 异常和运行时恐慌",
+    "reasoning_chain": [
+      "Step 1: 观察到 cartservice 的日志中出现 'FailedPrecondition: Can't access cart storage' 错误，共137次，表明存储访问失败",
+      "Step 2: 分析 cartservice 的 pod_processes 指标异常，结合日志中的 'runtime panic' 和 'Forced SQLException' 描述，确认代码错误导致进程异常",
+      "Step 3: 确认故障传播路径：cartservice 数据库错误 → 存储访问失败 → 上游服务（frontend）出现 rpc error 和 HTTP 500 错误"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "FailedPrecondition",
+        "expected_pattern": "Error status code 'FailedPrecondition' with detail 'Can't access cart storage.'",
+        "instruction": "在 cartservice 日志中搜索 FailedPrecondition 错误代码，检查存储访问失败的具体描述"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status 302",
+        "expected_pattern": "HTTP response status code 302",
+        "instruction": "检查日志中是否存在 HTTP 302 状态码，这可能与重定向或异常响应相关"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "request error with rpc error details",
+        "instruction": "搜索包含 'request error' 的日志条目，分析其关联的 rpc 错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "rpc error: code = FailedPrecondition desc = Can't access cart storage",
+        "instruction": "检查 frontend 和 cartservice 日志中的 rpc error 详细信息"
+      },
+      {
+        "modality": "Metric",
+        "target": "request response",
+        "expected_pattern": "Response time anomalies and error ratio spikes",
+        "instruction": "检查 cartservice 和 frontend 的请求响应时间指标和错误率指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "CPU usage drop or abnormal patterns",
+        "instruction": "检查 cartservice 实例的 pod_cpu_usage 指标是否出现异常下降或波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Process count anomalies or process failures",
+        "instruction": "检查 cartservice 的 pod_processes 指标是否异常，确认进程状态"
+      },
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Significant latency increases in cartservice operations",
+        "instruction": "分析调用链数据，检查 cartservice 相关操作（如 GetCart）是否存在严重延迟异常"
+      }
+    ]
+  }
+}

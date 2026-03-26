@@ -1,0 +1,49 @@
+```json
+{
+    "uuid": "d3dd6ed7-183",
+    "fault_type": "client_error, client_error_ratio, error, error_ratio, pod_processes, request, response",
+    "symptom_vector": "Pod was killed, indicating forceful pod termination, container killed, or pod eviction.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [shippingservice-1] experienced [client_error, client_error_ratio, error, error_ratio, pod_processes, request, response] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [shippingservice-1] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [frontend] in [Trace] data indicating request_proportion_anomalies (From GT key_observations).",
+            "Step 3: Check Observation - Found keywords [request, response] in [Metric] data (From GT key_observations).",
+            "Step 4: Check Observation - Found keywords [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in [Metric] data (From GT key_observations).",
+            "Step 5: Derive Root Cause - Based on the above features (trace anomalies, request/response metric anomalies, and pod network metric anomalies), determined cause is [client_error, client_error_ratio, error, error_ratio, pod_processes, request, response] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace data shows request proportion anomalies involving the 'frontend' service, such as abnormal call chains or latency spikes originating from or destined for frontend.",
+                "instruction": "Search for keyword 'frontend' in Trace data to identify request proportion anomalies or abnormal call chains."
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Metric 'request' shows an abnormal decrease to 0 or a significant drop, indicating service interruption.",
+                "instruction": "Check if metric 'request' for the component 'shippingservice-1' shows abnormal decrease or error rate increase."
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Metric 'response' shows an abnormal decrease to 0 or a significant drop, correlating with the 'request' anomaly.",
+                "instruction": "Check if metric 'response' for the component 'shippingservice-1' shows abnormal decrease."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Metric 'pod_network_receive_bytes' drops to 0.0, indicating a complete halt in incoming network traffic for the pod.",
+                "instruction": "Verify that the metric 'pod_network_receive_bytes' for pod 'shippingservice-1' shows a drop to 0.0 during the fault window."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "Metric 'pod_network_transmit_packets' drops to 0.0, indicating a complete halt in outgoing network traffic for the pod.",
+                "instruction": "Verify that the metric 'pod_network_transmit_packets' for pod 'shippingservice-1' shows a drop to 0.0 during the fault window."
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,49 @@
+```json
+{
+    "uuid": "f5e2df8d-361",
+    "fault_type": "abnormal_region_count, region_health, leader_count, tidb-pd",
+    "symptom_vector": "Pod failure leading to service disruption, characterized by pod crash, unexpected termination, and container exit.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-pd] experienced [abnormal_region_count, region_health, leader_count, tidb-pd] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-pd] (From Ground Truth instance field, matches service_name 'tidb-pd' in Full Context metric data).",
+            "Step 2: Check Observation - Found keyword [failure] in [Log] (From GT key_observations). Evidence: Logs contain multiple 'failed to query product by id' and 'failed to get product recommendations' messages.",
+            "Step 3: Check Observation - Found keyword [timeout] in [Log] (From GT key_observations). Evidence: Logs repeatedly show 'PD server timeout: start timestamp may fall behind safe point'.",
+            "Step 4: Check Observation - Attempted to locate keywords [abnormal_region_count, leader_count, region_health] in [Metric] (From GT key_observations). Note: These specific metric names were not found in the available metric list from Full Context.",
+            "Step 5: Derive Root Cause - Based on the confirmed observation keywords [failure, timeout] and the identified faulty component [tidb-pd], the determined cause is [abnormal_region_count, region_health, leader_count, tidb-pd] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Log entries containing 'failed to query product by id' or 'failed to get product recommendations'.",
+                "instruction": "Search for keyword 'failed' in application and database logs for the service 'tidb-pd'."
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Log entries containing the exact string 'PD server timeout: start timestamp may fall behind safe point'.",
+                "instruction": "Search for keyword 'timeout' and specifically the phrase 'PD server timeout' in database (TiDB/PD) logs."
+            },
+            {
+                "modality": "Metric",
+                "target": "abnormal_region_count",
+                "expected_pattern": "Metric value for 'abnormal_region_count' is non-zero or shows an abnormal increase.",
+                "instruction": "Query the metric 'abnormal_region_count' for the TiDB PD component during the anomaly timeframe."
+            },
+            {
+                "modality": "Metric",
+                "target": "region_health",
+                "expected_pattern": "Metric value for 'region_health' indicates an unhealthy state (e.g., not 100%).",
+                "instruction": "Query the metric 'region_health' for the TiDB cluster during the anomaly timeframe."
+            },
+            {
+                "modality": "Metric",
+                "target": "leader_count",
+                "expected_pattern": "Metric value for 'leader_count' shows an unexpected drop or fluctuation.",
+                "instruction": "Query the metric 'leader_count' for the TiDB PD component during the anomaly timeframe."
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "36937f85-134",
+    "fault_type": "service_latency",
+    "symptom_vector": "Multiple services (e.g., shippingservice) experiencing severe latency spikes, and the primary component (adservice) becomes unavailable or unresponsive.",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-1 中 Byteman 代理配置问题导致 Java 反射调用异常，进而引发服务性能下降或不可用。",
+        "reasoning_chain": [
+            "Step 1: 观察到故障期间，所有错误日志均来自 `adservice-1`，共6条。其内容直接关联 Byteman Java Agent 重复加载失败、启动失败及 `java.lang.reflect.InvocationTargetException`，并明确指出针对 `AdService.getRandomAds()` 方法的延迟注入规则 (`AdService-getRandomAds-latency-1749341416`) 正在尝试插入。这表明 adservice-1 的 JVM 进程在启动或运行时出现了严重的字节码操作工具相关配置错误。",
+            "Step 2: 分析调用链（Trace）数据，发现故障期间所有记录的调用链中，均未出现任何 `adservice` 服务的调用记录。这与一个服务因 Java 异常而完全不可用或所有调用被快速熔断的场景相符，解释了其在系统链路中的‘消失’。",
+            "Step 3: 检查指标（Metric）数据，确认 `adservice-1` 本身并无直接反映的 CPU 或内存性能指标异常，但多个下游服务（如 `shippingservice-0`）的 `rrt` 和 `rrt_max` 指标（尤其 p99 值）出现剧烈增长（如 p99 增长达 1640%）。这说明由于 `adservice-1` 的故障，系统依赖链中断，导致整体服务性能和用户体验恶化，表现为其他服务的延迟激增。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Byteman, InvocationTargetException, AdService-getRandomAds-latency",
+                "expected_pattern": "Contains error logs related to Byteman agent loading failure and Java reflection exceptions.",
+                "instruction": "在故障时间窗口内，搜索 `adservice` 相关的日志。重点关注是否出现 `java.lang.reflect.InvocationTargetException`、`Byteman agent more than once`、`Agent failed to start` 或包含 `AdService-getRandomAds-latency` 的规则注入信息。如果存在多条此类错误日志且集中在特定 Pod（如 adservice-1），则强烈暗示该 Pod 存在 JVM 级别的代理配置问题。"
+            },
+            {
+                "modality": "Trace",
+                "target": "adservice (service_name)",
+                "expected_pattern": "Service missing from all traces during the anomaly period.",
+                "instruction": "在故障时间段内，检查分布式追踪数据。筛选出所有 service_name 为 `adservice` 的调用链。如果发现 `adservice` 相关的调用链条数为零，而其上下游服务（如 frontend）的调用链正常存在，则可推断 adservice 可能处于完全不可用或所有请求都被熔断的状态。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Spike in latency metrics of services that depend on the faulty component.",
+                "instruction": "分析故障期间各服务的响应时间指标（rrt，rrt_max）。定位那些 p99 值或变化率（change_ratio）异常高的服务。这些高延迟的服务本身可能并无直接错误日志，但其延迟暴增的模式可能源于对根因故障组件（adservice）的调用失败或等待超时。此现象可作为根因引发的次生影响的佐证。"
+            }
+        ]
+    }
+}
+```

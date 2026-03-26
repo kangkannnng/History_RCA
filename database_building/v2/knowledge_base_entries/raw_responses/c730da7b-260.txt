@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "c730da7b-260",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "high latency (rrt_max spike), high CPU utilization, increased process count",
+    "expert_knowledge": {
+        "root_cause_desc": "推荐服务因进程数异常激增，导致CPU资源饱和，引发调用链路响应时间严重恶化",
+        "reasoning_chain": [
+            "Step 1: 观察到 metrics 数据显示 `recommendationservice` 所有 Pod 的 `pod_processes` 指标从1.0异常激增至12.0，同时 `pod_cpu_usage` 从接近0飙升到0.4。",
+            "Step 2: 分析认为，Pod内进程数量的突发性、大幅度增加，必然导致CPU资源的争用和饱和，这直接解释了 `pod_cpu_usage` 指标飙升的原因。",
+            "Step 3: 结合 trace 数据确认，由于 `recommendationservice` CPU饱和，其处理能力严重下降，导致上游服务 `frontend` 调用它的响应时间（`rrt_max`）从正常的约3.8秒激增至142秒（增长37.5倍）。同时，日志数据未发现任何错误日志，排除了应用逻辑错误导致故障的可能性，符合进程泄漏这类‘静默’资源问题的特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden spike or continuous abnormal increase",
+                "instruction": "检查目标服务（特别是 recommendationservice）的 `pod_processes` 指标。关注在故障时间段内，该指标的数值是否出现从基准值（如1.0）到异常高值（如12.0）的剧烈、持续性增长。这是进程泄漏或异常启动的关键信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Spikes or sustained high values correlated with pod_processes increase",
+                "instruction": "在发现 `pod_processes` 激增的同一组Pod上，检查 `pod_cpu_usage` 指标。确认CPU使用率是否也同步出现了显著上升，并且变化趋势与进程数的增长在时间上高度相关。这能证明进程激增确实导致了CPU资源瓶颈。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->recommendationservice rrt_max",
+                "expected_pattern": "Significant increase (e.g., tens of times higher) in response time",
+                "instruction": "检查从上游服务（如 frontend）调用 `recommendationservice` 的链路追踪数据，重点关注 `rrt_max` 或 `anomaly_avg_duration`。确认其数值在故障时段是否比正常基准值高出数十倍，这直接体现了由根因（CPU瓶颈）引发的性能劣化现象。"
+            },
+            {
+                "modality": "Log",
+                "target": "error",
+                "expected_pattern": "Absence of relevant error logs",
+                "instruction": "搜索故障时间段内根因服务（recommendationservice）的日志。关键检查点在于未发现（或仅有极少量）应用级别的错误日志（如Exception, Error级别）。这一‘阴性证据’有助于排除逻辑错误，将分析方向导向资源类或进程生命周期类的‘静默’故障。"
+            }
+        ]
+    }
+}
+```

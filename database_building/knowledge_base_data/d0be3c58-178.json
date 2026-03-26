@@ -1,0 +1,56 @@
+{
+  "uuid": "d0be3c58-178",
+  "fault_type": "pod_cpu_usage and adservice--stress",
+  "symptom_vector": "JVM CPU spike and overload causing high CPU usage and saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component adservice experienced pod_cpu_usage and adservice--stress fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is adservice (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword adservice--stress in Log, as evidenced by log messages containing 'AdService--stress-1749503423' (e.g., 'AdService--stress-1749503423 execute()').",
+      "Step 3: Check Observation - Found keyword invocationtargetexception in Log, as seen in error logs 'java.lang.reflect.InvocationTargetException'.",
+      "Step 4: Check Observation - Found keyword transformlistener in Log, indicated by Transformer-related logs such as 'org.jboss.byteman.agent.Transformer'.",
+      "Step 5: Check Observation - Found keyword rrt in Metric, with value spiking from 3338.07 to 19640.14 for adservice-0.",
+      "Step 6: Check Observation - Found keyword rrt_max in Metric, with value increasing from 43400.0 to 140287.5 for adservice-0.",
+      "Step 7: Check Observation - Found keyword pod_cpu_usage in Metric, showing spike from 0.01 to 0.6 for adservice-0.",
+      "Step 8: Derive Root Cause - Based on the above features, determined cause is pod_cpu_usage and adservice--stress (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice--stress",
+        "expected_pattern": "Log messages contain 'AdService--stress-1749503423' indicating stress injection threads execution",
+        "instruction": "Search for keyword 'adservice--stress' in log data during anomaly period"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Error logs show 'java.lang.reflect.InvocationTargetException' indicating agent loading conflicts",
+        "instruction": "Search for keyword 'invocationtargetexception' in log messages"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Transformer class references in logs, e.g., 'org.jboss.byteman.agent.Transformer' related to Byteman agent operations",
+        "instruction": "Search for keyword 'transformlistener' or related 'Transformer' in logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Metric rrt for adservice-0 increased from 3338.07 to 19640.14 during fault period",
+        "instruction": "Check metric 'rrt' for adservice service during 2025-06-09T21:10:22Z to 2025-06-09T21:28:22Z"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Metric rrt_max for adservice-0 rose from 43400.0 to 140287.5 during fault period",
+        "instruction": "Check metric 'rrt_max' for adservice service during anomaly timeframe"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Metric pod_cpu_usage for adservice-0 spiked from 0.01 to 0.6, indicating CPU overload",
+        "instruction": "Check metric 'pod_cpu_usage' for adservice pods (adservice-0, adservice-1, adservice-2) during fault interval"
+      }
+    ]
+  }
+}

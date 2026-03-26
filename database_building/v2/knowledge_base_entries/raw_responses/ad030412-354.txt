@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "ad030412-354",
+    "fault_type": "metric",
+    "symptom_vector": "Severe latency degradation in cartservice and upstream services (checkoutservice), with node memory usage spikes observed.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点aiops-k8s-06内存使用率异常飙升，导致运行于其上的服务性能严重下降。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据中观察到节点`aiops-k8s-06`的`node_memory_usage_rate`指标在P99分位值上出现剧烈波动，从正常基准的33.42%飙升至故障期间的89.58%，变化率达91.32%，表明该节点存在严重的内存压力。",
+            "Step 2: 通过`node_pod_mapping`数据确认，节点`aiops-k8s-06`上运行着Pod `productcatalogservice-1`。分析该Pod对应服务的Metric数据，发现`productcatalogservice-1`的`rrt_max` P99值从正常的48.5秒激增至152秒，变化率高达103.21%，服务响应性能严重劣化。",
+            "Step 3: 结合Trace数据，发现调用链中涉及`productcatalogservice-1`的请求（如来自`frontend-2`）出现延迟。虽然Trace分析最初将焦点引向`redis-cart`的延迟，但Metric数据明确显示`aiops-k8s-06`节点的内存资源瓶颈，且该节点上运行的关键服务性能同步恶化，符合节点级资源故障向上影响服务的典型模式。因此，判定根因为节点`aiops-k8s-06`的内存使用率异常。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate (node: aiops-k8s-06)",
+                "expected_pattern": "P99分位值出现大幅飙升（例如从低于40%升至接近90%），变化率超过90%。",
+                "instruction": "检查节点`aiops-k8s-06`的`node_memory_usage_rate`指标，重点关注P99分位值在故障时间段内的数值及相对于正常基准的变化率。确认是否存在符合‘内存使用率尖峰’特征的异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max (service: productcatalogservice, pod: productcatalogservice-1)",
+                "expected_pattern": "P99分位值出现数倍增长，响应时间严重恶化。",
+                "instruction": "检查运行在节点`aiops-k8s-06`上的Pod `productcatalogservice-1`对应的服务响应时间指标`rrt_max`，确认其P99分位值是否在故障期间同步出现显著劣化。"
+            },
+            {
+                "modality": "Trace",
+                "target": "调用链涉及`productcatalogservice-1`的请求延迟",
+                "expected_pattern": "调用路径中涉及`productcatalogservice-1`的请求，其`anomaly_avg_duration`显著高于`normal_avg_duration`。",
+                "instruction": "在Trace数据中，筛选`child_pod`或`parent_pod`为`productcatalogservice-1`的记录，观察其异常期间平均耗时(`anomaly_avg_duration`)是否显著高于正常基准(`normal_avg_duration`)。"
+            }
+        ]
+    }
+}
+```

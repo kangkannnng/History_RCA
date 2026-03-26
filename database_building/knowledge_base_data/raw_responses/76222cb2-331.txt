@@ -1,0 +1,72 @@
+```json
+{
+    "uuid": "76222cb2-331",
+    "fault_type": "pod_processes, timeout",
+    "symptom_vector": "Service experiencing method errors, code errors, and runtime panic leading to request failures and latency anomalies",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [currencyservice] experienced [pod_processes] fault, accompanied by [timeout] anomaly.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [currencyservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [context, canceled] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [Internal] in Log (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [request error] in Log (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [rpc, error] in Log (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [request, response, timeout] in Metric (From GT key_observations)",
+            "Step 8: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+            "Step 9: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+            "Step 10: Derive Root Cause - Based on above features, determined cause is [pod_processes, timeout] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "context, canceled",
+                "expected_pattern": "Multiple log entries with 'rpc error: code = Canceled desc = context canceled' in frontend service logs",
+                "instruction": "Search for keyword 'context canceled' in logs, particularly in frontend service error messages"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "HTTP response status code 302 appearing in log entries",
+                "instruction": "Search for keyword '302' in HTTP response status fields in logs"
+            },
+            {
+                "modality": "Log",
+                "target": "Internal",
+                "expected_pattern": "Log entries containing 'code = Internal' error descriptions",
+                "instruction": "Search for keyword 'Internal' in RPC error codes in logs"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "Multiple log entries with 'message': 'request error' in frontend service logs",
+                "instruction": "Search for keyword 'request error' in log message fields"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc, error",
+                "expected_pattern": "Numerous log entries containing 'rpc error:' pattern in currencyservice and frontend logs",
+                "instruction": "Search for keyword 'rpc error' in log entries across all services"
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response, timeout",
+                "expected_pattern": "Metric data showing timeout increased from 0.0 to 7890.0 for currencyservice-2, and request/response metrics showing significant changes",
+                "instruction": "Check metric data for timeout values and request/response patterns, particularly for currencyservice"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Pod CPU usage metrics showing abnormal patterns during fault period",
+                "instruction": "Examine pod_cpu_usage metrics for all services during the anomaly timeframe"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Pod processes metrics indicating abnormal process behavior",
+                "instruction": "Check pod_processes metrics for evidence of process-related faults"
+            }
+        ]
+    }
+}
+```

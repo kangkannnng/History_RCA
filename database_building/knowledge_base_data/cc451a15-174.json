@@ -1,0 +1,28 @@
+{
+  "uuid": "cc451a15-174",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "Node experiencing CPU overload, high usage, saturation, and stress spikes as described in fault_description.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-04] experienced [node_cpu_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-04] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [node_cpu_usage_rate] in Metric data with abnormal increase from 19.62% to 93.54% and change rate 1.3065 (From Full Context metric data)",
+      "Step 3: Check Observation - Keyword [node_network_receive_packets_total] from key_observations, but not found in provided Full Context metric data (available metrics list does not include it)",
+      "Step 4: Derive Root Cause - Based on [node_cpu_usage_rate] anomaly and component identity, determined cause is [node_cpu_usage_rate] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Value increased from 19.62% to 93.54% with median change rate 1.3065 and P99 change rate 1.2312, as shown in Full Context anomaly metrics",
+        "instruction": "Search for keyword [node_cpu_usage_rate] in metric data and check for significant increase during the fault time window."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Not found in current Full Context metric data; expected to be present in key_observations but absent in provided metrics list",
+        "instruction": "Search for keyword [node_network_receive_packets_total] in metric data to monitor for network-related anomalies."
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "9f49250a-383",
+  "fault_type": "PortMisconfiguration",
+  "symptom_vector": "RPC call failures from upstream service, high error ratio on specific downstream service endpoint, connection refused errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "emailservice 服务的端口 5000 配置错误，导致上游 checkoutservice 调用时连接被拒绝。",
+    "reasoning_chain": [
+      "Step 1: 从日志数据中观察到 checkoutservice 服务频繁报告 RPC 调用失败，错误信息明确为 'transport: Error while dialing dial tcp 10.233.49.244:5000: connect: connection refused'，总计 121 次，直接指向目标服务 emailservice 的 5000 端口。",
+      "Step 2: 分析链路追踪数据，确认所有失败的调用都发生在 checkoutservice -> emailservice 的 SendOrderConfirmation 操作上，状态码为 14 (UNAVAILABLE)，与日志中的错误模式一致，证明故障影响集中在 emailservice 这一下游端点。",
+      "Step 3: 查阅监控指标数据，发现 emailservice 自身的 rrt 和 rrt_max 指标在故障期间并未出现显著恶化（甚至部分实例有所下降），且其 error_ratio 和 client_error_ratio 在指标中未见明显异常。这排除了 emailservice 自身性能瓶颈或内部错误导致连接失败的可能性，从而将证据链锁定为外部访问的配置问题，即端口不可达。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "\"connection refused\", \"Error while dialing\", \"dial tcp\"",
+        "expected_pattern": "日志中出现指向特定服务IP和端口的 'connection refused' 错误，通常来自其上游调用方。",
+        "instruction": "搜索服务日志，特别是上游调用方（本例中的checkoutservice）的日志，查找是否包含 'connection refused' 和 'dial tcp [IP]:[PORT]' 格式的错误信息。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->emailservice 调用的状态码 (Status Code)",
+        "expected_pattern": "在调用链路状态数据中，该调用链出现大量失败（如状态码 14 - UNAVAILABLE），且错误消息明确为连接拒绝。",
+        "instruction": "分析链路追踪数据，聚焦于故障服务的上游调用链路，检查其状态码和错误信息，确认失败是否集中在该链路上。"
+      },
+      {
+        "modality": "Metric",
+        "target": "emailservice 的 error_ratio, client_error_ratio, rrt, rrt_max",
+        "expected_pattern": "被怀疑的故障服务（emailservice）自身的关键性能与错误率指标可能没有显著异常，这与外部配置错误导致的连接被拒故障模式相符。",
+        "instruction": "对比故障时段与正常时段，检查被怀疑的服务（emailservice）的响应时间（rrt, rrt_max）和错误率（error_ratio, client_error_ratio）指标。如果这些指标平稳，而外部调用其失败，则进一步支持端口/配置错误的假设。"
+      }
+    ]
+  }
+}

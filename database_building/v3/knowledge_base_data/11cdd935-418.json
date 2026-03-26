@@ -1,0 +1,57 @@
+{
+  "uuid": "11cdd935-418",
+  "fault_type": "pod_processes",
+  "symptom_vector": "service errors and latency due to pod restarts and database connection issues",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 组件因代码错误导致数据库连接异常，并通过 pod_processes 指标变化表现出 Pod 重启，进而引发连锁故障。",
+    "reasoning_chain": [
+      "Step 1: 观察到 cartservice-1 和 cartservice-2 的 pod_processes 指标从正常基准 1.0 增至故障期的 2.0 (P99 变化率 0.6667)，这是 Pod 重启或进程数变化的典型信号。",
+      "Step 2: 分析 cartservice 组件的日志，发现大量 \"FailedPrecondition\" 错误，详细信息为 \"Can't access cart storage\"，表明该服务无法访问其 Redis 数据库。",
+      "Step 3: 通过 Trace 数据进一步确认，cartservice 到 redis 的调用链（如 HMSET）延迟（rrt_max）激增 17 倍，从 1573.06 ms 飙升至 26876.11 ms，证实了底层数据库连接存在严重性能问题。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "数值从1.0突然增加到2.0，或P99值发生显著变化。",
+        "instruction": "检查所有 cartservice 实例（如 cartservice-1, cartservice-2）的 pod_processes 指标，确认是否有任何实例的进程数量在故障窗口内发生突然变化，这可能指示 Pod 重启。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "P99值可能出现异常上升或波动。",
+        "instruction": "检查 cartservice 实例的 pod_cpu_usage 指标的 P99 百分位数，观察是否在故障期出现异常飙升或波动，这可能与进程重启或异常资源消耗相关。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "从下游服务到上游依赖（如cartservice->redis）的rrt_max值出现数量级（例如10倍以上）的增长。",
+        "instruction": "检查调用链路数据，特别是 cartservice 到 redis 服务调用（如 HMSET, HGET 操作）的 rrt_max 指标，确认是否存在极高延迟。"
+      },
+      {
+        "modality": "Log",
+        "target": "FailedPrecondition",
+        "expected_pattern": "日志中频繁出现 'FailedPrecondition' 错误状态码，并伴随 'Can't access cart storage' 等描述数据库访问失败的信息。",
+        "instruction": "在 cartservice 的日志中搜索 'FailedPrecondition' 关键词，并检查相关错误详细信息，确认是否包含数据库或存储访问失败的内容。"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "下游服务（如frontend）的日志中可能出现 HTTP 500 状态码。",
+        "instruction": "在受影响的上下游服务（如 frontend）的日志中搜索包含 'http.resp.status' 字段的条目，关注状态码为 500 的错误。"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "日志消息中包含 \"request error\" 关键词，且错误信息指向与特定服务（如cartservice）的RPC交互失败。",
+        "instruction": "在 frontend 等客户端服务的错误日志中搜索 'request error' 关键词，并分析错误描述是否涉及与 cartservice 的 RPC 调用失败。"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc",
+        "expected_pattern": "日志中提及 \"rpc error\"，且错误代码（如 code = FailedPrecondition）和描述指向特定服务交互问题。",
+        "instruction": "在相关服务的日志中搜索包含 'rpc' 和 'error' 关键词的条目，分析 RPC 调用的具体错误代码和原因描述。"
+      }
+    ]
+  }
+}

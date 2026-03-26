@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "aa53ee7c-259",
+    "fault_type": "adservice-getRandomAds-latency",
+    "symptom_vector": "Significant latency spike in adservice rrt_max (from 5.19ms to 39.01ms), high JVM latency, and elevated request latency.",
+    "expert_knowledge": {
+        "root_cause_desc": "在adservice-0服务的`getRandomAds`方法中，通过Byteman字节码注入工具人为注入了延迟规则，导致服务响应时间(rrt_max)从5.19ms飙升到39.01ms。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据分析中，观察到`adservice-0`的`rrt_max`指标从正常的5187.0ms（约5.19ms）激增至故障时的39007.5ms（约39.01ms），变化率达到153.05%，这是所有被监控服务中数值变化最显著的延迟异常。",
+            "Step 2: 为了寻找此异常延迟的原因，检查了`adservice-0`的Log数据，发现三条明确的日志记录，内容显示`org.jboss.byteman.agent.Transformer`在`hipstershop.AdService.getRandomAds()`方法中成功注入了名为`AdService-getRandomAds-latency-1749798653`的延迟规则。日志发生时间与故障窗口完全吻合，表明这是一次明确的、与故障时间同步的故障注入行为。",
+            "Step 3: 尽管Trace调用链数据中未发现`adservice`的异常调用记录，但考虑到Byteman注入的是方法内部的延迟，这种延迟可能未完全体现在跨服务的调用链追踪中。同时，观察到的`cartservice`和`redis`的延迟问题可能是由上游`adservice-0`的延迟引发的级联效应。综合Metric指标中最显著的异常和Log中明确的故障注入证据，可以确认故障根因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Sudden spike in median value, exceeding a significant change ratio threshold (e.g., >100%).",
+                "instruction": "检查故障期间`adservice-0`的`rrt_max`指标中位数，并与正常基线比较。寻找是否存在突增式的显著增长。"
+            },
+            {
+                "modality": "Log",
+                "target": "Byteman, AdService-getRandomAds-latency, getRandomAds",
+                "expected_pattern": "Log messages contain keywords indicating Byteman agent activity and successful injection of a latency rule into a specific method (e.g., getRandomAds).",
+                "instruction": "在故障时间窗口内，搜索包含'Byteman'、'getRandomAds'、'latency'等关键词的日志条目，确认是否有字节码注入延迟规则的记录。"
+            },
+            {
+                "modality": "Trace",
+                "target": "adservice",
+                "expected_pattern": "Absence of significant adservice anomalies in trace data, or downstream services (e.g., cartservice) showing latency issues without clear independent root cause.",
+                "instruction": "检查调用链数据中`adservice`相关的span。如果没有发现明显的延迟，或者其下游服务（如cartservice）存在延迟但找不到独立的根因，这可能暗示根因位于`adservice`内部，且其影响可能未完全在分布式追踪中体现。"
+            }
+        ]
+    }
+}
+```

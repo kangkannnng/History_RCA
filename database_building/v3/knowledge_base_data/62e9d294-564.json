@@ -1,0 +1,57 @@
+{
+  "uuid": "62e9d294-564",
+  "fault_type": "network_delay",
+  "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 和 currencyservice 之间出现网络延迟故障，表现为 rrt 和 rrt_max 指标异常飙升",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice 和 currencyservice 的 rrt_max 指标异常，从正常值飙升至百万微秒级别，变化率约1.9-1.99倍",
+      "Step 2: 分析 checkoutservice 调用 currencyservice 的追踪数据显示延迟异常，从正常平均2350.85微秒增加到4030.64微秒",
+      "Step 3: 确认网络相关指标 pod_network_receive_bytes、pod_network_transmit_bytes 等出现异常，但日志中无应用层错误"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "checkoutservice 调用 currencyservice 的延迟显著增加",
+        "instruction": "检查 checkoutservice 调用 currencyservice 的追踪数据，分析 hipstershop.CurrencyService/Convert 操作的延迟异常"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status,302",
+        "expected_pattern": "HTTP响应状态码302相关日志",
+        "instruction": "在 checkoutservice 和 currencyservice 的日志中搜索 http.resp.status 和 302 关键词"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Round-trip time 指标异常飙升",
+        "instruction": "检查 checkoutservice 和 currencyservice 的 rrt 指标是否出现异常增长"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "最大往返时间指标显著增加",
+        "instruction": "检查 checkoutservice 和 currencyservice 的 rrt_max 指标是否出现异常峰值"
+      },
+      {
+        "modality": "Metric",
+        "target": "request,response",
+        "expected_pattern": "请求响应相关指标异常",
+        "instruction": "检查 checkoutservice 和 currencyservice 的请求和响应相关指标"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Pod内存使用量异常",
+        "instruction": "检查 checkoutservice 和 currencyservice 的 pod_memory_working_set_bytes 指标"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes,pod_network_receive_packets,pod_network_transmit_bytes,pod_network_transmit_packets",
+        "expected_pattern": "网络收发字节数和包数异常",
+        "instruction": "检查 checkoutservice 和 currencyservice 的网络指标，包括接收/发送字节数和包数"
+      }
+    ]
+  }
+}

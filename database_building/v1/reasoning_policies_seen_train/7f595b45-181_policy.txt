@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Repeated error logs indicating remote procedure call cancellations with context timeouts and connection failures, specifically messages showing "failed to connect to all addresses" and status codes indicating unavailability.
+- Metric anomaly pattern: Extreme increases in response time metrics, with maximum response times spiking from thousands to millions of units, and average response times showing similar severe degradation.
+- Trace anomaly pattern: Significant latency increases in service calls, with normal durations in milliseconds escalating to tens of thousands of milliseconds, accompanied by status codes reflecting unavailability and cancellations.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Log entries from a specific service instance showing direct connection failures and timeout errors, such as "failed to connect to all addresses" and "Connection timed out". This matters because it indicates inherent communication breakdowns at the source, not just downstream effects.
+- Evidence 2: Metric data revealing dramatic response time spikes for that same service instance, with values increasing by orders of magnitude. This is critical as it quantifies severe performance degradation directly at the component level.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Error logs from dependent services displaying call cancellations and context timeouts when invoking the affected service. This is a consequence, as these errors arise from the upstream service's inability to handle requests, not from internal faults in the dependent services.
+- Evidence 4: Elevated error ratios and response times in other services, which can be deprioritized because they correlate with the primary service's failure timeline and lack direct connection failure indicators, suggesting propagation rather than origin.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the direct log entries showing connection failures and the metric spikes indicating severe latency in a specific service, we suspect that this service is experiencing fundamental communication issues leading to performance collapse."
+
+Step 2: Verification or elimination
+"If this were caused by a general network issue affecting all services uniformly, we would expect widespread connection failures across multiple components with similar patterns; however, actual observations show concentrated failures and latency spikes primarily in one service, with dependent services showing secondary error patterns. This rules out a broad infrastructure problem and points to a localized service-specific issue."
+
+Step 3: Convergence to conclusion
+"The combination of direct connection failure logs and extreme latency metrics in the same service, supported by trace data showing prolonged call durations from dependents, indicates that the root cause is a service-level communication breakdown causing cascading timeouts and failures."
+
+[Conclusion]
+"The root cause is a severe communication failure within a specific service component, resulting in high latency and connection timeouts that propagate errors to dependent services."
+
+[Next Action]
+- "Verify whether additional diagnostic logs exist for the affected service to pinpoint the exact nature of the communication failure."
+- "Check for resource utilization patterns or configuration changes in the service's environment that might correlate with the observed anomalies."

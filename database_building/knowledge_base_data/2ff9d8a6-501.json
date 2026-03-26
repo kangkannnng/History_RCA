@@ -1,0 +1,41 @@
+{
+  "uuid": "2ff9d8a6-501",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Node memory exhaustion, saturation, high usage, leak, or stress leading to performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-06] experienced [node_memory_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-06] (From Ground Truth). Verified in Full Context node_name lists.",
+      "Step 2: Check Observation - Found keyword [frontend] in Trace with latency anomalies (From GT key_observations). In Full Context, trace data shows frontend service involved in latency anomalies and HTTP 500 errors.",
+      "Step 3: Check Observation - Found keyword [context canceled] in Log indicating request failures (From GT key_observations). In Full Context, log entries contain 'context canceled' errors.",
+      "Step 4: Check Observation - Found keyword [request error] in Log confirming service issues (From GT key_observations). In Full Context, log messages include 'request error' entries.",
+      "Step 5: Derive Root Cause - Based on node-level fault type and key metrics, determined cause is [node_memory_usage_rate] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Latency anomalies or request proportion anomalies involving frontend service, such as increased error rates or delayed responses",
+        "instruction": "Search for trace entries with service_name 'frontend' and check for anomalies in duration or status codes during the fault period."
+      },
+      {
+        "modality": "Log",
+        "target": "context canceled",
+        "expected_pattern": "Error logs containing 'context canceled' due to timeouts or request cancellations",
+        "instruction": "Search for keyword 'context canceled' in log messages to identify request failures."
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log entries with message 'request error' indicating failed requests or service errors",
+        "instruction": "Search for 'request error' in log messages to confirm service-level issues."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "High value or abnormal increase indicating memory stress on the node",
+        "instruction": "Check metric 'node_memory_usage_rate' for node aiops-k8s-06 during the fault timeframe to verify memory exhaustion."
+      }
+    ]
+  }
+}

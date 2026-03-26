@@ -1,0 +1,83 @@
+{
+  "uuid": "9f49250a-383",
+  "fault_type": "port",
+  "symptom_vector": "Service connection failures due to target port misconfiguration, including service port mismatch, incorrect target port, and unreachable target port.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [emailservice] experienced [port] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [emailservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [rpc] and [error] in Log. Evidence: Log message contains 'rpc error: code = Unavailable desc = connection error'.",
+      "Step 3: Check Observation - Found keyword [transport], [Error], [while], [dialing] in Log. Evidence: Log and Trace status message contain 'transport: Error while dialing dial tcp 10.233.49.244:5000: connect: connection refused'.",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log. Evidence: Log message contains 'rpc error: code = Unavailable'.",
+      "Step 5: Derive Root Cause - Based on the above features (specific connection refused error pointing to port 5000), determined cause is [port] misconfiguration (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "rpc",
+        "expected_pattern": "Log entry contains the string 'rpc error'.",
+        "instruction": "Search for keyword 'rpc' in Log messages from the fault time range."
+      },
+      {
+        "modality": "Log",
+        "target": "error",
+        "expected_pattern": "Log entry contains the string 'error' associated with connection failures.",
+        "instruction": "Search for keyword 'error' in Log messages, particularly in the context of RPC or connection errors."
+      },
+      {
+        "modality": "Log",
+        "target": "transport",
+        "expected_pattern": "Log entry contains the string 'transport' within a connection error description.",
+        "instruction": "Search for keyword 'transport' in Log messages describing connection failures."
+      },
+      {
+        "modality": "Log",
+        "target": "Error",
+        "expected_pattern": "Log entry contains the capitalized string 'Error' as part of 'Error while dialing'.",
+        "instruction": "Search for the exact phrase 'Error while dialing' in Log messages."
+      },
+      {
+        "modality": "Log",
+        "target": "while",
+        "expected_pattern": "Log entry contains the string 'while' as part of 'Error while dialing'.",
+        "instruction": "Search for keyword 'while' within connection error descriptions in Logs."
+      },
+      {
+        "modality": "Log",
+        "target": "dialing",
+        "expected_pattern": "Log entry contains the string 'dialing' as part of 'Error while dialing'.",
+        "instruction": "Search for keyword 'dialing' in Log messages related to network connection attempts."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entry contains the string 'Unavailable' as an RPC error code.",
+        "instruction": "Search for keyword 'Unavailable' in the RPC error code section of Log messages."
+      },
+      {
+        "modality": "Trace",
+        "target": "transport",
+        "expected_pattern": "Trace status message contains the string 'transport' within a connection error description.",
+        "instruction": "Inspect Trace status combinations for the keyword 'transport' in error messages."
+      },
+      {
+        "modality": "Trace",
+        "target": "Error",
+        "expected_pattern": "Trace status message contains the capitalized string 'Error' as part of 'Error while dialing'.",
+        "instruction": "Check Trace status combinations for the exact phrase 'Error while dialing'."
+      },
+      {
+        "modality": "Trace",
+        "target": "while",
+        "expected_pattern": "Trace status message contains the string 'while' as part of 'Error while dialing'.",
+        "instruction": "Search Trace status combinations for the keyword 'while' in error descriptions."
+      },
+      {
+        "modality": "Trace",
+        "target": "dialing",
+        "expected_pattern": "Trace status message contains the string 'dialing' as part of 'Error while dialing'.",
+        "instruction": "Search Trace status combinations for the keyword 'dialing' in connection error contexts."
+      }
+    ]
+  }
+}

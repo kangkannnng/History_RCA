@@ -1,0 +1,53 @@
+{
+  "uuid": "cc62b887-583",
+  "fault_type": "qps, grpc_qps, region_pending, io_util, tidb-tikv",
+  "symptom_vector": "Pod crash or termination leading to container exit and service failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [qps, grpc_qps, region_pending, io_util, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth). Verified in Full Context's `available_metric_names` list.",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data showing latency anomalies (From GT key_observations). Verified in Full Context's `trace_analysis_findings` where `frontend->productcatalogservice` calls show extreme rrt_max spikes.",
+      "Step 3: Check Observation - Found keyword [failure] and [unavailable] in Log data (From GT key_observations). Verified in Full Context's `log_analysis_findings` where logs contain 'failed to query product' and 'Region is unavailable'.",
+      "Step 4: Check Observation - Found keywords [grpc_qps, qps, io_util, region_pending, store_size, cpu_usage, memory_usage] in Metric data (From GT key_observations). These are the standardized metric names to check for anomalies, as per Ground Truth.",
+      "Step 5: Derive Root Cause - Based on the above features (pod failure symptoms, trace latency to productcatalogservice, log errors indicating unavailability, and the specified key metrics), determined cause is [qps, grpc_qps, region_pending, io_util, tidb-tikv] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Calls to or from `productcatalogservice` show extreme latency (rrt/rrt_max) spikes and/or request proportion anomalies.",
+        "instruction": "Search for traces involving service or pod names containing 'productcatalogservice' and check for anomalous duration values."
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing the word 'failure', 'failed', or similar terms indicating pod/container termination errors.",
+        "instruction": "Search for keyword 'failure' in pod (tidb-tikv) and related service logs during the fault timeframe."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries containing the word 'unavailable', such as 'Region is unavailable' errors.",
+        "instruction": "Search for keyword 'unavailable' in pod (tidb-tikv) and related service logs during the fault timeframe."
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps, qps",
+        "expected_pattern": "Abnormal values (e.g., drop to zero or significant deviation) in the `grpc_qps` and `qps` metrics for the tidb-tikv component.",
+        "instruction": "Check if metrics named 'grpc_qps' and 'qps' for component 'tidb-tikv' show anomalies during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending, io_util",
+        "expected_pattern": "Abnormal values (e.g., significant increase) in the `region_pending` and `io_util` metrics for the tidb-tikv component.",
+        "instruction": "Check if metrics named 'region_pending' and 'io_util' for component 'tidb-tikv' show anomalies during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size, cpu_usage, memory_usage",
+        "expected_pattern": "Abnormal values in the `store_size`, `cpu_usage`, and `memory_usage` metrics for the tidb-tikv component, potentially indicating resource issues preceding pod failure.",
+        "instruction": "Check if metrics named 'store_size', 'cpu_usage', and 'memory_usage' for component 'tidb-tikv' show anomalies during the fault window."
+      }
+    ]
+  }
+}

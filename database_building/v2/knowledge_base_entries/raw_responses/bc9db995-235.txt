@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "bc9db995-235",
+    "fault_type": "pod_killed",
+    "symptom_vector": "Multiple pods experiencing simultaneous resource utilization drops to zero (CPU, Memory, Network traffic), indicating abrupt service termination.",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-1 被强制终止（如 Pod 被驱逐或杀死），导致其相关资源指标骤降为0，该事件短暂（1秒）导致日志和追踪数据无法捕获。",
+        "reasoning_chain": [
+            "Step 1: 观察到 metric 数据中，故障窗口内多个 pod（如 frontend-0, productcatalogservice-0）的 pod_cpu_usage, pod_memory_working_set_bytes, pod_network_transmit_packets 等核心资源指标的中位数和 P99 值均同时骤降至 0，变化比例均为 2.0，这是 Pod 进程瞬间停止运行的典型特征。",
+            "Step 2: 结合组件映射关系（node_pod_mapping）发现，故障发生在不同节点（aiops-k8s-03, aiops-k8s-04, aiops-k8s-06, aiops-k8s-08）上的多个 pod，排除了单节点故障。这种跨节点的、多个 pod 同时资源归零的模式，高度指向一次集群级别的 Pod 强制终止事件（如驱逐）。",
+            "Step 3: Log 和 Trace 专家返回 NEUTRAL 立场，未发现任何异常日志或调用链。分析过程指出，这恰好符合1秒极短故障窗口的特征——Pod 崩溃发生得过于迅速，以至于应用程序来不及写入错误日志，且分布式追踪系统因采样率限制或 Pod 在崩溃前未处理新请求，导致未能捕获相关追踪数据。这种数据缺失现象本身，间接支持了‘Pod 被快速杀死’的假设，而非缓慢的应用程序错误。",
+            "Step 4: 综合 Metric 的直接证据（资源归零）以及 Log/Trace 的间接证据（无数据），推导出根因为 Pod 被强制终止。根据 Ground Truth 的最终指向，具体故障组件为 adservice-1，其性质与其他观测到资源归零的 Pod 类似，属于同一批次被影响的服务实例。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Median and P99 values drop to 0 from a non-zero baseline (e.g., from 0.04 to 0.0, change_ratio=2.0).",
+                "instruction": "检查故障时间窗口内，可疑组件（如 adservice）的 pod CPU 使用率是否同时出现骤降至零的异常。对比故障前后中位数（median）与高分位数（P99）的变化，确认是否为完全停止。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Sudden drop to 0 from a significant working set (e.g., from 14836.05 to 0.0, change_ratio=2.0).",
+                "instruction": "检查故障时间窗口内，可疑 Pod 的内存工作集是否瞬间归零。这是判断 Pod 进程是否被杀死（内存释放）的关键指标。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "Sudden drop to 0, indicating cessation of all network egress activity.",
+                "instruction": "检查 Pod 的网络发包指标是否在故障瞬间停止。结合接收包数(pod_network_receive_packets)归零，可以确认 Pod 网络栈完全停止工作，是进程终止的强信号。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,46 @@
+{
+  "uuid": "0a9fce75-340",
+  "fault_type": "abnormal_region_count, region_health, leader_count, tidb-pd",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-pd-0] experienced [abnormal_region_count, region_health, leader_count, tidb-pd] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-pd-0] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [failure] in [Log] (From GT key_observations). Evidence: Multiple log entries contain 'failed to query product by id', 'failed to get product', 'failed to complete the order'.",
+      "Step 3: Check Observation - Found keyword [timeout] in [Log] (From GT key_observations). Evidence: Log entries explicitly state 'PD server timeout: start timestamp may fall behind safe point'.",
+      "Step 4: Derive Root Cause - Based on the presence of [failure] and [timeout] keywords in logs, and the identified faulty component, determined cause is [abnormal_region_count, region_health, leader_count, tidb-pd] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'failed to query product by id', 'failed to get product', 'failed to complete the order' appear in the logs of services like frontend and productcatalogservice.",
+        "instruction": "Search for keyword 'failed' in Log data within the specified time range."
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Log entries explicitly containing the phrase 'PD server timeout: start timestamp may fall behind safe point' appear with high frequency (e.g., 1545 times in productcatalogservice-2).",
+        "instruction": "Search for keyword 'timeout' and specifically the phrase 'PD server timeout' in Log data."
+      },
+      {
+        "modality": "Metric",
+        "target": "abnormal_region_count",
+        "expected_pattern": "Metric value for 'abnormal_region_count' is abnormal (e.g., spiking or exceeding threshold).",
+        "instruction": "Check if metric 'abnormal_region_count' for the tidb-pd service shows anomalous values."
+      },
+      {
+        "modality": "Metric",
+        "target": "leader_count",
+        "expected_pattern": "Metric value for 'leader_count' is abnormal (e.g., dropping or unstable).",
+        "instruction": "Check if metric 'leader_count' for the tidb-pd service shows anomalous values."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_health",
+        "expected_pattern": "Metric value for 'region_health' is abnormal (e.g., indicating unhealthy regions).",
+        "instruction": "Check if metric 'region_health' for the tidb-pd service shows anomalous values."
+      }
+    ]
+  }
+}

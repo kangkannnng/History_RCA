@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "8c7ed41d-249",
+    "fault_type": "network_latency",
+    "symptom_vector": "Severe RTT (Round-Trip Time) spike observed in downstream service (adservice-1), leading to cascading deadline_exceeded errors and latency degradation in upstream frontend services.",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-1实例发生严重的网络延迟（RTT激增），导致依赖它的frontend服务调用超时，引发级联性能故障。",
+        "reasoning_chain": [
+            "Step 1: 通过分析指标数据，观察到关键下游服务adservice-1的`rrt`（正常中位数3393.62）激增至494359.7，`rrt_max`（正常中位数42748.0）激增至2640258.5，响应时间增幅接近200倍，这是最严重的性能异常信号。",
+            "Step 2: 通过调用链分析，发现从所有frontend实例（frontend-0, frontend-1, frontend-2）到AdService的`GetAds`调用，平均延迟从正常的约5.5秒激增至异常时段的49-50万秒，并且这些调用链状态组合中出现了大量的`context deadline exceeded`（状态码4）超时错误。",
+            "Step 3: 通过日志分析，确认了表象症状：多个frontend实例的日志中高频出现`failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded`错误，这与调用链和指标数据揭示的adservice-1响应严重延迟、导致前端调用超时的逻辑完全吻合。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max for adservice-1",
+                "expected_pattern": "Sudden spike in median values (e.g., >10x increase compared to baseline).",
+                "instruction": "检查服务`adservice`下各实例（特别是adservice-1）的`rrt`（平均响应时间）和`rrt_max`（最大响应时间）指标，确认是否在故障窗口内出现突发性的、数量级式的增长。这是识别下游服务性能劣化的核心指标。"
+            },
+            {
+                "modality": "Trace",
+                "target": "Status code and latency for frontend->adservice calls (operation: hipstershop.AdService/GetAds)",
+                "expected_pattern": "Latency spike (e.g., >90x increase) accompanied by high occurrence of status code '4' (context deadline exceeded).",
+                "instruction": "分析所有从`frontend`服务到`adservice`服务的调用链，重点关注`hipstershop.AdService/GetAds`操作。检查其在故障时段的平均耗时是否激增，并确认状态码组合中是否出现大量`context deadline exceeded`（状态码4）。这直接证明了调用失败的模式和根源。"
+            },
+            {
+                "modality": "Log",
+                "target": "Keyword 'DeadlineExceeded' in frontend service logs",
+                "expected_pattern": "Log entries from frontend pods containing the error phrase 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded'.",
+                "instruction": "在`frontend`服务的Pod日志中搜索关键词`DeadlineExceeded`。如果发现大量包含此关键词的日志条目，并且错误信息明确指向调用`adservice`获取广告失败，则证实了前端用户体验到的超时错误，并指向了根因服务。"
+            }
+        ]
+    }
+}
+```

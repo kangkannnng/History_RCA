@@ -1,0 +1,66 @@
+```json
+{
+    "uuid": "bc7e1bf2-405",
+    "fault_type": "server_error_ratio",
+    "symptom_vector": "DNS lookup failure causing server error ratio spike and latency increase",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-2 组件因 DNS 解析失败导致 server_error_ratio 从 0% 飙升至 34.04%，同时 rrt_max 显著增加",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-2 的 server_error_ratio 指标从 0% 突然飙升至 34.04%，error_ratio 同步异常",
+            "Step 2: 分析 checkoutservice-2 的 rrt_max 指标从 193255.0 增加到 3214328.5，响应时间显著恶化",
+            "Step 3: 在 Trace 数据中发现 checkoutservice-2 调用 emailservice 时出现 DNS 解析失败错误：'lookup emailservice on 10.233.33.139:53: server misbehaving'",
+            "Step 4: 日志中确认 checkoutservice-2 出现 'transport: Error while dialing' 和 'dns lookup failure' 错误，与 DNS 故障特征匹配"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "checkoutservice-2 调用 emailservice 的延迟显著增加，出现 connection error 状态码 14",
+                "instruction": "检查 checkoutservice-2 到 emailservice 的调用链，查找是否存在 DNS 解析失败导致的延迟异常和连接错误"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "日志中包含 HTTP 响应状态码相关信息",
+                "instruction": "在 checkoutservice-2 的日志中搜索 http.resp.status 关键词，检查是否有异常状态码"
+            },
+            {
+                "modality": "Log",
+                "target": "rpc error",
+                "expected_pattern": "包含 RPC 错误信息，特别是 Unavailable 状态",
+                "instruction": "在 checkoutservice-2 的日志中搜索 rpc error 关键词，查找连接失败相关错误"
+            },
+            {
+                "modality": "Log",
+                "target": "transport Error while dialing",
+                "expected_pattern": "包含 'transport: Error while dialing' 和 DNS 查找失败信息",
+                "instruction": "在 checkoutservice-2 的日志中搜索 transport、Error while dialing、lookup 等关键词，确认 DNS 解析问题"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "服务不可用相关错误信息",
+                "instruction": "在 checkoutservice-2 的日志中搜索 unavailable 关键词，检查服务连接状态"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "从基线值突然飙升到异常水平",
+                "instruction": "检查 checkoutservice-2 的 error_ratio 指标是否在故障期间从 0% 飙升至 34.04%"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "服务器错误率显著增加",
+                "instruction": "检查 checkoutservice-2 的 server_error_ratio 指标是否从 0% 增加到 34.04%"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "最大响应时间显著增加",
+                "instruction": "检查 checkoutservice-2 的 rrt_max 指标是否从 193255.0 增加到 3214328.5"
+            }
+        ]
+    }
+}
+```

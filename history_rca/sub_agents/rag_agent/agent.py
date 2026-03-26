@@ -4,7 +4,7 @@ from google.adk.models.lite_llm import LiteLlm
 from history_rca.sub_agents.rag_agent.tools import rag_analysis_tool
 from history_rca.sub_agents.rag_agent.prompt import RAG_AGENT_PROMPT
 
-model = LiteLlm(model='openai/qwen3-max')
+model = LiteLlm(model='openai/deepseek-v3.2')
 
 rag_agent = Agent(
     name="rag_agent",

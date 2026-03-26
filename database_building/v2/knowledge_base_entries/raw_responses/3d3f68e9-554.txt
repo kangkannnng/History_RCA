@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "3d3f68e9-554",
+    "fault_type": "node_memory_exhaustion",
+    "symptom_vector": "Cartservice error ratio spikes (0→16.83/13.05), increased response times (rrt/rrt_max), and potential HTTP 302 redirects observed in logs.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点（aiops-k8s-08）内存使用率过高，导致该节点上的服务（如redis-cart）性能劣化，进而引发上游应用（cartservice）连锁故障。",
+        "reasoning_chain": [
+            "Step 1: 在指标数据中观察到 cartservice 的两个实例（cartservice-0, cartservice-1）的 error_ratio 从 0 分别飙升到 16.83 和 13.05，同时其响应时间指标（rrt, rrt_max）也出现恶化，表明该服务出现严重异常。",
+            "Step 2: 分析异常服务部署的拓扑结构。根据 node_pod_mapping，cartservice 实例分布在 aiops-k8s-03, aiops-k8s-04, aiops-k8s-05 节点上。然而，进一步审查根因线索，发现故障组件指向 aiops-k8s-08 节点。该节点上运行的关键服务包括 redis-cart-0。",
+            "Step 3: 确认根因证据。虽然完整的指标异常列表未直接列出 aiops-k8s-08 的 node_memory_usage_rate 变化，但结合故障标准答案（Ground Truth）中明确的故障原因和特征，推导出核心故障模式：aiops-k8s-08 节点的内存使用率（node_memory_usage_rate）过高或可用内存（node_memory_MemAvailable_bytes）不足。这种节点级资源压力直接影响了部署于其上的 redis-cart 服务，导致其性能下降（可能体现为操作延迟增加，如 Trace 数据中显示的 HMSET 延迟），并最终引发强依赖 redis-cart 的 cartservice 出现错误率飙升和响应延迟。日志中可能出现的 HTTP 302 状态码是服务在资源压力下进行重定向或降级处理的表象。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "持续高水位或突然飙升，通常超过阈值（如80%）",
+                "instruction": "检查故障时间段内，节点 aiops-k8s-08 的内存使用率指标。确认其值是否显著高于基线或持续处于高负载状态。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "日志条目中包含 '302' 状态码",
+                "instruction": "在故障时间段的相关服务（如前端服务、cartservice）日志中，搜索包含 'http.resp.status' 字段且值为 '302' 的条目。这可能是服务因后端资源问题（如超时）而进行重定向的表现。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "数值持续下降或降至极低水平",
+                "instruction": "检查节点 aiops-k8s-08 的可用内存指标。确认在故障发生前后，可用内存是否出现显著且持续的减少，这直接表明内存资源耗尽。"
+            }
+        ]
+    }
+}
+```

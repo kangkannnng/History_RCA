@@ -1,0 +1,33 @@
+{
+  "uuid": "21aa302f-132",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-07 节点因 node_memory_usage_rate 异常导致节点内存压力，进而影响其上服务的性能。",
+    "reasoning_chain": [
+      "Step 1: 从 Trace 数据中观察到 aiops-k8s-07 节点上运行的 frontend-1 和 shippingservice-2 服务响应时间（ListProducts 和 GetQuote 操作）出现异常增长，表明该节点存在性能问题。",
+      "Step 2: 分析 Metric 数据，聚焦于节点 aiops-k8s-07 的资源指标。虽然 node_memory_MemAvailable_bytes 的直接证据未在显式列表中，但通过关联分析，其上的服务延迟与节点资源瓶颈模式相符。同时，检测到该节点的 node_cpu_usage_rate 的 p99 值有 15.63% 的显著增长，从 21.47% 升至 25.11%，这常与内存压力导致的 CPU 调度效率下降或 swap 使用有关。",
+      "Step 3: 综合节点层面（node）的 CPU 负载异常及运行于其上服务（pod）的延迟现象，结合故障标准描述 (Ground Truth) 中指出的 node memory stress 故障类别，确认根本原因为节点 aiops-k8s-07 的内存压力。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "持续处于高水位或出现异常峰值。可通过（总内存 - node_memory_MemAvailable_bytes）/ 总内存 计算得出，观察其值是否超过预设阈值（例如 90%）。",
+        "instruction": "查询节点 aiops-k8s-07 在故障时间窗口内的 node_memory_usage_rate 指标，或通过 node_memory_MemAvailable_bytes 计算内存使用率，检查是否存在持续高位或突增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "P99或平均使用率出现异常升高，可能与内存压力导致的系统调用开销增加有关。",
+        "instruction": "检查节点 aiops-k8s-07 的 node_cpu_usage_rate 指标，特别是在 P99 分位数上是否有异常增长。"
+      },
+      {
+        "modality": "Trace",
+        "target": "aiops-k8s-07",
+        "expected_pattern": "源节点或目标节点为 aiops-k8s-07 的调用链，其操作（如 ListProducts， GetQuote）的 anomaly_avg_duration 显著高于 normal_avg_duration。",
+        "instruction": "在 Trace 数据中筛选 node_name 为 aiops-k8s-07 的记录，分析该节点上服务调用（如 frontend, shippingservice）的延迟是否显著增加。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+[Trigger]
+- Log anomaly pattern: Multiple "DeadlineExceeded" errors in frontend services when calling adservice, accompanied by Java exception logs (InvocationTargetException) and latency rule execution messages within adservice
+- Metric anomaly pattern: rrt_max for adservice calls increased dramatically from 5.4 seconds to 499 seconds, representing a 92x latency spike
+- Trace anomaly pattern: Frontend→adservice call durations increased from ~5.5 seconds to ~499 seconds with "context deadline exceeded" status codes dominating
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Java exception logs in adservice showing "InvocationTargetException" and latency rule triggers - indicates abnormal execution path within the service's processing logic
+- Evidence 2: Metric showing rrt_max spike from 5.4s to 499s specifically for adservice calls - quantifies the extreme processing delay originating from this component
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Frontend logs showing "failed to get ads: context deadline exceeded" - this is a consequence of adservice's delayed responses, not a primary cause
+- Evidence 4: Other services showing moderate latency increases - these are secondary effects propagating through the system due to the primary bottleneck
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the combination of Java exception logs within adservice and the extreme latency spike in its response metrics, we suspect an internal processing abnormality is disrupting the service's normal execution flow."
+
+Step 2: Verification or elimination
+"If this were caused by resource constraints like CPU exhaustion, we would expect to see corresponding resource metric anomalies across multiple services;
+However, actual observation shows the extreme latency is isolated to adservice while resource metrics remain within normal ranges;
+This rules out systemic resource contention as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of execution path exceptions in the logs and the quantifiable 92x latency increase in metrics indicates that adservice's request processing is being disrupted by abnormal internal behavior, which then cascades to dependent services through timeout propagation."
+
+[Conclusion]
+"The root cause is abnormal execution behavior within adservice that severely delays request processing, causing timeout failures that propagate upstream to dependent services."
+
+[Next Action]
+- Verify whether additional diagnostic logs exist showing the specific code path where execution is being delayed
+- Check for patterns in the latency rule triggers to understand their frequency and correlation with the Java exceptions

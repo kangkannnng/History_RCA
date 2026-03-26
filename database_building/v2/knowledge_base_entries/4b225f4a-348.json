@@ -1,0 +1,45 @@
+{
+  "uuid": "4b225f4a-348",
+  "fault_type": "TiDB/IO 故障",
+  "symptom_vector": "Severe latency spike in database queries (GetProduct latency from 10.4s to 323-398s), significant increase in region_pending tasks (change rate 1.64-1.96), and p99 duration spike from 0.02s to 11.33s in TiDB cluster.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB存储层（TiKV）因潜在IO问题导致Region处理积压(region_pending)，进而引发数据库查询延迟激增，并通过调用链向上游应用（如ProductCatalogService）传播，造成全局性服务延迟。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到`tidb-tikv`组件的`region_pending`指标发生剧烈异常，其中位数变化率为1.6382，P99变化率达1.9615，表明存储层存在大量未处理的Region任务积压。同时，`duration_99th`指标P99值从0.02秒飙升至11.33秒，变化率高达199.3%，确认了TiDB层面的严重性能劣化。伴随`cpu_usage`的P99值也从0.12升至0.54。",
+      "Step 2: 在Trace数据中，观察到最下游、最严重的延迟出现在`productcatalogservice`调用TiDB的`GetProduct`接口。其延迟从正常时段的平均约10.4秒，激增至异常时段的323至398秒，延迟倍数达31-38倍。此严重延迟向上游传播，导致`checkoutservice`调用`productcatalogservice`的延迟增长156倍，`frontend`调用`productcatalogservice`的延迟增长60倍，符合从底层存储层向上游应用传播的故障模式。",
+      "Step 3: 结合Log数据，在故障时间段内未检测到任何错误日志。这排除了应用层代码错误或明显异常（如OOM、连接失败）的可能性，其“无报错”的特征与底层存储性能瓶颈（如磁盘IO慢、文件系统错误等）导致请求排队和延迟的现象更为一致，从而将根因锁定在TiDB存储层。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Sudden and significant increase in change rate (e.g., >1.5 for both median and P99)",
+        "instruction": "检查TiDB-TiKV组件的`region_pending`指标。计算其故障时段与正常时段的中位数和P99值的变化率。如果中位数和P99的变化率均显著大于1（例如超过1.5），则表明存储层存在严重的任务积压。"
+      },
+      {
+        "modality": "Metric",
+        "target": "duration_99th",
+        "expected_pattern": "Sudden spike in P99 latency (e.g., increasing by orders of magnitude)",
+        "instruction": "检查TiDB相关组件（tidb-tidb, tidb-tikv）的`duration_99th`指标。重点关注其P99值在故障时段是否出现数量级（如从毫秒级跃升至秒级）的飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "Significant increase in P99 value for TiKV nodes",
+        "instruction": "检查TiDB-TiKV组件的`cpu_usage`指标的P99值。如果观察到P99值在故障时段显著上升（例如翻倍），可能表明存储层因处理积压任务或IO等待而导致CPU使用率异常。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice->TiDB GetProduct latency",
+        "expected_pattern": "Extreme latency amplification (e.g., 30x+) in the deepest database call",
+        "instruction": "分析调用链数据，定位涉及数据库查询（如`GetProduct`）的最下游调用。计算该调用在故障时段与正常时段的平均延迟倍数。如果发现最下游的数据库调用延迟激增最严重（例如30倍以上），且上游服务的延迟增长可以追溯到此瓶颈，则表明根因在数据库层。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error logs across all services",
+        "expected_pattern": "Absence of error logs during the anomaly period",
+        "instruction": "在故障时间段内，对相关服务（特别是应用层服务如productcatalogservice, checkoutservice等）的日志进行扫描。如果未发现任何错误级别的日志（如ERROR, FATAL），而Metric和Trace显示严重延迟，这可以作为排除应用层错误、指向底层（如存储/网络）性能问题的重要旁证。"
+      }
+    ]
+  }
+}

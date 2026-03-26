@@ -1,0 +1,39 @@
+{
+  "uuid": "76222cb2-331",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Massive latency spikes for currency conversion operations (from 2.3-2.9 seconds to >2000 times higher), service timeouts sharply increase from 0.0 to 7890.0, cascading failures in upstream services (frontend, checkoutservice) leading to HTTP 500 errors and transaction failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "currencyservice发生递归调用导致JavaScript运行时栈溢出，引发服务完全不可用，进而造成上游请求大规模超时和失败。",
+    "reasoning_chain": [
+      "Step 1: 在Log数据中，观察到currencyservice多个实例出现高频、连续的`conversion request failed: RangeError: Maximum call stack size exceeded`错误。该错误表明代码中的函数递归或循环调用超出了调用栈限制，是严重的运行时错误，直接导致货币转换功能失效。",
+      "Step 2: 在Metric数据中，发现currencyservice-2的`timeout`指标从0.0骤增至7890.0，同时所有frontend实例的`rrt_max`（最大响应时间）和`error_ratio`（错误率）均出现数百到数千倍的异常激增。这验证了由于底层服务(currencyservice)不可用，导致上游业务流（如结账流程）被卡住并最终超时失败。",
+      "Step 3: 在Trace数据中，确认故障传播路径：`hipstershop.CurrencyService/Convert`操作延迟激增至数百万毫秒，并伴随`context canceled`和`transport is closing`的错误状态；依赖它的`hipstershop.CheckoutService/PlaceOrder`操作也随之出现严重延迟；最终所有前端调用返回HTTP 500状态。三方数据共同锁定了根因组件为currencyservice，根因现象为栈溢出导致的进程级功能瘫痪。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "conversion request failed: RangeError: Maximum call stack size exceeded",
+        "expected_pattern": "在特定时间窗口内，currencyservice相关Pod的日志中高频、连续出现此错误信息。",
+        "instruction": "检查currencyservice服务在故障时段的日志，搜索关键词'RangeError: Maximum call stack size exceeded'，确认其是否为高频出现的核心错误，并观察其出现的服务实例和频率。"
+      },
+      {
+        "modality": "Metric",
+        "target": "timeout",
+        "expected_pattern": "currencyservice服务的timeout指标在故障时段出现从0.0到极高值（如数千）的剧烈、持续性飙升。",
+        "instruction": "查询故障时段currencyservice服务的timeout指标。关注其从正常基线（通常为0.0或极低值）到异常高值的突变点和持续高位，这是服务不可用的直接量化证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "关键上游服务（特别是frontend）的rrt_max指标在同一时段出现数量级（如百倍至千倍）的增长。",
+        "instruction": "分析故障时段所有frontend实例的rrt_max（最大请求响应时间）指标。当发现该指标相较于正常基线暴增数百倍以上时，应怀疑其下游核心依赖服务（如currencyservice）出现严重阻塞或瘫痪。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.CurrencyService/Convert",
+        "expected_pattern": "该操作的平均和最大耗时(rrt_max)在故障期间发生数百至数千倍的异常激增，并关联大量错误状态码（如1: context canceled, 14: transport is closing）。",
+        "instruction": "分析故障时间段的调用链数据，聚焦于`hipshop.CurrencyService/Convert`操作。观察其响应时间（尤其是rrt_max）的异常增长幅度，并统计其调用失败的状态码分布，以确认其为性能瓶颈和错误源头。"
+      }
+    ]
+  }
+}

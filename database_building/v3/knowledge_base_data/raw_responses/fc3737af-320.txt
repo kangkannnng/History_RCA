@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "fc3737af-320",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage leading to pod restarts and service degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice 组件因 pod_memory_working_set_bytes 飙升导致的内存压力，触发了 Pod 重启",
+        "reasoning_chain": [
+            "Step 1: 在 metrics 中观察到 productcatalogservice 所有三个 Pod 的 pod_processes 指标异常，P99值从正常基线 1.0 上升到故障期的 2.0（变化率 0.6667），这是 Pod 生命周期发生变化（如重启或进程数翻倍）的直接证据。",
+            "Step 2: 分析 productcatalogservice-0 的性能指标，发现其 request 和 response 处理量中位数分别下降了 80.62% 和 80.42%，这表明在 Pod 异常期间，该核心服务的处理能力严重下降。",
+            "Step 3: 综合 Pod 重启与服务性能急剧下降的症状，并结合关键故障特征（如 memory stress），可以推断出 productcatalogservice 组件因内存压力（pod_memory_working_set_bytes）过高，导致 Pod 被重启以恢复。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "数值从稳定基线（如1.0）异常增长至更高值（如2.0），变化率显著",
+                "instruction": "检查 productcatalogservice 所有 Pod 的 pod_processes 指标，确认其 P99或中位数值是否在故障期内从基线翻倍或异常增加，这是 Pod 重启或进程异常的关键信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "指标值异常飙升，接近或超过内存限制阈值",
+                "instruction": "检查 productcatalogservice 组件的 pod_memory_working_set_bytes 指标，确认其在故障期内是否存在持续高位或急剧上升的趋势，以验证内存压力假设。"
+            }
+        ]
+    }
+}
+```

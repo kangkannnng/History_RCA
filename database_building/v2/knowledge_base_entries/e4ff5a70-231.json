@@ -1,0 +1,39 @@
+{
+  "uuid": "e4ff5a70-231",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "High latency spike across multiple services (Redis HMSET, cartservice EmptyCart, checkoutservice PlaceOrder), no error logs, degraded performance",
+  "expert_knowledge": {
+    "root_cause_desc": "节点磁盘空间耗尽导致Redis服务性能严重下降，进而引发应用层服务级联延迟",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到aiops-k8s-08节点的node_filesystem_usage_rate从53.67%急剧上升到80.83%（增长40.39%），同时该节点的node_cpu_usage_rate也从16.92%上升到28.98%（增长52.59%）",
+      "Step 2: 分析Trace数据发现，运行在aiops-k8s-08节点上的redis-cart-0服务的HMSET操作延迟从正常的1.57秒激增至37.5秒（24倍增长），这是整个系统中最严重的性能退化",
+      "Step 3: 确认故障传播链：Redis延迟直接导致cartservice的EmptyCart操作延迟从2.57秒增至61.14秒（同样24倍增长），进而影响checkoutservice和frontend服务，形成完整的级联故障。Log分析显示无错误日志，符合存储层性能问题的特征"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden increase from normal baseline to critical level (>80%)",
+        "instruction": "检查aiops-k8s-08节点的文件系统使用率指标，确认是否在故障时间段内出现显著增长并达到高水位（>80%）"
+      },
+      {
+        "modality": "Trace",
+        "target": "HMSET operation latency",
+        "expected_pattern": "Extreme latency spike (20x+ increase) for Redis operations",
+        "instruction": "分析redis-cart-0服务的调用链数据，重点关注HMSET操作的延迟变化，确认是否存在异常激增"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis调用链",
+        "expected_pattern": "Propagated latency increase matching Redis degradation pattern",
+        "instruction": "检查cartservice调用Redis的调用链延迟，确认是否与Redis性能下降存在强相关性"
+      },
+      {
+        "modality": "Log",
+        "target": "error logs",
+        "expected_pattern": "No error logs present during fault period",
+        "instruction": "搜索故障时间段内的错误日志，确认是否为性能型故障而非错误型故障"
+      }
+    ]
+  }
+}

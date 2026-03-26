@@ -1,0 +1,27 @@
+{    "uuid": "8cf433b4-122",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, saturation, high memory usage, memory leak, or memory stress leading to performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-03] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-03] (From Ground Truth). In Full Context, aiops-k8s-03 is listed as a node in unique_entities under node_name and in node_pod_mapping.",
+            "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric (From GT key_observations). In Full Context, node_memory_usage_rate is an available metric name listed in available_metric_names and appears in anomaly_metrics for other nodes (e.g., aiops-k8s-01, aiops-k8s-04), indicating it is a monitored metric relevant to node faults.",
+            "Step 3: Check Observation - Keyword [node_disk_read_bytes_total] from GT key_observations is not observed in current Full Context metric data (available_metric_names do not include this metric), but it is specified as a key feature in Ground Truth for diagnosis.",
+            "Step 4: Derive Root Cause - Based on the fault description (node memory stress) and the key metric [node_memory_usage_rate] from Ground Truth, determined root cause is [node_memory_usage_rate] anomaly on node [aiops-k8s-03]."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Metric not available in current data set; if present, should show abnormal values indicating disk I/O stress",
+                "instruction": "If metric data includes node_disk_read_bytes_total, search for anomalies on node aiops-k8s-03 during the fault period (2025-06-07T12:10:44Z to 2025-06-07T12:21:44Z)"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "High or increasing value indicating memory stress; in Full Context, this metric is listed for other nodes with changes (e.g., aiops-k8s-01 shows decrease), but for aiops-k8s-03, it should be monitored for spikes",
+                "instruction": "Check node_memory_usage_rate metric specifically for node aiops-k8s-03 in metric data during the anomaly timeframe"
+            }
+        ]
+    }
+}

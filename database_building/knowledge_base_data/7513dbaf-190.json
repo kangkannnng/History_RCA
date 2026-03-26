@@ -1,0 +1,62 @@
+{
+  "uuid": "7513dbaf-190",
+  "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+  "symptom_vector": "High JVM latency, JVM response delay, elevated request latency, JVM slow response",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [adservice-getRandomAds-latency] fault, accompanied by [rrt, rrt_max] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [adservice-getRandomAds-latency] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [deadlineexceeded] in Log (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [frontend] in Trace (From GT key_observations)",
+      "Step 7: Check Observation - Found keywords [rrt, rrt_max] in Metric (From GT key_observations)",
+      "Step 8: Derive Root Cause - Based on above features, determined cause is [adservice-getRandomAds-latency, rrt, rrt_max] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Log entries show 'AdService-getRandomAds-latency-1749546648 execute()' and 'Rule.execute called for AdService-getRandomAds-latency-1749546648_26:0' appearing 4284 times",
+        "instruction": "Search for keyword 'AdService-getRandomAds-latency-1749546648' in logs from adservice pods"
+      },
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Frontend log shows 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded'",
+        "instruction": "Search for keyword 'DeadlineExceeded' or 'context deadline exceeded' in logs"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Log entries show 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' in adservice pods",
+        "instruction": "Search for keyword 'InvocationTargetException' in adservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Log entries show 'org.jboss.byteman.agent.Transformer' and 'RuleTriggerMethodAdapter' related to rule injection",
+        "instruction": "Search for keywords 'Transformer' or 'RuleTriggerMethodAdapter' in adservice logs"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Trace data shows frontend->adservice calls with 'context deadline exceeded' errors and latency increase from 5.5s to 339s",
+        "instruction": "Analyze traces for frontend->adservice calls, check for 'hipstershop.AdService/GetAds' operations with status_code 4"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Metric data shows rrt increased from 3081.34 to 161041.4 for adservice-0",
+        "instruction": "Check metric 'rrt' for adservice pods, compare normal vs fault periods"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Metric data shows rrt_max increased from 43075.0 to 349903.0 for adservice-0",
+        "instruction": "Check metric 'rrt_max' for adservice pods, compare normal vs fault periods"
+      }
+    ]
+  }
+}

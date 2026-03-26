@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "e566fa68-404",
+    "fault_type": "server_error",
+    "symptom_vector": "Sharp increase in server_error_ratio and latency (rrt_max), with upstream services experiencing connection and timeout errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "DNS服务解析失败，导致下游shippingservice无法被访问，进而引发checkoutservice调用超时及错误率激增。",
+        "reasoning_chain": [
+            "Step 1: 在Log数据中，观察到frontend服务大量报错，核心错误信息为 'transport: Error while dialing dial tcp: lookup shippingservice on 10.233.33.139:53: server misbehaving'。这表明checkoutservice在尝试解析和连接shippingservice时遭遇了DNS层面的失败。",
+            "Step 2: 在Metric数据中，观察到checkoutservice的 `server_error_ratio` 和 `error_ratio` 从0%急剧上升至约48.9%，同时 `rrt` (响应时间) 和 `rrt_max` (最大响应时间) 激增数十至上百倍。此错误率和延迟的飙升模式与关键下游依赖服务（shippingservice）不可用时的表现高度一致。",
+            "Step 3: 在Trace数据中，确认了从checkoutservice发起对shippingservice的调用链 `hipstershop.ShippingService/GetQuote` 平均耗时从正常的9.3ms异常增至2.58秒，并且状态码/消息明确表明失败原因为DNS查找失败。这验证了Log中的根因直接导致了关键调用路径的失效。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Error while dialing, lookup, server misbehaving",
+                "expected_pattern": "Contains keywords indicating DNS resolution failure during service connection attempts (e.g., 'lookup X on Y:53: server misbehaving').",
+                "instruction": "搜索并分析所有包含 'transport', 'dialing', 'lookup' 等关键词的错误日志，重点关注其中与DNS解析失败相关的错误描述，例如 'server misbehaving'。"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio, error_ratio, rrt_max",
+                "expected_pattern": "Sudden and significant increase in `server_error_ratio` or `error_ratio` (e.g., from near 0% to >40%), accompanied by a sharp spike in `rrt_max` (e.g., increase by orders of magnitude).",
+                "instruction": "检查故障时段内，哪些服务的 `server_error_ratio` 或 `error_ratio` 指标发生了急剧、显著的攀升，并关联查看其 `rrt_max` 是否同步出现数量级级别的飙升，以定位受影响的源头服务。"
+            },
+            {
+                "modality": "Trace",
+                "target": "call chain latency for dependent services (e.g., checkoutservice->shippingservice)",
+                "expected_pattern": "Significant latency increase (e.g., 100x+) in specific call paths, with status messages pointing to connection or resolution failures at the root.",
+                "instruction": "分析服务间调用链，识别哪些关键路径（特别是对下游依赖服务的调用）的平均耗时和异常数量激增。检查这些失败trace的状态码或错误信息，确认其根本原因是否为连接或DNS问题。"
+            }
+        ]
+    }
+}
+```

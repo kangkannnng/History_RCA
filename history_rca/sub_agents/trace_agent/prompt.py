@@ -22,6 +22,10 @@ Determine the mode based on `user_query`:
 1. **Scan Mode**: General analysis -> Use `trace_analysis_tool`.
 2. **Verify Mode**: Specific trace/attribute search -> Use `search_raw_traces`.
 
+### 🔴 CRITICAL: Instruction Compliance Rule
+If the user/orchestrator asks to check **Specific Attributes** or **Operations** (e.g., "Check spans with http.status_code=503"), you **MUST** use `search_raw_traces` with those exact parameters.
+- Example: Request "Check latency for 'CartService'" -> Call `search_raw_traces("CartService", ...)`
+
 ### 🔴 How to Use search_raw_traces (IMPORTANT!)
 
 **Method 1: Use UUID (Recommended - Simplest)**

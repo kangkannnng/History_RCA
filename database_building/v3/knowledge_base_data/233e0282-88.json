@@ -1,0 +1,33 @@
+{
+  "uuid": "233e0282-88",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "high CPU utilization, CPU saturation, CPU overload, CPU usage spike, cpu stress",
+  "expert_knowledge": {
+    "root_cause_desc": "currencyservice 组件因 pod_cpu_usage 异常飙升和 pod_processes 激增导致 CPU 压力测试故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 currencyservice 所有 pod (currencyservice-0, currencyservice-1, currencyservice-2) 的 pod_cpu_usage 指标从接近 0.0 飙升至 0.4，中位数变化率达 2.0 倍",
+      "Step 2: 分析 currencyservice 组件的 pod_processes 指标从正常值 1.0 激增至 8.0，所有三个 pod 呈现相同异常模式，变化率达 1.5556 倍",
+      "Step 3: 确认 currencyservice 的 rrt_max 和 rrt 响应时间指标严重恶化，其中 currencyservice-0 的 rrt_max 从 3400.0 升至 96585.0，同时 Trace 数据显示 CurrencyService/Convert 操作延迟增加 21 倍"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "从接近 0.0 飙升至 0.4 左右，中位数变化率约 2.0 倍",
+        "instruction": "检查 currencyservice 所有 pod 的 pod_cpu_usage 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "从 1.0 激增至 8.0，所有 currencyservice pod 呈现相同异常模式",
+        "instruction": "检查 currencyservice 组件的 pod_processes 指标是否异常增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "响应时间严重恶化，如 currencyservice-0 从 3400.0 升至 96585.0",
+        "instruction": "检查 currencyservice 的 rrt_max 指标是否出现显著延迟增加"
+      }
+    ]
+  }
+}

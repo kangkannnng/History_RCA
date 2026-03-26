@@ -1,0 +1,41 @@
+{
+  "uuid": "757fa56f-263",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, overload, usage spike, and stress observed during fault period.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [recommendationservice] experienced [pod_cpu_usage] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [pod_cpu_usage] in Metric, with values spiking from normal (e.g., 0.03) to fault (e.g., 0.4) for recommendationservice Pods (From Ground Truth key_observations and Full Context metric data).",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric, showing increase from 1.0 to 12.0 for all recommendationservice Pods (From Ground Truth key_observations and Full Context metric data).",
+      "Step 4: Check Observation - Found keywords [rrt] and [rrt_max] in Metric, indicating significant response time increases, e.g., rrt_max from 22437.0 to 2450581.5 for recommendationservice-2 (From Ground Truth key_observations and Full Context metric data).",
+      "Step 5: Derive Root Cause - Based on the abnormal increases in pod_cpu_usage and supporting metric features, determined cause is [pod_cpu_usage] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Value increased significantly during fault period, e.g., for recommendationservice-2, from 0.03 (normal median) to 0.4 (fault median) as shown in Full Context metric data.",
+        "instruction": "Search for metric [pod_cpu_usage] in the metric data and verify abnormal increase for recommendationservice Pods during the fault time range."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Value rose from 1.0 to 12.0 for all recommendationservice Pods (recommendationservice-0, recommendationservice-1, recommendationservice-2) as indicated in Full Context metric data.",
+        "instruction": "Check metric [pod_processes] specifically for recommendationservice Pods and confirm the increase from baseline."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Response time metric showed surges, e.g., rrt for recommendationservice-2 increased from 4162.73 to 307492.07 as per Full Context metric data.",
+        "instruction": "Inspect metric [rrt] for recommendationservice and identify spikes correlating with fault time."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Maximum response time metric exhibited extreme increases, e.g., rrt_max for recommendationservice-2 jumped from 22437.0 to 2450581.5 based on Full Context metric data.",
+        "instruction": "Examine metric [rrt_max] to detect severe latency anomalies for recommendationservice during the fault window."
+      }
+    ]
+  }
+}

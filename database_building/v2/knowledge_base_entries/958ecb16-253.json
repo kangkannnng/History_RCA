@@ -1,0 +1,21 @@
+{
+  "uuid": "958ecb16-253",
+  "fault_type": "node_memory_MemAvailable_bytes",
+  "symptom_vector": "Increased service error rates (e.g., checkoutservice error_ratio from 0.0 to 14.46), upstream service latency spikes (e.g., AddItem rrt from 3.8s to 79.1s), and decreased request/response throughput.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-03 内存可用量急剧下降，导致运行于其上的服务出现资源瓶颈并引发上游服务级联延迟与错误。",
+    "reasoning_chain": [
+      "Step 1: 观察到节点层 Metric 指标 `node_memory_MemAvailable_bytes` 在 `aiops-k8s-03` 节点上从正常中位数 7570315264.0 Bytes (~7.2GB) 下降至故障中位数 5127030784.0 Bytes (~4.8GB)，变化率达 0.3848，表明该节点可用内存显著减少，存在内存压力。",
+      "Step 2: 分析 `node_pod_mapping`，发现 `aiops-k8s-03` 节点上运行着 `frontend-0`、`cartservice-0`、`adservice-0` 等多个关键服务 Pod。其中，Metric 数据显示 `frontend-0` 的请求量 (`request`) 和响应量 (`response`) 均出现超过 50% 的下降，这与节点资源紧张可能影响服务处理能力的推论一致。",
+      "Step 3: 确认 Trace 数据中源于 `aiops-k8s-03` 节点的 `cartservice-0` 对 Redis 的 `HMSET` 操作延迟从 1.57ms 激增至 7.62ms，以及 `frontend-0` 到 `cartservice-0` 的 `AddItem` 操作出现严重延迟（从 5.2ms 增至 80.8ms）。这些下游延迟与错误，符合因节点底层资源（内存）不足导致 Pod 性能下降，进而引发调用链上游服务（如 checkoutservice 出现 14.46 的错误率）出现级联故障的模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Sudden Drop",
+        "instruction": "检查所有节点的 `node_memory_MemAvailable_bytes` 指标，寻找在故障时间段内出现持续性、显著下降（例如下降超过 30%）的节点。"
+      }
+    ]
+  }
+}

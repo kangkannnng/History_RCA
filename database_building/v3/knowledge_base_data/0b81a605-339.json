@@ -1,0 +1,47 @@
+{
+  "uuid": "0b81a605-339",
+  "fault_type": "pod_cpu_usage_spike_and_process_increase",
+  "symptom_vector": "CPU stress with high CPU utilization spike and increased process count, causing significant downstream service latency (rrt_max) increase",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice-2 组件的 Pod 出现生命周期异常，表现为 pod_processes 激增和 pod_cpu_usage 飙升，导致其服务响应延迟 (rrt_max) 急剧恶化。",
+    "reasoning_chain": [
+      "Step 1: 观察到 pod 级别指标 pod_processes 从 1.0 急剧增加至 13.0 (变化率 1.7x)，表明目标 Pod 的进程数出现异常。",
+      "Step 2: 同时观察到同一组件 paymentservice-2 的 pod_cpu_usage 从 0.0 飙升至 0.4 (变化率 2.0x)，表明 CPU 资源消耗剧增。",
+      "Step 3: 结合服务级别指标分析，发现 paymentservice-2 的 rrt_max 从 1499.0 激增至 97993.5 (变化率 65x)，确认其服务性能严重劣化。",
+      "Step 4: 追踪数据显示 checkoutservice 调用 paymentservice 的平均延迟从正常 13.7 秒激增至 97.1 秒 (增长 7.1倍)，证实下游服务调用 paymentservice-2 时遭遇严重延迟。",
+      "Step 5: 日志层面未发现明确错误信息，排除了由日志报错直接引发的故障，符合 Pod 生命周期异常 (如进程数剧变) 但无明确日志错误的典型模式。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Specific upstream service (e.g., checkoutservice) to the suspected component shows significantly increased latency.",
+        "instruction": "在追踪数据中，检查调用 paymentservice-2 的服务（如 checkoutservice）的调用延迟是否出现异常增加。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "The rrt_max metric for the suspected component shows a sharp spike, indicating severe performance degradation.",
+        "instruction": "检查 paymentservice-2 的 rrt_max 指标是否在故障时间段内出现剧烈飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "The rrt metric for the suspected component shows a significant increase.",
+        "instruction": "检查 paymentservice-2 的 rrt 指标是否在故障时间段内显著增加。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "The pod_cpu_usage metric for the suspected component shows a sudden and significant increase.",
+        "instruction": "检查 paymentservice-2 的 pod_cpu_usage 指标是否在故障时间段内出现突增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "The pod_processes metric for the suspected component shows an abnormal increase, indicating potential process lifecycle issues.",
+        "instruction": "检查 paymentservice-2 的 pod_processes 指标是否在故障时间段内出现异常增加，这通常是 Pod 内部进程异常的标志。"
+      }
+    ]
+  }
+}

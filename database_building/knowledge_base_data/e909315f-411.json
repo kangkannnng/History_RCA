@@ -1,0 +1,27 @@
+{
+  "uuid": "e909315f-411",
+  "fault_type": "node cpu stress",
+  "symptom_vector": "Node experiencing CPU overload, high CPU usage, saturation, and stress spikes as described in fault_description.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-03] experienced [node cpu stress] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-03] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Based on Ground Truth key_observations, keywords [node_network_receive_packets_total] and [node_network_transmit_packets_total] are specified as metric indicators, though not explicitly listed in the provided Full Context; they are expected to be present in raw metric data.",
+      "Step 3: Derive Root Cause - Based on the fault_type from Ground Truth and associated symptoms, determined cause is [node cpu stress]."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Abnormal values or trends in the network receive packets total metric for node aiops-k8s-03, indicating potential network activity correlated with CPU stress.",
+        "instruction": "Search for metric keyword [node_network_receive_packets_total] in the collected metric data, specifically for node aiops-k8s-03 during the time range 2025-06-20T20:10:06Z to 2025-06-20T20:32:06Z."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_transmit_packets_total",
+        "expected_pattern": "Abnormal values or trends in the network transmit packets total metric for node aiops-k8s-03, suggesting increased network traffic possibly contributing to CPU load.",
+        "instruction": "Search for metric keyword [node_network_transmit_packets_total] in the collected metric data, specifically for node aiops-k8s-03 during the time range 2025-06-20T20:10:06Z to 2025-06-20T20:32:06Z."
+      }
+    ]
+  }
+}

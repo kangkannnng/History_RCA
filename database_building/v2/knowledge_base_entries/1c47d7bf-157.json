@@ -1,0 +1,27 @@
+{
+  "uuid": "1c47d7bf-157",
+  "fault_type": "metric",
+  "symptom_vector": "Multiple service latency spikes observed (e.g., productcatalogservice GetProduct latency increased 2.08x), indicating system-wide performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点（aiops-k8s-07）磁盘使用率过高，接近饱和，导致运行于该节点上的服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 在系统层面观察到多个服务的响应时间（RRT）显著增加，特别是运行在节点 aiops-k8s-07 上的服务（如 frontend 处理 ListProducts 请求的延迟增加），表明性能瓶颈可能与特定节点有关。",
+      "Step 2: 分析节点层级的指标数据，发现节点 aiops-k8s-07 的 `node_filesystem_usage_rate` 指标异常飙升，正常中位数约为 49.88%，故障期间中位数上升至 77.04%，且 P99 值高达 98.68%，表明该节点的磁盘空间使用率接近饱和。",
+      "Step 3: 结合故障模式分析，高磁盘使用率（接近100%）会导致磁盘 I/O 性能急剧下降，进而影响运行在该节点上的所有 Pod 和服务性能。尽管日志中未记录直接的磁盘错误，Metric 数据提供的节点磁盘使用率异常是基础设施资源瓶颈的强有力证据。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden and sustained increase (e.g., from <60% to >75%, P99 approaching 100%), indicating disk space exhaustion risk.",
+        "instruction": "Agent, please query the `node_filesystem_usage_rate` metric for all nodes within the anomaly time window. Focus on identifying any node where the median or P99 value shows a significant increase, approaching or exceeding 90%. Correlate the node name with pods/services experiencing latency issues."
+      },
+      {
+        "modality": "Trace",
+        "target": "Service latency (e.g., rrt, rrt_max) of pods running on the problematic node.",
+        "expected_pattern": "Latency spikes for operations originating from or processed by pods scheduled on the node identified with high disk usage.",
+        "instruction": "Agent, analyze the trace data to find call chains where the parent or child pod is located on the node identified from the metric check (aiops-k8s-07). Check if the latency (`anomaly_avg_duration`) for these operations is significantly higher than the normal baseline (`normal_avg_duration`)."
+      }
+    ]
+  }
+}

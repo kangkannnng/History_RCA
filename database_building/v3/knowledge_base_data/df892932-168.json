@@ -1,0 +1,51 @@
+{
+  "uuid": "df892932-168",
+  "fault_type": "pod_cpu_usage_jvm_fault",
+  "symptom_vector": "JVM CPU spike, overload, and high CPU usage leading to service response time (rrt/rrt_max) explosion",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因混沌工程Byteman代理注入压力测试规则(AdService--stress)，导致所有实例的 pod_cpu_usage 指标飙升，进而引起 rrt 和 rrt_max 响应时间剧增。",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice 所有实例（adservice-0, adservice-1, adservice-2）的 pod_cpu_usage 指标在故障期间从接近0（0.0-0.01）突然飙升至0.6，增长达194%-200%，同时 rrt 和 rrt_max 指标也出现数倍增长（rrt_max 增长71%-124%）。",
+      "Step 2: 分析 adservice 组件的日志，发现大量与 'AdService--stress-1749463845' 规则执行相关的记录，包括 'Rule.execute called for...' 和 'AdService--stress-1749463845 execute()'（各出现超过150次），以及涉及 'StressHelper' 类和 'Byteman agent' 的活动日志。这表明存在明确的故障注入行为。",
+      "Step 3: 通过追踪数据分析，确认故障影响了上游服务：所有 frontend 实例对 AdService 的调用（hipstershop.AdService/GetAds）平均响应时间从约5.4秒激增至45秒，增长了8.3倍，形成了完整的因果链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sharp and sustained increase from baseline (e.g., near 0 to >0.5 within minutes)",
+        "instruction": "检查 adservice 组件所有Pod实例（如adservice-0, adservice-1, adservice-2）的pod_cpu_usage指标，是否在短时间内出现剧烈、持续的飙升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Significant increase in the maximum response time, potentially by several multiples",
+        "instruction": "检查 adservice 组件的 rrt_max（或 rrt）指标是否伴随CPU飙升而出现显著增长。"
+      },
+      {
+        "modality": "Log",
+        "target": "AdService--stress",
+        "expected_pattern": "Log entries containing the keyword 'AdService--stress' or similar stress test rule names, with high frequency of 'execute' or 'Rule.execute called' messages.",
+        "instruction": "在 adservice 组件的日志中搜索包含 'AdService--stress' 关键词的条目，特别是关注规则执行相关的日志（如 'execute'）。"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Java exception stack traces containing 'InvocationTargetException'",
+        "instruction": "在 adservice 组件的日志中搜索 'InvocationTargetException'，这可能与故障注入代理的加载或执行异常相关。"
+      },
+      {
+        "modality": "Log",
+        "target": "Byteman|StressHelper",
+        "expected_pattern": "Log entries mentioning 'Byteman', 'agent', or 'StressHelper', indicating the presence and activity of a fault injection tool.",
+        "instruction": "在 adservice 组件的日志中搜索 'Byteman'、'agent' 或 'StressHelper' 等关键词，以识别混沌工程测试活动。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->AdService/GetAds",
+        "expected_pattern": "Drastic increase in latency (e.g., 5x or more) for calls from frontend services to the adservice's GetAds endpoint.",
+        "instruction": "分析追踪数据，检查从任何 frontend 服务到 adservice 的 'GetAds' 操作调用链路，是否出现响应时间（延迟）的异常大幅增长。"
+      }
+    ]
+  }
+}

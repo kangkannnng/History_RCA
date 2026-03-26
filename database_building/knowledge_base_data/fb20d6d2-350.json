@@ -1,0 +1,27 @@
+{
+  "uuid": "fb20d6d2-350",
+  "fault_type": "dns, http.resp.status, 302",
+  "symptom_vector": "DNS lookup failures, DNS resolution timeouts, incorrect DNS responses, DNS server unreachable, truncated DNS packets, and HTTP response status 302 errors affecting services, particularly shippingservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice-2] experienced [dns, http.resp.status, 302] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice-2] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword [http.resp.status] and [302] in Log (From Ground Truth key_observations, though not observed in provided Full Context logs for checkoutservice-2, expected based on Ground Truth).",
+      "Step 3: Derive Root Cause - Based on the above features and Ground Truth key_metrics, determined cause is [dns, http.resp.status, 302] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "Log entries containing the keyword 'http.resp.status', potentially indicating HTTP response status logs, such as errors or redirects (e.g., status 302). In provided Full Context, no logs for checkoutservice-2 were found, but based on Ground Truth, this keyword should appear in logs during the fault timeframe.",
+        "instruction": "Search for keyword 'http.resp.status' in logs from pod checkoutservice-2 during the fault timeframe (2025-06-18T07:10:16Z to 2025-06-18T07:25:16Z)."
+      },
+      {
+        "modality": "Log",
+        "target": "302",
+        "expected_pattern": "Log entries containing the status code '302', often associated with HTTP redirects, which may result from DNS or service faults. In provided Full Context, no such logs were observed for checkoutservice-2, but Ground Truth specifies this as a key observation.",
+        "instruction": "Search for status code '302' in logs, particularly in conjunction with 'http.resp.status', from pod checkoutservice-2 during the fault timeframe."
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "25368410-268",
+  "fault_type": "CPU异常",
+  "symptom_vector": "High latency (RRT spike) and increased error ratio in adservice, accompanied by severe CPU usage surge.",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman故障注入工具的异常与高频Stress测试规则执行导致adservice发生CPU资源竞争与性能下降。",
+    "reasoning_chain": [
+      "Step 1: 观察到adservice所有Pod的CPU使用率(pod_cpu_usage)在故障期间从约0.01激增至0.6，同时其响应时间(rrt)从约3422.89ms飙升到16015.88ms，表明存在严重的性能瓶颈和资源过载。",
+      "Step 2: 分析adservice的日志，发现大量与'AdService--stress-1749831003'相关的记录，该规则被执行了142次，并且伴有'Agent failed to start!'和'attempting to load Byteman agent more than once'等Byteman工具异常日志，指示了主动、高频的混沌工程压力测试活动。",
+      "Step 3: 确认Metric中观察到的CPU使用率激增和延迟恶化与Log中揭示的高频Stress测试在时间上高度关联，且所有异常日志均集中于adservice组件。因此，推断是Byteman工具的异常压力注入导致了adservice的CPU资源被异常占用，引发连锁性能问题。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden and sustained spike, from a low baseline to near saturation (e.g., from 0.01 to >0.6).",
+        "instruction": "检查adservice相关Pod的CPU使用率(pod_cpu_usage)指标，是否在故障时间窗口内出现急剧且持续的飙升，同时伴随响应时间(rrt)指标的同步恶化。"
+      },
+      {
+        "modality": "Log",
+        "target": "AdService--stress, Agent failed to start!, attempting to load Byteman agent more than once",
+        "expected_pattern": "Log contains high-frequency records of 'AdService--stress-XXXX execute()' and errors indicating Byteman agent startup failure.",
+        "instruction": "在adservice组件的日志中，搜索包含'AdService--stress'、'Agent failed to start!'以及'attempting to load Byteman agent more than once'等关键词的条目。确认是否存在高频执行记录以及工具启动失败的错误。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt, error_ratio",
+        "expected_pattern": "Call traces show abnormally increased response time and potentially elevated error rates, but may also be unavailable due to system stress.",
+        "instruction": "分析adservice的调用链数据，观察其响应时间(rrt)分布是否显著变长，错误率(error_ratio)是否升高。注意，在极端压力下，调用链数据本身可能采集失败，这也是一种间接证据。"
+      }
+    ]
+  }
+}

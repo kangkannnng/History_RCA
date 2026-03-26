@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "74bd0298-209",
+    "fault_type": "latency_anomalies",
+    "symptom_vector": "Latency spike and DeadlineExceeded errors on frontend services, propagating upstream from adservice dependency.",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-0 因 Java 异常和 Agent 启动失败，导致 JVM 处理延迟激增 (rrt_max 增加 90 倍)。",
+        "reasoning_chain": [
+            "Step 1: 通过 Trace 数据观察到，所有 frontend 实例对 adservice-0 的 GetAds 调用延迟从正常值（约5.5秒）激增至约499秒，延迟增加近90倍，并伴随数千次 'context deadline exceeded' 错误。这指示 adservice-0 是性能瓶颈的源头。",
+            "Step 2: 通过 Log 数据确认，故障期间 adservice-0 的日志中高频出现 'AdService-getRandomAds-latency' 相关规则执行记录，并出现关键异常 'java.lang.Exception' 和 'Agent failed to start!'，表明服务内部因代理启动问题产生了异常，与延迟激增的现象吻合。",
+            "Step 3: 通过 Metric 数据验证，所有 frontend 服务的 rrt 和 rrt_max 指标在故障期间全面、显著上升，这是 adservice-0 性能崩溃导致其上游调用方超时的直接表现。其他服务（如 CartService）的延迟增加是次要的级联影响。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend->adservice 的调用链，特别是 hipstershop.AdService/GetAds 操作",
+                "expected_pattern": "Sudden spike in latency (anomaly_avg_duration) and high occurrence of 'context deadline exceeded' or 'stream terminated by RST_STREAM' in status messages.",
+                "instruction": "扫描调用链，筛选出平均延迟（anomaly_avg_duration）相比正常值（normal_avg_duration）激增（例如 >10倍）且状态码为错误（如4）的调用。重点关注从 frontend 发往 adservice 的操作。"
+            },
+            {
+                "modality": "Log",
+                "target": "adservice-0 的日志消息",
+                "expected_pattern": "Contains keywords 'AdService-getRandomAds-latency', 'java.lang.Exception', 'InvocationTargetException', and/or 'Agent failed to start!'",
+                "instruction": "在 adservice 相关的 pod 日志中，搜索同时包含延迟规则名（如 getRandomAds-latency）和Java异常（如 Exception, InvocationTargetException）或代理启动失败（Agent failed to start!）的日志条目。"
+            },
+            {
+                "modality": "Metric",
+                "target": "frontend-0, frontend-1, frontend-2 的 rrt 和 rrt_max 指标",
+                "expected_pattern": "Simultaneous and significant increase in median values (fault_median >> normal_median) across all frontend instances.",
+                "instruction": "对比故障时段与正常时段的指标数据，确认所有 frontend 服务实例的 rrt 和 rrt_max 中位值（median）是否都出现了大幅度同步上涨。这有助于确认问题影响的广泛性并定位上游影响源。"
+            }
+        ]
+    }
+}
+```

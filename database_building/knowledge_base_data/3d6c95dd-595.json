@@ -1,0 +1,34 @@
+{
+  "uuid": "3d6c95dd-595",
+  "fault_type": "request_response_port",
+  "symptom_vector": "Target port misconfiguration causing connection refused errors, service port mismatch, and unreachable target port leading to request and response anomalies.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [shippingservice] experienced [request, response, port] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [shippingservice] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword [checkoutservice] in Trace data, showing latency anomalies and request proportion anomalies involving shippingservice (e.g., in Full Context trace data, status_combinations include errors like 'connection error' when checkoutservice calls shippingservice).",
+      "Step 3: Check Observation - Found keyword [request] and [response] in Metric data, indicating abnormal request and response metrics (e.g., in Full Context metric data, anomaly_metrics include 'request' and 'response' metrics with significant changes for services like productcatalogservice, and metric_analysis_findings detect these keys).",
+      "Step 4: Derive Root Cause - Based on trace anomalies involving checkoutservice and metric anomalies in request/response, combined with connection refused errors (implying port issue), determined cause is [request, response, port] fault (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice",
+        "expected_pattern": "Anomalies in trace calls involving checkoutservice and shippingservice, such as 'connection error' or 'connection refused' errors (e.g., in Full Context, status_combinations show entries like 'checkoutservice' with errors pointing to shippingservice).",
+        "instruction": "Search for keyword 'checkoutservice' in trace data and identify errors related to shippingservice calls, especially those with status messages containing 'connection refused'."
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "Abnormal values in request metric, such as significant increases or decreases (e.g., in Full Context, anomaly_metrics show 'request' metric changes for services like productcatalogservice-1).",
+        "instruction": "Check the 'request' metric in metric data for anomalies during the fault timeframe, focusing on services dependent on shippingservice."
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "Abnormal values in response metric, correlating with request anomalies (e.g., in Full Context, anomaly_metrics show 'response' metric changes alongside request metrics).",
+        "instruction": "Check the 'response' metric in metric data for anomalies during the fault timeframe, and correlate with request metric changes."
+      }
+    ]
+  }
+}

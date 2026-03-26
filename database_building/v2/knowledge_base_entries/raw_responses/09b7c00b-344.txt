@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "09b7c00b-344",
+    "fault_type": "pod_processes",
+    "symptom_vector": "HTTP 500 errors from frontend services and severe latency spike in checkoutservice during order placement.",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice所有实例的Pod进程异常(pod_processes指标变化)导致Redis连接失败，进而引发购物车存储访问不可用，故障向上游传播。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到，cartservice的所有三个实例(cartservice-0, cartservice-1, cartservice-2)的`pod_processes`指标的p99值均从1.0变为2.0。这表明发生了Pod生命周期异常，如进程重启或Crash，是根因的高优先级信号。",
+            "Step 2: 在Log数据中，cartservice自身报告了明确的错误：'Error status code \"FailedPrecondition\" with detail \"Can't access cart storage.\"'，并持续记录尝试连接Redis（\"Connecting to Redis: redis-cart:6379\"）。同时，所有frontend服务的错误日志都统一指向调用cartservice时遇到RPC错误('failed to add to cart: rpc error: code = FailedPrecondition desc = Can't access cart storage.')，证明故障源在下游。",
+            "Step 3: 结合Trace数据，观察到checkoutservice-0的`rrt_max`指标严重飙升（4.2倍），而其直接下游服务（emailservice, shippingservice）的延迟增长相对轻微。同时，在异常调用链数据中，未发现到cartservice的直接调用记录，这间接印证了cartservice处于不可用状态，导致调用链路中断或失败。由此确认cartservice的Pod异常是其自身及上游服务问题的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "对于cartservice的所有或多数Pod实例，其`pod_processes`指标（尤其是高百分位如p99）出现从1到2（或类似）的非零变化。",
+                "instruction": "立即检查cartservice相关Pod的`pod_processes`指标。如果发现多个实例的该指标在同一时段内出现一致性的非零变化（例如，p99值从1变为2），应高度怀疑Pod生命周期发生异常（如重启、Crash），并将其列为根因的首要怀疑对象。"
+            },
+            {
+                "modality": "Log",
+                "target": "Can't access cart storage, FailedPrecondition",
+                "expected_pattern": "cartservice自身日志中出现包含'FailedPrecondition'和'Can't access cart storage.'的错误条目。同时，其上游服务（如frontend）的日志中出现指向cartservice的RPC调用失败报错。",
+                "instruction": "搜索cartservice的日志，确认是否存在存储访问失败的错误（如'Can't access cart storage'）。同时，检查其直接上游调用方（如frontend, checkoutservice）的日志，确认其报错是否统一归因于调用cartservice失败。如果两者匹配，则强化了cartservice为故障源的判断。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice rrt_max",
+                "expected_pattern": "调用链上游服务（如checkoutservice）出现严重的响应时间延迟（如`rrt_max`激增数倍），但其更下游的服务延迟增长相对有限。同时，在异常调用链列表中可能缺少到故障服务（cartservice）的记录。",
+                "instruction": "分析调用链数据，定位延迟最严重的服务节点（如checkoutservice）。检查该节点的下游调用情况：如果其自身延迟极高，但后续调用链中的服务（如emailservice, shippingservice）延迟增长不明显，且trace数据中缺少到关键依赖服务（如cartservice）的调用记录，则应怀疑该关键依赖服务本身不可用，导致了调用阻塞或失败。"
+            }
+        ]
+    }
+}
+```

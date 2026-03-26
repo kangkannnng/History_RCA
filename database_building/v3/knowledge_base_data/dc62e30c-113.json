@@ -1,0 +1,82 @@
+{
+  "uuid": "dc62e30c-113",
+  "fault_type": "rrt",
+  "symptom_vector": "network packet corruption causing severe Redis response time degradation and timeout errors",
+  "expert_knowledge": {
+    "root_cause_desc": "redis-cart-0 组件因网络数据包损坏导致 rrt 和 rrt_max 指标严重劣化，引发 RedisTimeoutException",
+    "reasoning_chain": [
+      "Step 1: 观察到 redis-cart-0 的 rrt 指标从正常 213.79ms 飙升至故障期 137271.06ms（变化率 199.38%），同时 rrt_max 从 8309ms 上升至 944910.5ms（变化率 196.51%）",
+      "Step 2: 分析 redis-cart-0 的日志中出现大量 RedisTimeoutException 错误，HGET 操作耗时 5-6 秒，超过 5000ms 超时设置",
+      "Step 3: 确认链路追踪数据显示 Redis HGET 操作延迟从正常 1.7 秒增加至异常 5.8 秒，延迟倍数高达 3375 倍，表明网络层存在严重问题",
+      "Step 4: 结合故障描述中的 packet corruption 和 data corruption 特征，推断网络数据包损坏是根本原因"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Contains RedisTimeoutException and connection timeout errors",
+        "instruction": "在 redis-cart-0 和 cartservice 组件的日志中搜索 failure 关键词，检查是否有 RedisTimeoutException 和连接超时错误"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Timeout awaiting response with 5-6 seconds elapsed time",
+        "instruction": "在日志中搜索 timeout 关键词，检查 Redis 操作是否超过 5000ms 超时设置"
+      },
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Redis HGET operation latency increased significantly (3000x+)",
+        "instruction": "分析链路追踪数据，检查 Redis HGET 操作是否存在严重的延迟异常，特别是从 cartservice 到 redis-cart 的调用链"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Sudden spike from baseline (e.g., 213ms to 137271ms)",
+        "instruction": "检查 redis-cart-0 的 rrt 指标是否出现异常飙升，变化率是否超过 100%"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme increase from normal range (e.g., 8309ms to 944910ms)",
+        "instruction": "检查 redis-cart-0 的 rrt_max 指标是否达到异常高水平"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "Abnormal request patterns or failures",
+        "instruction": "检查 cartservice 到 redis-cart 的请求指标是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "Delayed or failed responses",
+        "instruction": "检查 redis-cart 的响应指标是否出现延迟或失败"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Abnormal network receive patterns",
+        "instruction": "检查 redis-cart-0 的 pod_network_receive_bytes 指标是否存在异常，可能指示数据包损坏"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Unusual packet receive patterns",
+        "instruction": "检查 redis-cart-0 的 pod_network_receive_packets 指标是否存在异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal network transmit patterns",
+        "instruction": "检查 redis-cart-0 的 pod_network_transmit_bytes 指标是否存在异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Unusual packet transmit patterns",
+        "instruction": "检查 redis-cart-0 的 pod_network_transmit_packets 指标是否存在异常"
+      }
+    ]
+  }
+}

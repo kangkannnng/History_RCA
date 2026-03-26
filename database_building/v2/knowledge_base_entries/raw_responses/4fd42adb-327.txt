@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "4fd42adb-327",
+    "fault_type": "Memory Exhaustion/Leak",
+    "symptom_vector": "Adservice unavailability causing RPC call failures (connection refused, deadline_exceeded) in frontend, with pod restart indicators and anomalous node memory usage changes.",
+    "expert_knowledge": {
+        "root_cause_desc": "Adservice 因内存泄漏或过载导致 Pod 进程异常重启，进而引发服务不可用。",
+        "reasoning_chain": [
+            "Step 1: 分析 Metrics 数据发现，所有三个 adservice Pod (adservice-0, -1, -2) 的 `pod_processes` 指标 p99 值在故障期间从 1.0 变为 2.0，这强烈暗示了 Pod 内进程发生了重启或产生了异常子进程。",
+            "Step 2: 同时观察到与 adservice Pod 所在节点（如 aiops-k8s-04）相关的 `node_memory_usage_rate` 出现中位数下降和 `node_memory_MemAvailable_bytes` 显著增加的变化模式，这种模式通常与容器（Pod）因内存压力崩溃释放资源后，节点内存负载下降有关。",
+            "Step 3: 结合 Log 和 Trace 数据，所有 frontend 调用 adservice 时均出现 ‘connection refused’ 和 ‘deadline_exceeded’ 错误，这构成了故障的表层症状。综合 Metrics 中进程重启的迹象和节点内存的异常释放模式，可以推断出 adservice 是因内存问题（如泄漏、过载）导致进程/容器不稳定或重启，从而对外表现为连接拒绝与超时。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden increase (e.g., from 1.0 to 2.0), indicating potential process crash and restart or abnormal forking.",
+                "instruction": "检查目标 Pod（尤其是故障核心组件）的 `pod_processes` 指标，查找在故障时间点附近其 p99 或中位数是否存在跃升。1.0 -> 2.0 的变化是典型的进程异常重启信号。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Abnormal decrease in median value on specific nodes (e.g., from 56.52% to 33.72%), potentially correlated with the restart time of faulty Pods on that node.",
+                "instruction": "定位故障 Pod 所在的节点，检查该节点的 `node_memory_usage_rate` 和 `node_memory_MemAvailable_bytes` 在故障时段是否存在与 Pod 重启时间点相对应的异常下降/上升，这可能是容器释放内存的证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.AdService/GetAds",
+                "expected_pattern": "High frequency of status code 14 (UNAVAILABLE) with messages 'connection refused' or 'context deadline exceeded' from frontend services.",
+                "instruction": "在 Trace 数据中搜索对疑似故障服务的调用（如 frontend->adservice），统计失败调用的状态码和错误信息。连接拒绝和超时是下游服务不可用的直接体现。"
+            },
+            {
+                "modality": "Log",
+                "target": "failed to get ads: rpc error",
+                "expected_pattern": "Contains 'Unavailable', 'connection refused', 'deadline exceeded' or 'connection closed'.",
+                "instruction": "在调用方（如 frontend）的日志中搜索因调用下游服务失败而产生的错误日志，确认错误类型和涉及的服务端口，这用于佐证 Trace 发现的现象。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,32 @@
+[Trigger]
+- Log anomaly pattern: Repeated log entries showing execution of a stress test rule with high frequency across multiple instances, accompanied by agent loading failures and invocation exceptions.
+- Metric anomaly pattern: Sudden and significant increase in CPU utilization from near-zero to high levels across all instances, coupled with dramatic rise in response time metrics including both average and maximum values.
+- Trace anomaly pattern: Severe degradation in service call latency, with normal response times multiplying by factors of 8-9 for calls to the affected service.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs showing repeated execution of a specific test rule hundreds of times with corresponding thread creation messages - this indicates an active testing mechanism directly interacting with the service runtime.
+- Evidence 2: Concurrent CPU utilization spikes and response time degradation across all instances of the same service - this shows a coordinated resource consumption pattern affecting the entire service deployment.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Increased latency in downstream services like database operations - this appears as a cascading effect from the primary service's degradation, not an independent cause.
+- Evidence 4: Node-level CPU variations on unrelated nodes - these show minor resource fluctuations but don't correlate with the primary service instance locations.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the simultaneous appearance of repetitive test execution logs and coordinated resource exhaustion across all service instances, we suspect an automated testing mechanism has been activated that consumes excessive computational resources."
+
+Step 2: Verification or elimination
+"If this were caused by infrastructure resource contention, we would expect to see correlated node-level metrics and broader service impact;
+However, actual observation shows the resource spikes are isolated to specific service instances and the node metrics don't show corresponding patterns;
+This rules out general infrastructure issues as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of test execution logs appearing immediately before resource degradation and the identical timing of CPU and latency spikes across all instances indicates that an automated testing procedure is directly causing resource exhaustion and performance degradation."
+
+[Conclusion]
+"The root cause is an automated testing mechanism that was activated across all service instances, creating excessive computational load that overwhelmed the service's capacity and caused severe latency degradation across all dependent calls."
+
+[Next Action]
+- "Verify whether similar test activation patterns exist in configuration or deployment records"
+- "Check for timing correlation between test activation events and the exact onset of metric deviations"

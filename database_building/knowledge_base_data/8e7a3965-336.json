@@ -1,0 +1,41 @@
+{
+  "uuid": "8e7a3965-336",
+  "fault_type": "region_pending and io_util",
+  "symptom_vector": "Database performance degradation due to IO fault, manifesting as filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending and io_util] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth `instance` field, matches `service_name` in Full Context metric data).",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in [Trace] (From GT `key_observations`, appears in `filtered_traces` as a service with severe latency anomalies).",
+      "Step 3: Check Observation - Found keyword [io_util] and [region_pending] in [Metric] (From GT `key_observations`, appear in `anomaly_metrics` with high change rates of 164.65% and 172.94%).",
+      "Step 4: Check Observation - Found keyword [memory_usage] in [Metric] (From GT `key_observations`, appears in `anomaly_metrics` for `tidb-tikv`).",
+      "Step 5: Derive Root Cause - Based on the combined features (severe database metrics `io_util`, `region_pending` and upstream trace latency involving `productcatalogservice`), determined cause is [region_pending and io_util] (From Ground Truth `key_metrics`)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Multiple call chains to `productcatalogservice` show extreme latency increases (e.g., `frontend-1` -> `productcatalogservice-2` latency increased from ~10s to ~97s).",
+        "instruction": "Search for service name 'productcatalogservice' in trace data and check for abnormal duration increases in call chains."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "Metric `io_util` for service `tidb-tikv` shows a p99 change rate of 164.65% (from 0.02 to 0.21).",
+        "instruction": "Check if metric `io_util` for component `tidb-tikv` shows a significant increase during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Metric `region_pending` for service `tidb-tikv` shows a p99 change rate of 197.28% (from 149275.41 to 1023.28).",
+        "instruction": "Check if metric `region_pending` for component `tidb-tikv` shows a significant change during the fault window."
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Metric `memory_usage` for service `tidb-tikv` is present in the anomaly list with a p99 change rate of 5.32%.",
+        "instruction": "Check if metric `memory_usage` for component `tidb-tikv` is present in the monitored metrics."
+      }
+    ]
+  }
+}

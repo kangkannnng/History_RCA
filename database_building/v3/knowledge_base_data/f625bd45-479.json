@@ -1,0 +1,94 @@
+{
+  "uuid": "f625bd45-479",
+  "fault_type": "pod_failure_with_region_unavailability",
+  "symptom_vector": "pod crash and termination with database region unavailability errors",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件出现 pod failure，导致 Region 不可用错误 9005 (HY000)，引发数据库查询延迟激增和级联故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-pd 的 store_unhealth_count 指标从 0 升至 1，表明有存储节点不健康",
+      "Step 2: 分析 tidb-tidb 的 duration_99th 指标从 10ms 激增至 64.88s，failed_query_ops 出现异常峰值，确认数据库性能严重恶化",
+      "Step 3: 日志中发现 productcatalogservice-2 出现 147 次 'failed to query product by id: Error 9005 (HY000): Region is unavailable' 警告，trace 数据中 ProductCatalogService 的 GetProduct 操作 rrt_max 从 10s 激增至 38M 秒，错误码为 'Error 9005 (HY000): Region is unavailable'",
+      "Step 4: 确认故障传播路径为 tidb-tikv 存储层故障 → TiDB 数据库不可用 → ProductCatalogService 异常 → 前端服务级联故障"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "rrt_max 从正常值激增至数千万秒级别",
+        "instruction": "检查 ProductCatalogService 的 GetProduct 操作是否存在严重的延迟异常，特别是 rrt_max 指标是否从正常水平（约10秒）激增至异常高水平（数千万秒）"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Error 9005 (HY000): Region is unavailable 错误码大量出现",
+        "instruction": "分析 trace 数据中的状态码组合，查找是否大量出现错误码 2 和错误信息 'Error 9005 (HY000): Region is unavailable'"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "包含 'failed to query product by id: Error 9005 (HY000): Region is unavailable' 的警告日志",
+        "instruction": "在 productcatalogservice 组件的日志中搜索 'failure' 关键词，特别是查找 'failed to query product by id' 相关的错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "包含 'Region is unavailable' 的错误信息",
+        "instruction": "在所有服务日志中搜索 'unavailable' 关键词，重点查找与 'Region is unavailable' 相关的错误记录"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "QPS 指标异常下降或归零",
+        "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否在故障期间出现显著下降或归零"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "查询吞吐量异常下降",
+        "instruction": "检查 TiDB 相关组件的 qps 指标是否在故障期间出现异常下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO 利用率异常波动",
+        "instruction": "检查 tidb-tikv 组件的 io_util 指标是否出现异常波动或持续高值"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "pending region 数量异常增加",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否在故障期间异常增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "存储大小异常变化",
+        "instruction": "检查 tidb-tikv 组件的 store_size 指标是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU 使用率异常波动",
+        "instruction": "检查 tidb-tikv 组件的 cpu_usage 指标是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "内存使用率异常变化",
+        "instruction": "检查 tidb-tikv 组件的 memory_usage 指标是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_unhealth_count",
+        "expected_pattern": "从 0 升至 1 或更高",
+        "instruction": "检查 tidb-pd 组件的 store_unhealth_count 指标是否从正常值 0 上升至异常值，表明有存储节点不健康"
+      },
+      {
+        "modality": "Metric",
+        "target": "duration_99th",
+        "expected_pattern": "从毫秒级激增至秒级",
+        "instruction": "检查 tidb-tidb 组件的 duration_99th 指标是否从正常水平（约10ms）激增至异常高水平（数十秒）"
+      }
+    ]
+  }
+}

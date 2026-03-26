@@ -1,0 +1,75 @@
+{
+  "uuid": "6e8c4acb-219",
+  "fault_type": "rrt",
+  "symptom_vector": "high network latency with increased RTT and network delay spike",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend 和 currencyservice 组件因 rrt 和 rrt_max 指标异常飙升导致严重的网络延迟",
+    "reasoning_chain": [
+      "Step 1: 观察到 currencyservice 组件的 rrt 指标从正常值（1163.6）飙升至异常水平（889972.84），变化率达到99.48%，同时 rrt_max 指标从3810.5飙升至2407203.5",
+      "Step 2: 分析 frontend 组件的 rrt 指标也出现严重恶化，frontend-0的rrt从11846.53升至887110.84，变化率94.73%，表明延迟问题已影响上游服务",
+      "Step 3: 调用链分析确认 frontend 调用 CurrencyService 的 Convert 和 GetSupportedCurrencies 操作时延迟增加800倍，从正常平均2350ms增至1881553ms"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Significant latency increase in service calls",
+        "instruction": "检查调用链中 frontend 到 currencyservice 的调用延迟是否异常增加，特别是 Convert 和 GetSupportedCurrencies 操作"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "Abnormal request patterns",
+        "instruction": "检查 currencyservice 的请求量是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "Response pattern anomalies",
+        "instruction": "检查 currencyservice 的响应模式是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Sudden spike from baseline",
+        "instruction": "检查 currencyservice 和 frontend 组件的 rrt 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Maximum response time degradation",
+        "instruction": "检查 rrt_max 指标是否出现极端恶化"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Abnormal network receive patterns",
+        "instruction": "检查 currencyservice 和 frontend 的网络接收字节数是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "Receive packet count anomalies",
+        "instruction": "检查网络接收包数量是否出现异常波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal network transmit patterns",
+        "instruction": "检查网络传输字节数是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "Transmit packet count anomalies",
+        "instruction": "检查网络传输包数量是否出现异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "Memory usage anomalies",
+        "instruction": "检查 currencyservice 和 frontend 的内存使用情况是否异常"
+      }
+    ]
+  }
+}

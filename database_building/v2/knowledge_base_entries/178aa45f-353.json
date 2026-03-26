@@ -1,0 +1,33 @@
+{
+  "uuid": "178aa45f-353",
+  "fault_type": "server_error_ratio, error_ratio, dns",
+  "symptom_vector": "HTTP 500 errors from frontend services, severe latency spike and server error ratio increase in checkoutservice, elevated client error ratio in cartservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "DNS服务器(10.233.33.139:53)行为异常，导致cartservice域名解析失败，从而引发依赖它的checkoutservice出现严重性能问题。",
+    "reasoning_chain": [
+      "Step 1: 在故障时间段内的多个frontend实例日志中，一致且高频地观察到错误消息 'transport: Error while dialing dial tcp: lookup cartservice on 10.233.33.139:53: server misbehaving'。这表明cartservice域名解析失败，并将故障指向特定的DNS服务器(10.233.33.139:53)。",
+      "Step 2: Metric数据证实checkoutservice-0在该时间段内出现了严重的性能劣化：server_error_ratio从0%激增至86.31%，rrt_max从234032显著增长到2826605（增长约1.69倍）。同时，cartservice的实例也出现了client_error_ratio的P99异常（达16-17%），这是下游服务因解析失败而无法正常访问cartservice的间接证据。",
+      "Step 3: Trace分析确认了故障传播路径：大量来自frontend对checkoutservice的调用，以及checkoutservice内部对cartservice的调用（如hipstershop.CartService/GetCart）失败，并携带具体的错误码13或14，错误信息中明确包含了DNS查找失败的内容，从而将Metric和Log层面的异常串联成一条清晰的因果关系链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "lookup cartservice on 10.233.33.139:53: server misbehaving",
+        "expected_pattern": "高频出现，来自多个frontend服务实例，错误时间集中。",
+        "instruction": "在frontend或checkoutservice的日志中，搜索包含 'lookup cartservice' 和 'server misbehaving' 关键词的错误日志。确认错误出现的频率、涉及的实例数量以及时间分布，以此判断是否为系统性的DNS解析故障。"
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio, error_ratio",
+        "expected_pattern": "checkoutservice（尤其是checkoutservice-0）的server_error_ratio和error_ratio指标出现突发性飙升（例如，从0%到>80%）。cartservice的client_error_ratio P99值可能出现异常升高。",
+        "instruction": "检查故障时间窗口内，checkoutservice和cartservice的error相关指标（server_error_ratio, client_error_ratio, error_ratio）的变化。重点关注checkoutservice的错误率是否激增，并观察cartservice是否出现异常的错误率，这可能间接反映连接问题。"
+      },
+      {
+        "modality": "Trace",
+        "target": "hipstershop.CartService/GetCart, status_code 13 or 14",
+        "expected_pattern": "调用checkoutservice->cartservice的轨迹出现大量失败，状态码为13（内部错误）或14（连接问题），且错误信息包含DNS查找失败的关键词。",
+        "instruction": "分析从frontend到checkoutservice，以及checkoutservice内部调用cartservice（特别是GetCart操作）的调用链（Trace）。筛选状态码为13或14的失败轨迹，检查其携带的错误信息，确认是否包含DNS解析失败的描述（如 'lookup cartservice', 'dial tcp'）。"
+      }
+    ]
+  }
+}

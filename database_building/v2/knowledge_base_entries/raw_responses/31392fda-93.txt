@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "31392fda-93",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "Pod restart (process count increase), high latency in downstream services (cartservice, redis), increased client error ratio and rrt_max",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice-0 Pod因内存使用过高（可能导致内存泄漏或压力）而重启，从而引发下游服务连锁延迟。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中观察到关键指标`pod_processes`（pod级别进程数）针对`shippingservice-0`发生异常变化。正常P99值为1.0，故障期间P99值变为2.0，p99_change_ratio为0.6667。这明确指示该Pod的进程数量翻倍，是Pod发生重启或异常重启的典型迹象。",
+            "Step 2: 分析该现象的可能驱动原因。Ground Truth指出根本原因是内存相关指标`pod_memory_working_set_bytes`。Pod重启常常是由于资源压力（如OOM）导致容器被终止并由K8s重新拉起，这恰好印证了内存过高是重启的根本诱因，而非其他功能错误。",
+            "Step 3: 通过其他数据交叉验证：Log数据未发现任何错误日志，这与Pod因资源问题被系统强制重启（而非应用自身抛出异常）的特征相符。Trace数据观察到redis和cartservice出现严重延迟，可以合理地解释为上游`shippingservice-0`重启导致调用链短暂中断或请求堆积产生的下游影响。因此，pod_processes变化是内存问题触发Pod重启的直接表现，重启事件是本次故障的起点和根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "P99值从正常基准（例如1.0）突增至2.0（翻倍），p99_change_ratio > 0.5。这标志着Pod进程数异常增加，极大概率是Pod发生了重启。",
+                "instruction": "检查故障期间`shippingservice-0`的`pod_processes`指标的P99值或高阶分位数，关注其数值是否从1突变为2或更大。这是识别Pod生命周期异常（重启）的最直接Metric信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "error logs",
+                "expected_pattern": "在故障时间窗口内，受影响的Pod（shippingservice-0）没有相关错误日志记录。",
+                "instruction": "搜索故障Pod在故障时间窗口内的日志。若无应用级错误日志，结合其他证据（如Pod重启），则支持根因为资源压力（如OOM）导致的非优雅终止，而非业务逻辑错误。"
+            }
+        ]
+    }
+}
+```

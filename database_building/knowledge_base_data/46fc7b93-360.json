@@ -1,0 +1,47 @@
+{
+  "uuid": "46fc7b93-360",
+  "fault_type": "abnormal_region_count, region_health, leader_count, tidb-pd anomalies",
+  "symptom_vector": "Pod failure symptoms including crash, unexpected termination, container exit, and pod failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-pd] experienced [abnormal_region_count, region_health, leader_count, tidb-pd] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-pd] (From Ground Truth instance, as 'tidb-pd' appears in Full Context service_name).",
+      "Step 2: Check Observation - Found keyword [timeout] in Log (From GT key_observations), evidenced by 'PD server timeout' errors in log data (e.g., 'PD server timeout: start timestamp may fall behind safe point').",
+      "Step 3: Check Observation - Found keyword [failure] in Log (From GT key_observations), as seen in 'failed to query product by id' and similar error messages.",
+      "Step 4: Check Observation - Expected keywords [abnormal_region_count, leader_count, region_health] in Metric (From GT key_observations); though not explicitly listed in provided Full Context snippets, they are key metrics per Ground Truth for root cause.",
+      "Step 5: Derive Root Cause - Based on log features (timeout and failure errors) and expected metric anomalies, determined cause is [abnormal_region_count, region_health, leader_count, tidb-pd] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Log entries containing 'PD server timeout' indicating database timeout issues, as found in Full Context log messages.",
+        "instruction": "Search for keyword 'timeout' in log data during the fault time range (2025-06-18T17:10:02Z to 2025-06-18T17:31:02Z)."
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Error logs with 'failed' keywords, such as 'failed to query product by id' or 'failed to get product recommendations', as observed in Full Context.",
+        "instruction": "Search for keyword 'failure' or 'failed' in log messages from services like productcatalogservice and frontend."
+      },
+      {
+        "modality": "Metric",
+        "target": "abnormal_region_count",
+        "expected_pattern": "Abnormal values in abnormal_region_count metric for tidb-pd service, indicating region health issues.",
+        "instruction": "Check metric abnormal_region_count for anomalies during the event period."
+      },
+      {
+        "modality": "Metric",
+        "target": "leader_count",
+        "expected_pattern": "Deviations in leader_count metric suggesting leadership instability in tidb-pd.",
+        "instruction": "Monitor leader_count metric for unexpected changes or drops."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_health",
+        "expected_pattern": "Region_health metric showing unhealthy states or degradation.",
+        "instruction": "Inspect region_health metric for values indicating fault conditions."
+      }
+    ]
+  }
+}

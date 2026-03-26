@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "d0be3c58-178",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "JVM CPU spike and overload, high CPU usage saturation leading to increased response time and error ratio",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 组件由于 Byteman chaos agent 的 stress 注入攻击，导致 pod_cpu_usage 指标异常飙升，引发 CPU 过载",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice 服务所有实例（adservice-0， adservice-1， adservice-2）的 pod_cpu_usage 指标均从极低值（0.0-0.01）飙升至 0.6 以上，同时 rrt 和 rrt_max 指标显著增加，error_ratio 也出现上升",
+            "Step 2: 分析 adservice 组件的日志，发现大量 AdService--stress-1749503423 相关的 stress 线程执行记录（Creating thread, Running thread），并伴有 Byteman agent 加载冲突的报错（InvocationTargetException, \"attempting to load Byteman agent more than once\")",
+            "Step 3: 综合 Metric 和 Log 证据，确认异常是由 Byteman chaos agent 向 adservice 注入 stress 负载，导致多个并发 stress 线程运行并引发 agent 加载冲突，最终表现为 CPU 使用率（pod_cpu_usage）饱和与性能下降"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "AdService--stress|stress",
+                "expected_pattern": "Contains \"AdService--stress-\" or \"stress\" keywords related to thread creation and execution",
+                "instruction": "在 adservice 组件的日志中搜索 stress 相关关键词，如 \"AdService--stress-\", \"Creating thread\", \"Running thread\"，确认是否存在混沌工程 stress 注入痕迹"
+            },
+            {
+                "modality": "Log",
+                "target": "InvocationTargetException|Byteman|Transformer|TriggerThread|StressHelper",
+                "expected_pattern": "Contains Java exceptions or Byteman agent lifecycle keywords (e.g., InvocationTargetException, \"attempting to load Byteman agent more than once\")",
+                "instruction": "在 adservice 组件日志中搜索 Byteman agent 相关的错误和生命周期日志，如 InvocationTargetException, \"Byteman\", \"Transformer\", \"TriggerThread\"，检查是否存在agent加载冲突或失败"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden and sustained spike from a low baseline (e.g., from near 0 to above 0.5)",
+                "instruction": "检查 adservice 服务所有 Pod 实例的 pod_cpu_usage 指标，确认是否在异常时间段内出现陡峭且持续的飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Significant increase in response time, often correlated with CPU spike",
+                "instruction": "检查 adservice 服务的 rrt 指标，确认是否因 CPU 资源争用导致响应时间显著增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Significant increase in maximum response time",
+                "instruction": "检查 adservice 服务的 rrt_max 指标，确认最大响应时间是否出现异常峰值"
+            }
+        ]
+    }
+}
+```

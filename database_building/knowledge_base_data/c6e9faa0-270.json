@@ -1,0 +1,35 @@
+{
+  "uuid": "c6e9faa0-270",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "Symptoms of memory stress including high memory usage, saturation, exhaustion, leak, and stress.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [currencyservice-2] experienced [pod_memory_working_set_bytes] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [currencyservice-2] (From Ground Truth, instance field).",
+      "Step 2: Check Observation - Found keyword [could, not, load] in Log (From GT key_observations), specifically in error logs for currencyservice-2: 'PluginLoader#load: could not load plugin @opentelemetry/plugin-http of module http. Error: Cannot find module '@opentelemetry/plugin-http'' and similar for grpc-js.",
+      "Step 3: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric (From GT key_observations), as a key metric indicating memory usage anomaly.",
+      "Step 4: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations), with p99 change from 1.0 to 2.0 (66.67% change rate) for currencyservice-2, indicating pod restart.",
+      "Step 5: Derive Root Cause - Based on the above features (log errors and metric anomalies), determined cause is [pod_memory_working_set_bytes] (From Ground Truth key_metrics), associated with memory stress."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "could not load",
+        "expected_pattern": "Error log entries showing 'could not load' for plugins in currencyservice-2, e.g., 'PluginLoader#load: could not load plugin @opentelemetry/plugin-http'.",
+        "instruction": "Search for keyword 'could not load' in logs from pod currencyservice-2 during the fault period (2025-06-13T18:10:08Z to 2025-06-13T18:20:08Z)."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "High or increasing value in pod_memory_working_set_bytes metric for currencyservice-2, indicating memory usage anomaly.",
+        "instruction": "Check the metric pod_memory_working_set_bytes for pod currencyservice-2 and compare normal vs. fault periods for deviations."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Change in pod_processes p99 value from 1.0 to 2.0 (66.67% change rate) for currencyservice-2, indicating pod restart or process anomaly.",
+        "instruction": "Monitor pod_processes metric for currencyservice-2 and check for p99 anomalies during the fault timeframe."
+      }
+    ]
+  }
+}

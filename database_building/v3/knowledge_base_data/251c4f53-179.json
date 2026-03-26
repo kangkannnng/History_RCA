@@ -1,0 +1,57 @@
+{
+  "uuid": "251c4f53-179",
+  "fault_type": "pod_processes",
+  "symptom_vector": "pod kill, forceful pod termination, container killed, pod eviction",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 服务因 pod kill 事件导致 pod_processes 指标异常，表现为容器被强制终止",
+    "reasoning_chain": [
+      "Step 1: 观察到 cartservice 相关的 pod_network_receive_packets 和 pod_network_transmit_packets 指标在故障期间降至0.0，变化率200%，表明网络活动停止",
+      "Step 2: 分析 cartservice-0 和 cartservice-2 的 pod_network_receive_packets 和 pod_network_transmit_packets 同时归零，符合 Pod 终止特征",
+      "Step 3: 确认故障描述中的 'pod killed', 'forceful pod termination', 'container killed', 'pod eviction' 与 Pod 生命周期终止模式一致"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "请求比例异常，特别是 frontend 相关的调用链",
+        "instruction": "检查调用链数据中 frontend 到 cartservice 的请求比例是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error",
+        "expected_pattern": "客户端错误率异常升高",
+        "instruction": "检查 cartservice 的 client_error 和 client_error_ratio 指标是否在故障期间异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "error",
+        "expected_pattern": "错误率异常升高",
+        "instruction": "检查 cartservice 的 error 和 error_ratio 指标是否在故障期间异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "请求量异常变化",
+        "instruction": "检查 cartservice 的 request 和 response 指标是否在故障期间出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "进程数量归零或异常变化",
+        "instruction": "检查 cartservice 相关 Pod 的 pod_processes 指标是否在故障期间归零或异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "网络接收字节数归零",
+        "instruction": "检查 cartservice 相关 Pod 的 pod_network_receive_bytes 和 pod_network_receive_packets 是否在故障期间归零"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "网络发送字节数归零",
+        "instruction": "检查 cartservice 相关 Pod 的 pod_network_transmit_bytes 和 pod_network_transmit_packets 是否在故障期间归零"
+      }
+    ]
+  }
+}

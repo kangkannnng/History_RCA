@@ -116,7 +116,7 @@ if __name__ == "__main__":
             exit(1)
 
     try:
-        with open(args.result_path, 'r') as file:
+        with open(args.result_path, 'r', encoding='utf-8') as file:
             data = [json.loads(line.strip()) for line in file if line.strip()]
     except Exception as e:
         print(e)

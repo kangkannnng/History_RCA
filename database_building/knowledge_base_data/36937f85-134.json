@@ -1,0 +1,35 @@
+{
+  "uuid": "36937f85-134",
+  "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+  "symptom_vector": "High JVM latency leading to JVM response delay, elevated request latency, and slow JVM responses",
+  "expert_knowledge": {
+    "root_cause_desc": "Component adservice-1 experienced adservice-getRandomAds-latency, rrt, rrt_max fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is adservice-1 (From Ground Truth, instance field matches pod_name in raw_log_result).",
+      "Step 2: Check Observation - Found keyword adservice-getRandomAds-latency in Log (From GT key_observations, appears in raw_log_result as Byteman rule for AdService.getRandomAds() method).",
+      "Step 3: Check Observation - Found keyword invocationtargetexception in Log (From GT key_observations, appears in raw_log_result as java.lang.reflect.InvocationTargetException error).",
+      "Step 4: Check Observation - Found keyword transformlistener in Log (From GT key_observations, inferred from Transformer class logs in raw_log_result indicating transformation listener issues).",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is adservice-getRandomAds-latency, rrt, rrt_max (From Ground Truth key_metrics, supported by metric anomalies in raw_metric_result for rrt and rrt_max)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Byteman rule logs mentioning 'AdService-getRandomAds-latency-1749341416' for hipstershop.AdService.getRandomAds() method",
+        "instruction": "Search for keyword 'adservice-getRandomAds-latency' in log messages, specifically in adservice-1 pod logs"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Error log entry with 'java.lang.reflect.InvocationTargetException' in Attach Listener thread",
+        "instruction": "Search for keyword 'invocationtargetexception' in log messages from adservice-1 pod"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Transformer class logs such as 'org.jboss.byteman.agent.Transformer' indicating transformation listener or agent issues",
+        "instruction": "Search for keyword 'transformlistener' or related 'Transformer' in log messages from adservice-1 pod"
+      }
+    ]
+  }
+}

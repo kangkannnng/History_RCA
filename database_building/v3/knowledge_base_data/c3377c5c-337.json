@@ -1,0 +1,63 @@
+{
+  "uuid": "c3377c5c-337",
+  "fault_type": "network_corrupt",
+  "symptom_vector": "packet corruption and data corruption causing severe network performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend 和 adservice 之间的网络连接因数据包损坏导致 rrt_max 指标飙升90倍，出现大量超时错误",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 到 adservice 的调用链延迟异常激增，rrt_max 指标从正常5.5秒飙升至500秒（90倍增长）",
+      "Step 2: 分析 frontend 和 adservice 组件的网络指标显示异常，pod_network_receive_bytes 和 pod_network_transmit_bytes 等网络流量指标出现异常波动",
+      "Step 3: 确认日志中出现大量 'context deadline exceeded' 和 'failed to retrieve ads' 错误，trace数据中 frontend->adservice 调用出现1359次超时错误"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend->adservice",
+        "expected_pattern": "Severe latency anomalies with context deadline exceeded errors",
+        "instruction": "检查 frontend 到 adservice 的调用链是否存在严重的延迟异常和超时错误"
+      },
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Contains 'context deadline exceeded' error messages",
+        "instruction": "在 frontend 和 adservice 的日志中搜索 'deadlineexceeded' 关键词"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Contains RPC communication errors",
+        "instruction": "检查日志中是否存在 RPC 通信相关的错误信息"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Sudden spike from baseline (90x increase)",
+        "instruction": "检查 frontend 和 adservice 的 rrt_max 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Significant increase in response time",
+        "instruction": "分析 rrt 指标是否显著恶化"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Abnormal network traffic patterns",
+        "instruction": "检查 pod 网络接收字节数指标是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal network traffic patterns",
+        "instruction": "检查 pod 网络发送字节数指标是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "Increased client error rate",
+        "instruction": "检查客户端错误率指标是否上升"
+      }
+    ]
+  }
+}

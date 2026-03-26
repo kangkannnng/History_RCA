@@ -1,0 +1,40 @@
+{
+  "uuid": "8a7a8a00-85",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [frontend] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [frontend] (From Ground Truth instance list, and it is the specific name appearing in Full Context).",
+      "Step 2: Check Observation - Found keyword [frontend] and [latency_anomalies] in Trace data (From GT key_observations). The trace data shows `frontend->frontend` calls with extreme latency increases: GetProduct from ~11.2s to ~1778s (158x), ListProducts from ~1.97s to ~1753s (890x).",
+      "Step 3: Check Observation - Found keywords [rrt] and [rrt_max] in Metric data (From GT key_observations). The metric data shows `frontend` instances (frontend-0, frontend-1, frontend-2) have rrt and rrt_max values with change rates of 192-193% and 190-193% respectively.",
+      "Step 4: Derive Root Cause - Based on the above features (extreme self-call latency anomalies in frontend trace and significant rrt/rrt_max metric increases), the determined cause is the set of key metrics [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] indicating a network-related performance fault."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend, latency_anomalies",
+        "expected_pattern": "Trace entries where `service_name` is 'frontend' and `parent_pod` equals `child_pod` (indicating self-call) show `anomaly_avg_duration` vastly exceeding `normal_avg_duration` (e.g., 158x to 890x increase).",
+        "instruction": "Search for keyword 'frontend' in the `service_name` column of trace data and filter for rows where `parent_pod` equals `child_pod`. Verify the ratio between `anomaly_avg_duration` and `normal_avg_duration` is extremely high."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Metric rows where `service_name` is 'frontend' and `metric_name` is 'rrt' or 'rrt_max' show `median_change_ratio` and `p99_change_ratio` values significantly greater than 1 (e.g., ~1.92 to ~1.96).",
+        "instruction": "Search for keyword 'frontend' in the `service_name` column and keywords 'rrt' or 'rrt_max' in the `metric_name` column of the metric data. Check that the `median_change_ratio` and `p99_change_ratio` indicate a large increase."
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Although not explicitly listed in the provided metric data, the fault description and context imply anomalies in request/response patterns correlating with the rrt/rrt_max spikes.",
+        "instruction": "In a broader context, correlate the time window of rrt/rrt_max anomalies with request rate and response success rate metrics for the 'frontend' service."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network metric anomalies (e.g., spikes, drops, or unusual patterns) for pods belonging to the 'frontend' service, aligning with the fault time window.",
+        "instruction": "Search for network-related metrics for pods named 'frontend-0', 'frontend-1', 'frontend-2' during the fault time window to identify transmission/reception anomalies."
+      }
+    ]
+  }
+}

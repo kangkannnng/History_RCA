@@ -1,0 +1,63 @@
+{
+  "uuid": "5cb1626b-401",
+  "fault_type": "qps",
+  "symptom_vector": "pod crash with qps and grpc_qps anomalies, region_pending issues",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 组件因 Region 不可用导致数据库错误(Error 9005)，引起 qps 和 grpc_qps 异常下降以及 region_pending 指标恶化",
+    "reasoning_chain": [
+      "Step 1: 观察到 productcatalogservice 服务的日志中出现大量 'Error 9005 (HY000): Region is unavailable' 数据库错误，累计602次",
+      "Step 2: 分析 tidb-tikv 组件的 region_pending 指标异常，同时 tidb-pd 的 store_unhealth_count 从0升至0.5，显示存储层健康状态恶化",
+      "Step 3: 确认 productcatalogservice 服务的 rrt 指标从正常约7秒激增至1997万毫秒，性能下降超过4000倍，同时依赖它的上游服务出现连锁故障"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "failure|unavailable",
+        "expected_pattern": "包含 'failure' 或 'unavailable' 关键词的错误日志",
+        "instruction": "在 tidb-tikv 和 productcatalogservice 组件的日志中搜索包含 'failure' 或 'unavailable' 关键词的错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005",
+        "expected_pattern": "出现 'Error 9005 (HY000): Region is unavailable' 数据库错误",
+        "instruction": "检查 productcatalogservice 数据库查询日志中是否出现 'Error 9005 (HY000): Region is unavailable' 错误"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "grpc_qps 指标异常下降或波动",
+        "instruction": "检查 tidb-tikv 组件的 grpc_qps 指标是否存在异常下降或剧烈波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "qps 指标异常下降或波动",
+        "instruction": "检查 tidb-tikv 组件的 qps 指标是否存在异常下降或剧烈波动"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "region_pending 指标异常升高",
+        "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否出现异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "cpu_usage 指标异常变化",
+        "instruction": "检查 tidb-tikv 相关组件的 cpu_usage 指标是否存在异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "memory_usage 指标显著下降或异常波动",
+        "instruction": "检查 tidb-tidb 组件的 memory_usage 指标是否出现显著下降（从1022251008.0降至622221312.0）"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "productcatalogservice 服务延迟激增和请求比例异常",
+        "instruction": "分析 productcatalogservice 服务的调用链，检查是否存在延迟激增（rrt从10秒升至40秒）和请求比例异常"
+      }
+    ]
+  }
+}

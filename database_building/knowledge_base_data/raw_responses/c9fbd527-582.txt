@@ -1,0 +1,50 @@
+```json
+{
+    "uuid": "c9fbd527-582",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Client URL misconfiguration leading to code error and runtime panic in frontend service",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [frontend] experienced [pod_processes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [frontend] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [http.resp.status, 302] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [request, response] in Metric (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+            "Step 6: Derive Root Cause - Based on above features, determined cause is [pod_processes] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Trace data shows abnormal request proportions among frontend, productcatalogservice, and shippingservice",
+                "instruction": "Search for trace anomalies involving frontend, productcatalogservice, and shippingservice in trace data"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "HTTP response status code 302 appears in logs",
+                "instruction": "Search for keyword 'http.resp.status' with value '302' in log data"
+            },
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "Request and response metrics show anomalies",
+                "instruction": "Check metric data for request and response related anomalies"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Pod CPU usage metrics show abnormal patterns",
+                "instruction": "Search for metric 'pod_cpu_usage' in metric data"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Pod processes metric shows anomalies",
+                "instruction": "Search for metric 'pod_processes' in metric data - this is the key_metrics from Ground Truth"
+            }
+        ]
+    }
+}
+```

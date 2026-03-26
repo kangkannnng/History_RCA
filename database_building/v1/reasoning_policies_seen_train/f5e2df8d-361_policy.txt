@@ -1,0 +1,32 @@
+[Trigger]
+- Log anomaly pattern: Multiple services report database timeout errors with message "PD server timeout: start timestamp may fall behind safe point"
+- Metric anomaly pattern: Database memory usage drops significantly while failed query operations increase, alongside abnormal region count metrics
+- Trace anomaly pattern: Service-to-database calls show increased latency and timeout errors propagating upstream
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Consistent database timeout errors across multiple services - shows a common dependency failure rather than isolated service issues
+- Evidence 2: Database region health metrics showing abnormal counts - indicates distributed coordination problems at the infrastructure level
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Frontend services showing high error ratios - this is a consequence of database failures affecting business logic
+- Evidence 4: Individual pod resource usage fluctuations - these are symptoms rather than root causes in this context
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the consistent timeout errors across services that depend on the same database component, we suspect a coordination failure in the distributed database system that prevents proper transaction processing"
+
+Step 2: Verification or elimination
+"If this were caused by general network congestion or application-level bugs, we would expect more varied error patterns across services;
+However, actual observation shows identical timeout messages propagating from database to all dependent services;
+This rules out application code issues and points to a shared infrastructure problem"
+
+Step 3: Convergence to conclusion
+"The combination of timeout errors with specific coordination-related messages and the abnormal region health metrics indicates that the database's distributed coordination mechanism failed to maintain consistency, causing transaction processing to stall"
+
+[Conclusion]
+"The root cause is a failure in the distributed coordination layer that manages database consistency, preventing transaction timestamps from advancing properly and causing all dependent operations to timeout"
+
+[Next Action]
+- Verify whether coordination component instance availability matches the timing of metric anomalies
+- Check for correlation between region health state changes and the onset of timeout errors in logs

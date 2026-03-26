@@ -1,0 +1,63 @@
+{
+  "uuid": "53d5d618-289",
+  "fault_type": "rrt spike",
+  "symptom_vector": "High network latency, increased RRT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+  "expert_knowledge": {
+    "root_cause_desc": "由于网络攻击，导致 checkoutservice 与 cartservice 之间的网络通信发生严重延迟，具体表现为 rrt、rrt_max 等网络相关指标的异常飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice 和 cartservice 的 rrt 及 rrt_max 指标出现灾难性增长。例如 checkoutservice-2 的 rrt_max 从 103221ms 激增至 7626032ms (增长 19466%)，cartservice-0 的 rrt_max 从 7615ms 激增至 1341060ms (增长 19774%)。",
+      "Step 2: 分析 Trace 数据，发现从 frontend 调用 checkoutservice 的 PlaceOrder 操作延迟从 143518ms 激增至 7312706ms (51倍)，checkoutservice 内部的 CartService 操作延迟更是激增 202 倍，表明调用链末端的核心处理服务 checkoutservice 自身处理能力严重恶化。",
+      "Step 3: 确认 Log 中无具体错误日志，但大量 Metric 和 Trace 证据指向 checkoutservice 与 cartservice 之间极高的网络延迟，结合故障类型 'network delay' 和 'network attack' 的 Ground Truth，推断根本原因是网络攻击引发的 checkoutservice 和 cartservice 间的网络性能瓶颈。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "关键调用链（如 frontend->checkoutservice, checkoutservice->cartservice）的操作平均耗时出现数十倍至数百倍的异常增长。",
+        "instruction": "检查从 frontend 到 checkoutservice (如 PlaceOrder 操作) 以及 checkoutservice 到 cartservice (如 GetCart 操作) 的调用链，对比故障与正常时段的平均延迟，寻找数量级级别的异常激增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "指标的中位数或 P99 值较基线出现大幅度、急剧的上升（例如增长超过 1000%）。",
+        "instruction": "检查 checkoutservice 和 cartservice 各个实例的 rrt 指标，计算故障时段与正常时段的 median_change_ratio 或 p99_change_ratio，确认是否存在灾难性增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "指标的 P99 值或最大值出现极端峰值，变化率异常高。",
+        "instruction": "聚焦于 checkoutservice 和 cartservice 实例的 rrt_max 指标，分析其 p99_change_ratio，验证是否存在接近 2000% 的异常增长，表明存在严重的网络或处理延迟上限事件。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "内存使用量可能出现异常波动，但在此次故障中可能并非主导因素。",
+        "instruction": "检查 checkoutservice 和 cartservice 实例的内存使用量变化，评估是否因网络延迟导致请求积压进而引发内存增长，或是否存在内存泄漏的辅助证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "网络接收字节数可能出现异常模式（如暴增或骤降），暗示网络攻击或异常流量。",
+        "instruction": "分析 checkoutservice 和 cartservice 实例在故障时间窗口内的网络接收流量，寻找与基线相比的剧烈变化，以佐证网络攻击或异常网络行为的存在。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets",
+        "expected_pattern": "网络接收数据包数量出现异常。",
+        "instruction": "检查 checkoutservice 和 cartservice 实例的网络接收包速率，确认是否与字节数指标有类似的异常模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "网络发送字节数出现异常模式。",
+        "instruction": "检查 checkoutservice 和 cartservice 实例的网络发送流量，分析其变化趋势是否与接收流量或延迟指标的恶化相关联。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets",
+        "expected_pattern": "网络发送数据包数量出现异常。",
+        "instruction": "检查 checkoutservice 和 cartservice 实例的网络发送包速率，作为网络活动异常的补充证据。"
+      }
+    ]
+  }
+}

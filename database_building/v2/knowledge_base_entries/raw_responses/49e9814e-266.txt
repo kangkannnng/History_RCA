@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "49e9814e-266",
+    "fault_type": "latency_and_error_network",
+    "symptom_vector": "High latency spike (1000x increase in rrt) and increased 5xx error rate on frontend service; severe tail latency increase (P99 rrt) on cartservice.",
+    "expert_knowledge": {
+        "root_cause_desc": "网络数据包损坏导致关键服务（frontend, cartservice）的响应时间异常飙升和错误率上升。",
+        "reasoning_chain": [
+            "Step 1: 观察到在故障时间段内，所有 frontend 实例的响应时间 (rrt) 从约10秒（10k ms）剧增至超过1000万秒（10M+ ms），同时伴随 server_error_ratio 从0%飙升至20%以上。这表明用户直接访问的服务出现了严重的性能衰退和可用性问题。",
+            "Step 2: 分析关键下游服务 cartservice，发现其实例（如cartservice-1）的 P99响应时间 (rrt P99) 从正常的3511.12 ms激增至超过600万 ms (6178888.08 ms)，变化率高达199.77%，而中位数响应时间变化不大。这种模式表明cartservice出现了严重的尾部延迟异常，可能是网络问题或间歇性故障的典型特征。",
+            "Step 3: 综合 frontend 的高延迟高错误，以及其直接依赖项 cartservice 的严重尾部延迟，结合故障描述中提到的'packet corruption'、'data corruption'等特征，确认故障模式符合网络层数据包损坏导致的级联性能问题，主要影响 frontend 和 cartservice 组件。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "frontend.rrt, frontend.server_error_ratio",
+                "expected_pattern": "Sudden and extreme spike (e.g., 1000x increase) in rrt coinciding with a sharp rise in server_error_ratio (from 0% to >15%).",
+                "instruction": "检查所有 frontend 实例的响应时间(rrt)和服务器错误率(server_error_ratio)指标。关注它们是否在故障窗口内同时发生数量级的跃升，这是用户侧体验到故障的直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "cartservice.rrt (P99), cartservice.rrt_max",
+                "expected_pattern": "Significant increase in P99 response time (rrt) while median may remain relatively stable, and/or a spike in rrt_max.",
+                "instruction": "检查 cartservice 实例的响应时间分布，特别是 P99 分位数(rrt)和最大响应时间(rrt_max)。寻找尾部延迟急剧恶化的模式，这可能指示下游网络或存储的不稳定。"
+            }
+        ]
+    }
+}
+```

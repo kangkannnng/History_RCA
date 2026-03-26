@@ -1,0 +1,27 @@
+{
+  "uuid": "bd9203a8-568",
+  "fault_type": "Performance Degradation/Latency",
+  "symptom_vector": "Severe latency spike in cartservice and checkoutservice operations, particularly affecting the checkout flow.",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice的RRT（Round-Trip Time）指标异常飙升，引发从cartservice到checkoutservice的级联延迟，最终导致结账流程性能严重下降。",
+    "reasoning_chain": [
+      "Step 1: 通过分析Metric数据，观察到cartservice所有实例（cartservice-0, cartservice-1, cartservice-2）的`rrt_max`与`rrt`指标均出现剧烈增长，变化率（Change Rate）接近2.0，例如cartservice-0的`rrt_max`从4641.0激增至2134533.0。这表明cartservice服务本身出现了严重的性能退化，是潜在的根因。",
+      "Step 2: 结合Trace数据分析，发现调用链中CartService相关操作（如EmptyCart/GetCart）的延迟从正常的1.8-8.4秒增加至约5.9秒，延迟倍数达3-7倍。同时，上游的CheckoutService/PlaceOrder操作延迟从正常的143-156毫秒飙升至11.9-12.0秒，延迟倍数高达80倍以上，且其下游调用包含了CartService。这证实了cartservice的性能问题向上游传播，造成了级联影响。",
+      "Step 3: 综合Metric与Trace的证据，确认cartservice是所有异常延迟的源头。其严重的RRT指标异常直接导致了依赖它的checkoutservice操作超时，进而影响了整个结账流程。虽然redis等下游依赖也有轻微延迟，但变化幅度远小于cartservice，因此判定cartservice的性能问题是本次故障的核心根因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt_max, rrt",
+        "expected_pattern": "Sudden and extreme spike (e.g., change rate > 1.9, values increase by orders of magnitude)",
+        "instruction": "检查cartservice及其相关服务（如checkoutservice, frontend）的rrt_max和rrt指标。寻找在故障时间段内，这些指标是否出现急剧飙升，变化率是否异常高（例如>1.5）。重点关注所有cartservice实例的指标是否同时恶化。"
+      },
+      {
+        "modality": "Trace",
+        "target": "CartService/EmptyCart, CartService/GetCart, CheckoutService/PlaceOrder",
+        "expected_pattern": "Significant increase in operation latency (e.g., 3-80x normal duration), forming a cascade delay pattern from cartservice to upstream services.",
+        "instruction": "分析涉及CartService操作（如EmptyCart, GetCart）和CheckoutService的PlaceOrder操作的调用链追踪数据。比较异常与正常时间段的平均延迟，确认是否存在数倍至数十倍的延迟增长。检查调用链路，确认延迟是否从cartservice向上游（checkoutservice, frontend）传播。"
+      }
+    ]
+  }
+}

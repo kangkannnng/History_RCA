@@ -1,0 +1,27 @@
+{
+  "uuid": "b1ab098d-83",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06 节点因 node_memory_usage_rate 指标异常飙升导致内存压力故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-06 节点的 node_memory_usage_rate 指标 P99 值从正常 23.28% 飙升至故障 57.99%，变化率 85.41%",
+      "Step 2: 分析 aiops-k8s-06 节点的 node_cpu_usage_rate 指标 P99 值也从 30.21% 上升至 38.43%，变化率 23.93%，显示节点资源压力",
+      "Step 3: 确认该节点上运行的 productcatalogservice-1、emailservice-2、checkoutservice-2、productcatalogservice-0 等 Pod 可能受到内存压力影响"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "P99 value significant increase from baseline (23.28% to 57.99%)",
+        "instruction": "检查 aiops-k8s-06 节点的 node_memory_usage_rate 指标 P99 值是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Available memory decrease indicating memory pressure",
+        "instruction": "检查 aiops-k8s-06 节点的可用内存指标是否显著减少"
+      }
+    ]
+  }
+}

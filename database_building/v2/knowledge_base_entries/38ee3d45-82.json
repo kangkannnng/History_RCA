@@ -1,0 +1,33 @@
+{
+  "uuid": "38ee3d45-82",
+  "fault_type": "Error Ratio Anomaly",
+  "symptom_vector": "RPC call failures due to connection refusal on a specific port (7070), cascading HTTP 500 errors on frontend services, and elevated response time (rrt_max) for the failing component.",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 服务端口连接拒绝，导致依赖它的上游服务出现级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在故障时间段的日志数据中，观察到来自多个 frontend 实例 (frontend-0, frontend-1, frontend-2) 的错误日志，核心错误信息高度一致，均为 'transport: Error while dialing dial tcp 10.233.46.196:7070: connect: connection refused'。这表明所有 frontend 实例均无法连接到 cartservice 的 7070 端口，是端口级别的连接问题，而非应用逻辑错误。",
+      "Step 2: 分析指标数据，发现 cartservice 多个实例的 rrt_max (最大响应时间) 和 error_ratio (错误率) 在故障时段出现显著异常。例如，cartservice-2 的 rrt_max 从 3388 变为 3514，且其 error_ratio 的 P99 值变化率 (p99_change_ratio) 达到 2.0。同时，所有 frontend 实例的 error_ratio 从 0% 飙升至约 28%。这证实了连接失败已转化为可观测的服务指标恶化。",
+      "Step 3: 通过追踪数据分析，确认了故障的传播链。状态组合表 (status_combinations) 显示大量 frontend->cartservice 的调用 (如 GetCart, AddItem) 失败，状态码为 14，消息正是上述连接拒绝错误，总计出现高达 2346 次。这进一步导致 checkoutservice 调用 cartservice 失败，以及 frontend 对外返回 HTTP 500 错误 (状态码 13)。数据清晰地展示了从 cartservice 不可用到前端用户体验受损的完整因果链条。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "cartservice, frontend",
+        "expected_pattern": "Contains 'connection refused' AND 'Error while dialing' AND specific port (e.g., :7070)",
+        "instruction": "检查故障时间段内，frontend 及可能相关的服务日志中，是否出现包含 'connection refused'、'Error while dialing' 以及具体 IP:Port (如 10.233.46.196:7070) 的错误信息。这是端口连接失败的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio, client_error_ratio, rrt_max",
+        "expected_pattern": "Sudden spike from near-zero baseline, co-occurring across related services (e.g., cartservice and its callers like frontend).",
+        "instruction": "监控 cartservice 及其直接调用者 (如 frontend) 的 error_ratio 和 client_error_ratio 指标。如果观察到这些指标从接近 0% 的水平突然飙升，且 cartservice 的 rrt_max 同时出现显著变化，则强烈暗示 cartservice 自身或其网络连通性存在问题。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Call status codes and messages for operations like 'GetCart', 'AddItem' from frontend/checkoutservice to cartservice.",
+        "expected_pattern": "High frequency of status code 14 ('Unavailable') with detailed error messages pointing to connection failures on a specific port.",
+        "instruction": "分析前端服务 (frontend) 或业务流程服务 (如 checkoutservice) 到 cartservice 的调用链。重点查看调用状态码为 14 的 span，其详细错误消息应明确包含 'connection refused' 和具体的连接地址，这能精确定位失败的服务端点。"
+      }
+    ]
+  }
+}

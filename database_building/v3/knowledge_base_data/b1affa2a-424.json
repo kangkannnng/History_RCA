@@ -1,0 +1,33 @@
+{
+  "uuid": "b1affa2a-424",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion with high memory usage and memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点因 node_memory_usage_rate 异常变化导致内存压力，影响运行在该节点上的 redis-cart-0 服务性能",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-08 节点的 node_memory_usage_rate 从正常中位数 73.51% 下降到 64.65%，同时 node_memory_MemAvailable_bytes 从 7.9GB 增加到 10.9GB，变化率 31.78%",
+      "Step 2: 分析 aiops-k8s-08 节点上运行的 redis-cart-0 pod，发现其依赖的 Redis HGET 操作延迟显著增加（从 1771ms 增加到 17504ms，9.9倍）",
+      "Step 3: 确认节点内存使用率异常下降与可用内存增加表明可能存在内存压力导致的 Pod 重启或资源重新分配，进而影响 redis-cart 服务性能"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Significant decrease from baseline (73.51% → 64.65%)",
+        "instruction": "检查 aiops-k8s-08 节点的 node_memory_usage_rate 指标是否出现异常下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Significant increase from baseline (7.9GB → 10.9GB)",
+        "instruction": "检查 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 指标是否异常增加"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status,302",
+        "expected_pattern": "HTTP response status code 302",
+        "instruction": "在相关日志中搜索 http.resp.status 和 302 关键词"
+      }
+    ]
+  }
+}

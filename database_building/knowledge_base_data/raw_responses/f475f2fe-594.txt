@@ -1,0 +1,46 @@
+{    "uuid": "f475f2fe-594",
+    "fault_type": "region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io fault",
+    "symptom_vector": "IO fault manifesting as filesystem call errors, read operation errors, write operation errors, permission denied errors, and file descriptor errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field, and it appears in Full Context metric data as 'tidb-tikv').",
+            "Step 2: Check Observation - Found keyword [region_pending] in Metric data with abnormal change rate of 174.63% (From GT key_observations and Full Context: 'region_pending from normal median 10603.5 to fault median 718.0, change rate 174.63%').",
+            "Step 3: Check Observation - Found keyword [io_util] in Metric data for tidb-tikv (From GT key_observations and Full Context: 'io_util metric listed for tidb-tikv with values 0.0,0.0,0.41,0.21,0.0,0.6511').",
+            "Step 4: Check Observation - Found keyword [cpu_usage] in Metric data showing 25% increase (From GT key_observations and Full Context: 'cpu_usage from 0.07 to 0.09, change rate 25%').",
+            "Step 5: Derive Root Cause - Based on above features, determined cause is [region_pending, io_util, raft_apply_wait, memory_usage, cpu_usage, tidb, io] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "io_util metric for tidb-tikv shows anomaly with change ratio data in Full Context.",
+                "instruction": "Search for keyword 'io_util' in metric data specifically for tidb-tikv component."
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "region_pending metric has significant median change rate of 174.63% for tidb-tikv, as per Full Context metric data.",
+                "instruction": "Check region_pending metric values and change rates for tidb-tikv in the anomaly metrics list."
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "raft_apply_wait metric not directly observed in provided Full Context data, but expected to indicate delays per Ground Truth.",
+                "instruction": "Look for raft_apply_wait keyword in TiKV-specific metric sources or logs."
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Memory usage anomaly for tidb-tikv not explicitly captured in current metric data, but implied by fault description.",
+                "instruction": "Monitor memory usage metrics (e.g., pod_memory_usage) for tidb-tikv pods if available."
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "cpu_usage metric for tidb-tikv increased by 25%, as shown in Full Context metric data.",
+                "instruction": "Search for cpu_usage metric in tidb-tikv data within the anomaly metrics."
+            }
+        ]
+    }
+}

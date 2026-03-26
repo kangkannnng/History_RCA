@@ -1,0 +1,33 @@
+{
+  "uuid": "8440ee17-580",
+  "fault_type": "metric",
+  "symptom_vector": "service errors (500) and call failures in upstream services",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice端口配置错误导致其他服务连接被拒绝",
+    "reasoning_chain": [
+      "Step 1: 观察到表层症状为前端服务（frontend）出现大量HTTP 500错误和RPC调用失败。",
+      "Step 2: 分析日志发现，所有失败都指向同一个核心调用链路：连接shippingservice的特定IP端口（10.233.27.213:50051）时出现‘connection refused’错误。这表明下游服务（shippingservice）无法被正常访问。",
+      "Step 3: 结合指标数据确认，所有shippingservice实例的客户端错误率p99值都异常飙升（如48.0, 38.4, 47.5），且追踪数据显示所有发往ShippingService/GetQuote的调用均失败。这证明问题非单个实例故障，而是shippingservice服务整体存在网络可达性或端口监听问题，最终定位为端口配置错误。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused",
+        "expected_pattern": "Contains error",
+        "instruction": "在前端服务（frontend）的日志中搜索‘connection refused’或‘Error while dialing’关键词，确认调用下游服务（特别是shippingservice）时是否存在连接被拒绝的错误。注意错误信息中是否包含特定的IP和端口号（如10.233.27.213:50051），这有助于定位目标服务。"
+      },
+      {
+        "modality": "Metric",
+        "target": "shippingservice:error_ratio",
+        "expected_pattern": "Sudden spike",
+        "instruction": "检查shippingservice服务及其所有Pod实例（如shippingservice-0, shippingservice-1）的错误率指标（error_ratio或client_error_ratio），特别是p99等高百分位数，观察是否有所有实例同时出现错误率异常飙升的情况。这种全局性的错误率升高指向服务级别的配置或网络问题。"
+      },
+      {
+        "modality": "Trace",
+        "target": "ShippingService/GetQuote",
+        "expected_pattern": "Call failures with specific status code",
+        "instruction": "在分布式追踪数据中，筛选出对ShippingService/GetQuote接口的所有调用。检查其状态码（如14对应Unavailable），观察是否大量调用失败，且失败原因是否为连接错误。这可以验证从调用方视角确认服务不可用。"
+      }
+    ]
+  }
+}

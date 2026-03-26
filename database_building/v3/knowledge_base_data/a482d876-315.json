@@ -1,0 +1,33 @@
+{
+  "uuid": "a482d876-315",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "high CPU utilization and CPU saturation with response time degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice 组件的所有 Pod 因 pod_cpu_usage 飙升和 pod_processes 激增导致 CPU 过载和响应时间恶化",
+    "reasoning_chain": [
+      "Step 1: 观察到 shippingservice-0、shippingservice-1、shippingservice-2 的 pod_cpu_usage 指标从 0.0 上升到 0.4（变化率 2.0），表明 CPU 使用率异常飙升",
+      "Step 2: 分析 shippingservice 所有 Pod 的 pod_processes 指标从 1.0 激增到 9.0（变化率 1.6），表明进程数量异常增加",
+      "Step 3: 确认 shippingservice 的 rrt_max 响应时间从 1868-3030ms 恶化到 57862-93939ms（最高达93秒），服务性能严重下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase from baseline (0.0→0.4 with change rate 2.0)",
+        "instruction": "检查 shippingservice 所有 Pod 的 pod_cpu_usage 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormal process count surge (1.0→9.0 with change rate 1.6)",
+        "instruction": "检查 shippingservice 所有 Pod 的 pod_processes 指标是否激增"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Severe response time degradation (up to 93 seconds)",
+        "instruction": "检查 shippingservice 服务的 rrt_max 指标是否严重恶化"
+      }
+    ]
+  }
+}

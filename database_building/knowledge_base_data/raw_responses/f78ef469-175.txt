@@ -1,0 +1,28 @@
+{
+    "uuid": "f78ef469-175",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, saturation, high usage, leak, or stress leading to performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-01] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-01] (From Ground Truth). In Full Context, aiops-k8s-01 is listed in metric anomalies and node_pod_mapping.",
+            "Step 2: Check Observation - For key_observations, search for keyword [node_disk_read_bytes_total] in metric data to detect disk activity indicative of memory stress. In Full Context, this keyword was not explicitly found in the provided metric analysis, but the rule requires checking for it in raw metric data.",
+            "Step 3: Check Observation - For key_observations, search for keyword [node_disk_read_time_seconds_total] in metric data. Similar to Step 2, not found in Full Context, but essential for rule construction.",
+            "Step 4: Derive Root Cause - Based on Ground Truth, if component is aiops-k8s-01 and key_observations (disk metrics) show abnormalities, infer the root cause as [node_memory_usage_rate] fault. In this session, node_memory_usage_rate for aiops-k8s-01 showed changes: normal_median 40.88, fault_median 35.28, p99 change rate 0.3519, supporting memory usage anomaly."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "Abnormal increase in disk read bytes, potentially indicating swapping due to memory pressure. In Full Context, this metric was not listed in available_metric_names or anomaly_metrics, but for rule construction, expect it to show elevated values during memory stress.",
+                "instruction": "Search for metric [node_disk_read_bytes_total] in the raw metric data for node aiops-k8s-01 during the fault period (2025-06-09T17:10:03Z to 2025-06-09T17:22:03Z)."
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_time_seconds_total",
+                "expected_pattern": "Increase in disk read time, correlating with high memory usage and possible swapping. Not observed in Full Context, but rule expects it to be present in metric data as evidence.",
+                "instruction": "Search for metric [node_disk_read_time_seconds_total] in the raw metric data for node aiops-k8s-01 during the fault period."
+            }
+        ]
+    }
+}

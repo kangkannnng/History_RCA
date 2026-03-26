@@ -1,0 +1,58 @@
+```json
+{
+    "uuid": "84f4b04a-283",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "High memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [currencyservice] experienced [pod_memory_working_set_bytes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [currencyservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [Connection, refused] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [could, not, load] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [unavailable] in Log (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric (From GT key_observations)",
+            "Step 8: Derive Root Cause - Based on above features, determined cause is [pod_memory_working_set_bytes] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection refused",
+                "expected_pattern": "Multiple frontend instances reporting 'transport: Error while dialing dial tcp 10.233.39.78:7000: connect: connection refused' errors when trying to reach currencyservice",
+                "instruction": "Search for keyword 'connection refused' in logs, specifically looking for errors connecting to currencyservice on port 7000"
+            },
+            {
+                "modality": "Log",
+                "target": "could not load",
+                "expected_pattern": "PluginLoader#load: could not load plugin @opentelemetry/plugin-grpc-js of module @grpc/grpc-js. Error: Cannot find module '@opentelemetry/plugin-grpc-js' in currencyservice pods",
+                "instruction": "Search for keyword 'could not load' in currencyservice logs to identify module loading failures"
+            },
+            {
+                "modality": "Log",
+                "target": "Error while dialing",
+                "expected_pattern": "'transport: Error while dialing dial tcp 10.233.39.78:7000: connect: connection refused' errors in frontend logs",
+                "instruction": "Search for keyword 'Error while dialing' in logs to identify connection failures to currencyservice"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "rpc error: code = Unavailable desc = connection error in frontend logs when calling currencyservice",
+                "instruction": "Search for keyword 'unavailable' in logs to identify service unavailability errors"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "pod_processes metric changes from 1.0 to 2.0 for currencyservice-0 and other currencyservice instances, indicating process restarts",
+                "instruction": "Check if metric [pod_processes] shows changes (from 1.0 to 2.0) for currencyservice pods during fault period"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Memory usage metric showing abnormal increase for currencyservice pods",
+                "instruction": "Check if metric [pod_memory_working_set_bytes] shows abnormal values for currencyservice pods during fault period"
+            }
+        ]
+    }
+}
+```

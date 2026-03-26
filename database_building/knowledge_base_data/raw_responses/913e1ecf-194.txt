@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "913e1ecf-194",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "Node disk full, high disk utilization, disk space exhaustion, disk saturation",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-01] experienced [node_filesystem_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-01] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [node_filesystem_usage_rate] in Metric data with significant increase (From GT key_observations)",
+            "Step 3: Derive Root Cause - Based on above features, determined cause is [node_filesystem_usage_rate] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Metric value increased from 50.98% to 71.43% (33.41% change rate) for node aiops-k8s-01",
+                "instruction": "Search for metric [node_filesystem_usage_rate] in metric data and check if it shows abnormal increase for node aiops-k8s-01"
+            }
+        ]
+    }
+}
+```

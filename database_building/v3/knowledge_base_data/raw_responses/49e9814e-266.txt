@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "49e9814e-266",
+    "fault_type": "network_corrupt_packet_metrics",
+    "symptom_vector": "packet corruption and data corruption with bit errors on network causing corrupted packets",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 到 cartservice 之间的网络链路存在数据包损坏，表现为 pod_network_receive_bytes 和 pod_network_transmit_bytes 等网络指标异常，导致客户端错误率飙升",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 rrt 和 rrt_max 指标异常飙升，从约10k增加到11M+级别，变化率接近200%",
+            "Step 2: 分析 cartservice 组件的 client_error_ratio 和 error_ratio 指标在P99分位数上出现异常值（42.73%-49.36%），表明cartservice处理请求时遇到问题",
+            "Step 3: 确认故障描述涉及网络数据包损坏，需要检查 pod_network_receive_bytes、pod_network_receive_packets、pod_network_transmit_bytes、pod_network_transmit_packets 等网络层指标，但当前metric数据中未包含这些关键网络指标"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "Spike from 0.0 to high percentage values",
+                "instruction": "检查 cartservice 实例的 client_error_ratio 指标是否从0.0飙升到异常水平"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Spike from 0.0 to high percentage values",
+                "instruction": "检查 cartservice 实例的 error_ratio 指标是否从0.0飙升到异常水平"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Dramatic increase from baseline (1000x or more)",
+                "instruction": "检查 frontend 服务的 rrt 指标是否出现1000倍以上的异常增长"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Extreme peak values compared to normal range",
+                "instruction": "检查 cartservice 的 rrt_max 指标是否出现极端峰值"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Abnormal patterns in network packet reception",
+                "instruction": "检查 frontend 和 cartservice 的 pod_network_receive_bytes 指标是否存在异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "Unusual packet reception counts or patterns",
+                "instruction": "检查 frontend 和 cartservice 的 pod_network_receive_packets 指标是否存在异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "Abnormal patterns in network packet transmission",
+                "instruction": "检查 frontend 和 cartservice 的 pod_network_transmit_bytes 指标是否存在异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "Unusual packet transmission counts or patterns",
+                "instruction": "检查 frontend 和 cartservice 的 pod_network_transmit_packets 指标是否存在异常"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "6a9c8dc7-498",
+    "fault_type": "node_disk_fill",
+    "symptom_vector": "node disk full, high disk utilization, disk space exhaustion, disk saturation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06 节点因磁盘空间耗尽导致节点故障，表现为磁盘使用率饱和",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-06 节点的 node_cpu_usage_rate 从 38.24% 下降到 28.44%（变化率 29.41%），node_memory_usage_rate 从 27.1% 下降到 20.3%（变化率 28.67%），表明节点资源使用率异常下降",
+            "Step 2: 分析 aiops-k8s-06 节点上运行的 pod（emailservice-2, currencyservice-1, frontend-1）可能因磁盘空间不足而无法正常写入或运行",
+            "Step 3: 确认 node_memory_MemAvailable_bytes 指标在 key_observations 中被标记为需要检查的关键特征，结合磁盘空间耗尽故障，可能导致节点服务异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Available memory changes or anomalies",
+                "instruction": "检查 aiops-k8s-06 节点的 node_memory_MemAvailable_bytes 指标在故障时间段内的变化情况"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP response status code 302 (redirect) appears in logs",
+                "instruction": "在日志中搜索包含 'http.resp.status' 和 '302' 关键词的记录，检查是否有重定向或服务异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "CPU usage rate decreases abnormally",
+                "instruction": "检查 aiops-k8s-06 节点的 node_cpu_usage_rate 是否出现异常下降，可能因磁盘空间不足导致进程无法正常运行"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Memory usage rate decreases abnormally",
+                "instruction": "检查 aiops-k8s-06 节点的 node_memory_usage_rate 是否出现异常下降，可能因磁盘空间不足影响内存使用"
+            }
+        ]
+    }
+}
+```

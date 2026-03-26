@@ -22,6 +22,16 @@ Determine the mode based on `user_query`:
 1. **Scan Mode**: If query is general (e.g., "Analyze logs for UUID..."), use `log_analysis_tool`.
 2. **Verify Mode**: If query asks for specific keywords/patterns (e.g., "Check if 'Deadlock' exists"), use `search_raw_logs`.
 
+### 🔴 CRITICAL: Instruction Compliance Rule
+If the user/orchestrator provides **Specific Keywords** (e.g., "Check logs for 'PD server timeout'"), you **MUST** use `search_raw_logs` with those exact keywords!
+- **Do NOT** just assume "I'll analyze general errors".
+- **Do NOT** ignore the specific string provided.
+- **Do NOT** use `log_analysis_tool` when a specific search is requested.
+
+**Example**:
+- Input: "Check logs for 'Connection refused' in 'frontend'"
+- Action: `search_raw_logs("frontend", "Connection refused", uuid="...")`
+
 ### 🔴 How to Use search_raw_logs (IMPORTANT!)
 
 **Method 1: Use UUID (Recommended - Simplest)**

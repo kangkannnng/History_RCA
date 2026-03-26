@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "68727566-367",
+    "fault_type": "port",
+    "symptom_vector": "Frontend service error_ratio spiked, HTTP 500 errors occurred, and downstream RPC calls failed due to connection refused.",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice的端口配置错误导致服务无法访问，引发上游服务调用失败。",
+        "reasoning_chain": [
+            "Step 1: 从日志数据中观察到，故障期间所有 frontend 实例（frontend-0, frontend-1, frontend-2）均报告相同错误：`transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused`。这表明一个服务（IP为10.233.55.4，端口50051）无法访问。根据微服务架构上下文，此IP和端口极有可能对应 `paymentservice`。",
+            "Step 2: 从链路追踪（Trace）数据中进一步确认，在故障时间段内，`checkoutservice->paymentservice` 的调用大量失败（81次），失败原因为状态码 `14` 和错误信息 `connection refused`。这明确了调用关系链：frontend -> checkoutservice -> paymentservice，并证实了 `paymentservice` 是完全不可达的端点。",
+            "Step 3: 从指标（Metric）数据中发现，`frontend` 服务的 `error_ratio` 和 `server_error_ratio` 在故障期间从0突增至0.27-0.31，这与 `frontend` 日志和 `checkoutservice` 链路中报告的支付失败错误（最终导致HTTP 500）直接吻合，是 `paymentservice` 不可用的直接下游影响表现。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "frontend, paymentservice, connection refused, dial tcp",
+                "expected_pattern": "Contains error: \"dial tcp <IP>:<PORT>: connect: connection refused\"，且IP地址指向支付服务。",
+                "instruction": "在 frontend、checkoutservice 或 paymentservice 的日志中，搜索关键词 'connection refused' 和 'dial tcp'，定位无法连接的具体目标地址（IP:Port）。确认该地址是否是 paymentservice 的预期服务端点。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->paymentservice calls, status_code 14",
+                "expected_pattern": "在 checkoutservice 调用 paymentservice 的链路中，出现高频失败（例如，>80次），且状态码为 14 或描述包含 'connection refused'。",
+                "instruction": "分析追踪数据，重点关注从 checkoutservice 到 paymentservice 的调用链路（operation_name 如 'hipstershop.PaymentService/Charge'）。筛选状态码为 14 (UNAVAILABLE) 或错误信息包含 'connection refused' 的调用，统计其数量以确认影响范围。"
+            },
+            {
+                "modality": "Metric",
+                "target": "frontend.error_ratio, frontend.server_error_ratio",
+                "expected_pattern": "Sudden spike from near-zero baseline (e.g., from 0.0 to >0.25)，且所有 frontend 实例同时出现此现象。",
+                "instruction": "检查所有 frontend 服务实例的 `error_ratio` 和 `server_error_ratio` 指标在故障时间窗口内是否有显著突增。这是由下游支付失败向上传播导致的直接服务降级指标。"
+            }
+        ]
+    }
+}
+```

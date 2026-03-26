@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Exception logs indicating failure in agent startup and rule injection processes within a specific service, with repeated invocation errors and transformation listener issues.
+- Metric anomaly pattern: Elevated resource consumption in a storage pod, with CPU usage at the P99 percentile increasing significantly, accompanied by heightened response times across multiple dependent services.
+- Trace anomaly pattern: Drastic latency spikes in data retrieval operations from a key storage component, with operation durations increasing over twentyfold, affecting upstream service calls.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Storage pod CPU usage surge at the P99 level - this indicates resource saturation that can bottleneck critical data operations.
+- Evidence 2: Latency explosion in specific data retrieval operations from the same storage component - directly links resource constraints to performance degradation.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Isolated exception logs in an unrelated service component - these show internal processing errors but lack correlation with system-wide metrics or trace anomalies, suggesting a separate issue.
+- Evidence 4: Response time increases in various downstream services - these align with the primary latency spikes and are consistent with cascading effects from the storage bottleneck.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the concurrent spike in storage pod CPU usage and severe latency in data retrieval operations, we suspect a resource bottleneck in the storage layer impeding data access."
+
+Step 2: Verification or elimination
+"If this were caused by the service with exception logs, we would expect error patterns confined to that service's metrics and traces; however, actual observation shows widespread performance issues across multiple components, with no corresponding metric anomalies in that service. This rules out the isolated logging errors as the primary driver."
+
+Step 3: Convergence to conclusion
+"The combination of direct resource saturation evidence in the storage pod and the proportional latency increase in dependent operations indicates that the root cause is the storage component's inability to process requests efficiently under load."
+
+[Conclusion]
+"The root cause is a data storage component experiencing CPU saturation, leading to prolonged data retrieval times that propagate delays through the system, degrading overall performance."
+
+[Next Action]
+- Verify whether the CPU usage pattern aligns with historical load trends or recent changes in data access patterns.
+- Check for similar latency correlations in other operations that depend on the same storage component to confirm the scope of impact.

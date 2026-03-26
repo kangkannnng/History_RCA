@@ -1,0 +1,32 @@
+[Trigger]
+- Log anomaly pattern: Multiple frontend instances report "context canceled" errors with RPC failure messages when calling the cart checkout endpoint
+- Metric anomaly pattern: All frontend instances show dramatic increases in request round-trip time and maximum latency, while one specific downstream service instance shows elevated CPU utilization
+- Trace anomaly pattern: Trace data was unavailable, but the log pattern suggests broken downstream call chains
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Consistent log messages across multiple frontend instances showing "rpc error: code = Canceled desc = context canceled" specifically during checkout operations - why this matters for causality: This pattern indicates the calling service is timing out while waiting for a downstream dependency, pointing to performance issues in the called service rather than the caller
+- Evidence 2: Elevated CPU utilization on a specific instance of the downstream checkout service during the anomaly period - why this matters for causality: Resource contention on the downstream service directly explains why it cannot process requests within expected timeframes, causing upstream timeouts
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Significant latency increases across all frontend instances - why this is a consequence not cause: These latency spikes are the direct result of waiting for the unresponsive downstream service, not the originating problem
+- Evidence 4: Error ratio increases in other services like shipping service - why this can be deprioritized: These appear to be secondary effects or unrelated coincidences since the primary error pattern and resource issue are concentrated around the checkout flow
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given that multiple frontend instances consistently report canceled context errors specifically when calling the checkout endpoint, we suspect the downstream service responsible for checkout processing is experiencing performance degradation that prevents timely response completion."
+
+Step 2: Verification or elimination
+"If this were caused by frontend service instability or resource constraints, we would expect to see broader error patterns across different endpoints and internal frontend metrics showing resource exhaustion;
+However, actual observation shows errors concentrated only on checkout calls and frontend resource metrics remain normal while checkout service CPU shows abnormal utilization;
+This rules out frontend service as the root cause and points to downstream dependency issues."
+
+Step 3: Convergence to conclusion
+"The combination of contextual timeout errors from callers and elevated resource consumption on the called service indicates a performance bottleneck in the downstream service where processing demands exceed available capacity, causing request timeouts that propagate upstream through the call chain."
+
+[Conclusion]
+"The root cause is performance degradation in the downstream service handling checkout requests, where increased processing demands led to resource saturation, preventing timely request completion and causing upstream callers to experience timeout failures."
+
+[Next Action]
+- "Verify whether additional instances of the downstream service show similar resource patterns"
+- "Check for queued or stalled requests in the downstream service's internal metrics"

@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "238afe01-573",
+    "fault_type": "server_error_ratio",
+    "symptom_vector": "DNS lookup failure causing cartservice unavailability, leading to checkoutservice error ratio spike and frontend cascade failure",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-0 因 cartservice 的 DNS 解析故障（server misbehaving 错误）导致 server_error_ratio 和 error_ratio 飙升及 rrt_max 激增",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice-0 的 server_error_ratio 和 error_ratio 指标从 0% 飙升至 88.89%，同时 rrt_max 指标从 101677ms 激增至 2236568ms，表明该服务出现严重错误和性能阻塞。",
+            "Step 2: 分析 Trace 数据，发现 checkoutservice-0 调用 cartservice 的 GetCart 操作失败，错误信息为 \"lookup cartservice on 10.233.33.139:53: server misbehaving\"，状态码为 14 (Unavailable)，确认 cartservice 因 DNS 解析故障而不可用。",
+            "Step 3: 确认 Log 数据中 frontend 服务出现大量 \"request error\"，错误链根源指向 \"transport: Error while dialing dial tcp: lookup cartservice... server misbehaving\"，且故障模式影响所有 frontend 实例，形成从 cartservice -> checkoutservice -> frontend 的级联故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice->cartservice",
+                "expected_pattern": "调用 cartservice 的操作（如 GetCart）出现高延迟或失败，状态码为 13 或 14，错误信息包含 'lookup'、'server misbehaving' 等 DNS 错误关键词。",
+                "instruction": "检查 checkoutservice 到 cartservice 的调用链，特别是 GetCart 操作，查看是否存在因 DNS 解析失败（如 'server misbehaving'）导致的连接错误或超高延迟。"
+            },
+            {
+                "modality": "Log",
+                "target": "lookup cartservice on",
+                "expected_pattern": "日志消息中包含 'lookup cartservice on [IP]:53: server misbehaving' 或类似的 DNS 解析失败错误信息。",
+                "instruction": "在 cartservice、checkoutservice 或 frontend 的日志中搜索包含 'lookup cartservice' 和 'server misbehaving' 关键词的错误条目。"
+            },
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing",
+                "expected_pattern": "日志中包含 'transport: Error while dialing' 和 'lookup' 的组合，表明在建立 TCP 连接时 DNS 解析失败。",
+                "instruction": "搜索包含 'transport: Error while dialing' 的日志，确认其是否与 cartservice 的域名解析失败相关。"
+            },
+            {
+                "modality": "Log",
+                "target": "request error",
+                "expected_pattern": "frontend 服务日志中出现 'request error'，且错误原因链指向下游 cartservice 的 DNS 或连接问题。",
+                "instruction": "检查 frontend 服务的错误日志，特别是与下单（'/cart/checkout'）相关的 'request error'，分析其根本错误原因。"
+            },
+            {
+                "modality": "Metric",
+                "target": "server_error_ratio",
+                "expected_pattern": "checkoutservice 的 server_error_ratio 指标从接近 0% 的水平突然大幅飙升。",
+                "instruction": "检查 checkoutservice（特别是 checkoutservice-0）的 server_error_ratio 指标在故障时间段内是否有异常激增。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "checkoutservice 的 error_ratio 指标与 server_error_ratio 同步出现异常飙升。",
+                "instruction": "检查 checkoutservice 的 error_ratio 指标变化，确认其是否与 server_error_ratio 同时恶化。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "checkoutservice 的 rrt_max 指标出现数量级级别的增长，表明存在严重阻塞。",
+                "instruction": "检查 checkoutservice 的 rrt_max 指标，确认其最大响应时间是否出现异常激增，可能达到正常值的数十倍以上。"
+            }
+        ]
+    }
+}
+```

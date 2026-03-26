@@ -1,0 +1,51 @@
+```json
+{
+    "uuid": "0b81a605-339",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "High CPU utilization, CPU saturation, CPU overload, CPU usage spike, CPU stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [paymentservice-2] experienced [pod_cpu_usage] fault, with pod_cpu_usage increasing from 0.0 to 0.4 (2x change ratio).",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [paymentservice-2] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [rrt] in Metric data showing paymentservice-2 rrt increased from 1306.5 to 58696.75 (From GT key_observations keyword list)",
+            "Step 3: Check Observation - Found keyword [rrt_max] in Metric data showing paymentservice-2 rrt_max increased from 1499.0 to 97993.5 (From GT key_observations keyword list)",
+            "Step 4: Check Observation - Found keyword [pod_cpu_usage] in Metric data showing paymentservice-2 pod_cpu_usage increased from 0.0 to 0.4 (From GT key_observations keyword list)",
+            "Step 5: Check Observation - Found keyword [pod_processes] in Metric data showing paymentservice-2 pod_processes increased from 1.0 to 13.0 (From GT key_observations keyword list)",
+            "Step 6: Check Observation - Found keyword [checkoutservice] in Trace data showing checkoutservice→paymentservice latency anomalies (From GT key_observations keyword list)",
+            "Step 7: Derive Root Cause - Based on above features, determined cause is [pod_cpu_usage] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "paymentservice-2 rrt increased from 1306.5 to 58696.75 (median_change_ratio: 1.9129)",
+                "instruction": "Search for metric [rrt] for paymentservice-2 in anomaly_metrics data and check for significant increase"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "paymentservice-2 rrt_max increased from 1499.0 to 97993.5 (median_change_ratio: 1.9397)",
+                "instruction": "Search for metric [rrt_max] for paymentservice-2 in anomaly_metrics data and check for significant increase"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "paymentservice-2 pod_cpu_usage increased from 0.0 to 0.4 (median_change_ratio: 2.0)",
+                "instruction": "Search for metric [pod_cpu_usage] for paymentservice-2 in anomaly_metrics data and check for significant increase"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "paymentservice-2 pod_processes increased from 1.0 to 13.0 (median_change_ratio: 1.7143)",
+                "instruction": "Search for metric [pod_processes] for paymentservice-2 in anomaly_metrics data and check for significant increase"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice",
+                "expected_pattern": "checkoutservice-0 calling paymentservice latency increased from 13679.169223201487ms to 97100.06944444445ms (7.1x increase)",
+                "instruction": "Search for trace entries containing [checkoutservice] in filtered_traces data and check for latency anomalies when calling paymentservice"
+            }
+        ]
+    }
+}
+```

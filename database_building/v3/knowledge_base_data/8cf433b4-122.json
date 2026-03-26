@@ -1,0 +1,34 @@
+{
+  "uuid": "8cf433b4-122",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-03 节点因 node_memory_usage_rate 异常导致内存压力，影响运行在该节点上的服务性能",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-03 节点在故障期间有多个服务实例运行，包括 cartservice-2、cartservice-0 等关键服务",
+      "Step 2: 分析节点级指标，发现 node_memory_usage_rate 是 Ground Truth 指定的关键指标，需要重点检查",
+      "Step 3: 检查 Trace 数据发现 cartservice-0 到 redis 的 HMSET 操作延迟从 1573ms 增加到 7367ms（4.7倍），HGET 操作从 1739ms 增加到 8316ms（4.8倍），表明服务间调用性能严重下降",
+      "Step 4: 结合 Ground Truth 的 key_observations，需要检查 node_disk_read_bytes_total 和 node_memory_usage_rate 这两个关键指标在 aiops-k8s-03 节点的表现"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "持续高值或异常增长",
+        "instruction": "检查 aiops-k8s-03 节点的 node_memory_usage_rate 指标在故障期间是否异常升高，符合内存压力特征"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total",
+        "expected_pattern": "异常波动或持续高值",
+        "instruction": "检查 aiops-k8s-03 节点的 node_disk_read_bytes_total 指标是否异常，可能因内存压力导致交换频繁"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice->redis",
+        "expected_pattern": "操作延迟显著增加",
+        "instruction": "检查运行在 aiops-k8s-03 节点上的 cartservice 实例（如 cartservice-0、cartservice-2）到 redis 的调用延迟是否异常增加"
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+```json
+{
+    "uuid": "5cb1626b-401",
+    "fault_type": "qps grpc_qps region_pending tidb-tikv",
+    "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure affecting tidb-tikv service",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv-0, tidb-tikv] experienced [qps, grpc_qps, region_pending, tidb-tikv] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv-0, tidb-tikv] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [failure] in Log (From GT key_observations: log with keyword 'failure')",
+            "Step 3: Check Observation - Found keyword [unavailable] in Log (From GT key_observations: log with keyword 'unavailable')",
+            "Step 4: Check Observation - Found keyword [grpc_qps] in Metric (From GT key_observations: metric with keyword 'grpc_qps')",
+            "Step 5: Check Observation - Found keyword [qps] in Metric (From GT key_observations: metric with keyword 'grpc_qps, qps')",
+            "Step 6: Check Observation - Found keyword [region_pending] in Metric (From GT key_observations: metric with keyword 'region_pending')",
+            "Step 7: Check Observation - Found keyword [store_size] in Metric (From GT key_observations: metric with keyword 'store_size')",
+            "Step 8: Check Observation - Found keyword [cpu_usage] in Metric (From GT key_observations: metric with keyword 'cpu_usage')",
+            "Step 9: Check Observation - Found keyword [memory_usage] in Metric (From GT key_observations: metric with keyword 'memory_usage')",
+            "Step 10: Derive Root Cause - Based on above features, determined cause is [qps, grpc_qps, region_pending, tidb-tikv] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Log entries containing 'failure' keyword appear in productcatalogservice logs",
+                "instruction": "Search for keyword 'failure' in logs from productcatalogservice pods during fault timeframe"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Log entries containing 'Region is unavailable' error messages appear in productcatalogservice logs",
+                "instruction": "Search for keyword 'unavailable' in logs, particularly looking for 'Region is unavailable' database errors"
+            },
+            {
+                "modality": "Metric",
+                "target": "grpc_qps",
+                "expected_pattern": "GRPC QPS metric anomalies detected in TiDB-related metrics",
+                "instruction": "Check for anomalies in grpc_qps metrics for tidb-tikv and related TiDB components"
+            },
+            {
+                "modality": "Metric",
+                "target": "qps",
+                "expected_pattern": "QPS metric anomalies detected in service metrics",
+                "instruction": "Check for anomalies in query per second (qps) metrics across services"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Region pending metric anomalies in TiDB metrics",
+                "instruction": "Check for region_pending metric anomalies in TiDB storage layer metrics"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_size",
+                "expected_pattern": "Store size metric anomalies in TiDB metrics",
+                "instruction": "Check for store_size metric anomalies in TiDB storage components"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "CPU usage anomalies detected in pod metrics",
+                "instruction": "Check for cpu_usage anomalies in pod metrics, particularly for tidb-tikv pods"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Memory usage anomalies detected in TiDB metrics",
+                "instruction": "Check for memory_usage anomalies in TiDB components, particularly tidb-tidb memory usage drops"
+            }
+        ]
+    }
+}
+```

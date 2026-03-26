@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "1573cbd5-588",
+    "fault_type": "storage_io_performance",
+    "symptom_vector": "Severe latency spikes in upstream application services (e.g., productcatalogservice GetProduct latency increased 15.3x), significant reduction in database storage layer metric `region_pending` (174.47% change rate), no error logs observed.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB-TiKV存储层因region pending堆积导致IO性能瓶颈，进而引发上游应用服务延迟激增。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据中观察到TiDB-TiKV组件的`region_pending`指标中位数从10371.0急剧下降至707.0，变化率高达174.47%，同时其`cpu_usage`也从0.09上升至0.11，变化率20%，表明存储层存在严重的region处理堆积和资源压力。",
+            "Step 2: 分析Log数据，发现在故障时间窗口内（2025-06-28T05:10:17Z 至 2025-06-28T05:15:17Z）未检测到任何错误日志，这排除了服务崩溃或硬性错误，符合'静默性能劣化（silent performance degradation）'的模式，即问题表现为性能瓶颈而非服务中断。",
+            "Step 3: 检查Trace数据，发现直接依赖TiDB的`productcatalogservice`的`GetProduct`接口延迟从正常的平均9974ms激增至152594ms，增长15.3倍。其他如`cartservice`、`emailservice`等服务的延迟也有不同程度增加，形成了从存储层到应用层的延迟传播链，确认了故障影响范围根源于底层存储。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Sudden and significant decrease (e.g., >100% change rate in median or P99 value). In TiDB context, a sharp drop may indicate a backlog of pending regions being cleared or a processing stall, pointing to storage layer bottlenecks.",
+                "instruction": "检查TiDB-TiKV组件的`region_pending`指标，对比故障时段与正常时段的中位数（median）或P99值，计算变化率。重点关注急剧下降的异常模式。"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "Concurrent increase in CPU usage for the same TiDB-TiKV component, indicating resource strain possibly due to intensive IO operations or region processing.",
+                "instruction": "检查同一故障组件（tidb-tikv）的`cpu_usage`指标，确认是否与`region_pending`异常同时出现资源使用率升高的迹象。"
+            },
+            {
+                "modality": "Log",
+                "target": "error",
+                "expected_pattern": "Absence of explicit error logs (e.g., 'error', 'exception', 'fatal') during the fault window. This pattern supports performance degradation rather than service failure.",
+                "instruction": "搜索故障时间段内，与故障组件（如tidb-tikv）相关的所有日志。关键发现应为'未检测到错误日志'，这本身就是一种重要的诊断信号，表明问题属于性能瓶颈而非功能性错误。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt / latency for services dependent on the suspected storage layer (e.g., productcatalogservice -> GetProduct)",
+                "expected_pattern": "Severe latency spike (e.g., 10x or more increase) in upstream services that directly call the suspected faulty storage component. The latency increase should be the most severe at the direct caller and propagate upwards.",
+                "instruction": "分析调用链数据，定位直接依赖疑似故障存储组件（TiDB）的上游服务（如productcatalogservice）。检查其关键接口（如GetProduct）在故障时段的平均响应时间（rrt或相关延迟指标），并与正常基线对比，确认是否存在数量级级别的延迟增长。"
+            }
+        ]
+    }
+}
+```

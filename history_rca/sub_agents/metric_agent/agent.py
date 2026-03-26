@@ -4,7 +4,7 @@ from google.adk.models.lite_llm import LiteLlm
 from history_rca.sub_agents.metric_agent.tools import metric_analysis_tool, search_raw_metrics
 from history_rca.sub_agents.metric_agent.prompt import METRIC_AGENT_PROMPT
 
-model = LiteLlm(model='openai/qwen3-max')
+model = LiteLlm(model='openai/deepseek-v3.2')
 
 metric_agent = Agent(
     name="metric_agent",

@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "9a257bd5-150",
+    "fault_type": "adservice-getRandomAds-latency",
+    "symptom_vector": "high JVM latency with elevated request latency and DeadlineExceeded errors",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 组件因 Byteman agent 注入导致 adservice-getRandomAds-latency 指标异常升高，引发 JVM 响应延迟",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 的 pod_cpu_usage 指标从 0.01 增加到 0.17 (p99_change_ratio 1.7819)，表明 CPU 使用率显著上升",
+            "Step 2: 分析 adservice 组件的日志发现 Byteman agent 正在注入延迟规则 AdService-getRandomAds-latency-1749399002，Rule.execute 被频繁调用",
+            "Step 3: 确认 frontend 服务调用 adservice 时出现大量 DeadlineExceeded 错误，表明 adservice 响应超时，与延迟注入现象一致"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "Contains Byteman agent rule execution records",
+                "instruction": "在 adservice 日志中搜索 AdService-getRandomAds-latency-1749399002 相关规则执行记录"
+            },
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "Contains context deadline exceeded errors",
+                "instruction": "在 frontend 和 adservice 日志中搜索 DeadlineExceeded 错误"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Contains InvocationTargetException",
+                "instruction": "在 adservice 日志中搜索 java.lang.reflect.InvocationTargetException 异常"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Contains Byteman transformer operations",
+                "instruction": "在 adservice 日志中搜索 Transformer 或 transform 相关操作"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Elevated response time metrics",
+                "instruction": "检查 adservice 的响应时间指标（如 rrt, rrt_max）是否异常升高"
+            },
+            {
+                "modality": "Metric",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "Latency spike in specific method",
+                "instruction": "检查 adservice 的 getRandomAds 方法延迟指标是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Increased response time",
+                "instruction": "检查 adservice 和 frontend 的 rrt 指标是否显著增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Peak response time spike",
+                "instruction": "检查 adservice 和 frontend 的 rrt_max 指标是否出现峰值"
+            }
+        ]
+    }
+}
+```

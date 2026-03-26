@@ -1,0 +1,51 @@
+{
+  "uuid": "84f4b04a-283",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "high memory usage, memory saturation, memory exhaustion with connection refused errors and latency spikes",
+  "expert_knowledge": {
+    "root_cause_desc": "currencyservice 组件因内存压力(pod_memory_working_set_bytes异常)导致服务不可用，引发连接拒绝和延迟飙升",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-05 节点的 node_memory_usage_rate 从29.68%上升到42.25%(34.93%增长)，该节点上运行着 currencyservice-0",
+      "Step 2: 分析 currencyservice-0 的 pod_processes 指标从1.0变为2.0，同时rrt_max从5037飙升至65873(171.59%增长)，表明可能存在因内存压力导致的进程重启和性能退化",
+      "Step 3: 日志中发现多个frontend实例报告连接currencyservice端口7000被拒绝，错误信息为'connect: connection refused'，确认currencyservice服务不可用"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "持续高值或快速上升趋势",
+        "instruction": "检查currencyservice相关pod的内存工作集字节数是否异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "数值从1.0变为2.0，表示进程重启",
+        "instruction": "检查currencyservice pod的进程数是否发生变化，可能指示内存压力导致重启"
+      },
+      {
+        "modality": "Log",
+        "target": "Connection|refused",
+        "expected_pattern": "包含'connect: connection refused'错误信息",
+        "instruction": "在frontend和currencyservice日志中搜索connection refused相关错误"
+      },
+      {
+        "modality": "Log",
+        "target": "could|not|load",
+        "expected_pattern": "PluginLoader加载失败信息",
+        "instruction": "检查currencyservice日志中是否有模块加载失败记录"
+      },
+      {
+        "modality": "Log",
+        "target": "Error|while|dialing",
+        "expected_pattern": "包含'Error while dialing'的GRPC连接错误",
+        "instruction": "搜索GRPC拨号失败相关的错误日志"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "服务不可用状态描述",
+        "instruction": "查找服务状态为unavailable的日志记录"
+      }
+    ]
+  }
+}

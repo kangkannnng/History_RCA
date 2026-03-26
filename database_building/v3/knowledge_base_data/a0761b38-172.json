@@ -1,0 +1,33 @@
+{
+  "uuid": "a0761b38-172",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "High JVM latency causing elevated request latency and error ratio in adservice",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 JVM 延迟导致 adservice-getRandomAds-latency 指标异常，进而引发错误率上升",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的 client_error_ratio 和 error_ratio 指标在故障期间显著上升（p99 值从 1.55 上升到 2.46，变化率 0.45），这可能是 JVM 延迟问题的间接表现",
+      "Step 2: 分析 adservice 服务的 JVM 延迟问题，根据 fault_description 中的 'high JVM latency' 和 'JVM response delay'，结合 key_metrics 中的 adservice-getRandomAds-latency、rrt、rrt_max，这些指标应反映响应时间异常",
+      "Step 3: 确认故障根因为 adservice 的 JVM 延迟，Metric 数据中错误率异常与延迟问题一致，且 Log 和 Trace 数据缺失不影响此判断，因为故障特征主要通过 Metric 体现"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Latency spike above normal baseline",
+        "instruction": "检查 adservice 服务的 adservice-getRandomAds-latency 指标是否在故障期间异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Response time increase from baseline",
+        "instruction": "检查 adservice 实例的 rrt（响应时间）指标是否显著上升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Maximum response time spike",
+        "instruction": "检查 adservice 实例的 rrt_max 指标是否出现峰值异常"
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "fc3737af-320",
+    "fault_type": "memory",
+    "symptom_vector": "Service performance degradation, potential pod restarts, reduced request throughput.",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice 组件因高内存使用率导致Pod异常重启",
+        "reasoning_chain": [
+            "Step 1: 观察到 productcatalogservice 组件的所有三个 Pod (pod-0, pod-1, pod-2) 的 `pod_processes` 指标在异常期间出现一致变化，p99 值从正常基准的 1.0 激增至故障期间的 2.0，变化率达 0.6667。这表明进程计数发生异常，是 Pod 发生重启或进程异常的典型信号。",
+            "Step 2: 分析产品目录服务本身的性能指标，发现 `productcatalogservice-0` 的 `request` 和 `response` 指标中位数分别下降了 80.62% 和 80.42%，进一步确认该服务处理能力在异常期间严重受损。",
+            "Step 3: 确认其他关键服务和节点并未出现类似的、跨所有实例的全局性 `pod_processes` 异常。结合该指标异常模式（进程数激增）与已知的系统行为（Pod重启通常源于资源压力，如内存耗尽），推断根本原因是资源压力触发的 Pod 生命周期异常。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value suddenly increases from a stable baseline (e.g., from 1.0 to 2.0) consistently across all pods of the same service.",
+                "instruction": "检查 productcatalogservice 所有 Pod 实例的 pod_processes 指标。如果多个或全部实例的该指标值在同一时间段内从稳态基准（如1.0）突增至更高值（如2.0），这强烈暗示发生了 Pod 重启或进程异常，是容器生命周期问题的重要标志。"
+            }
+        ]
+    }
+}
+```

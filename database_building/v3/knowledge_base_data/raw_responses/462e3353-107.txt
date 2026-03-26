@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "462e3353-107",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "node disk full, high disk utilization, disk space exhaustion, disk saturation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-06 节点因 node_filesystem_usage_rate 指标从54.42%飙升至78.23%导致磁盘空间紧张，影响该节点上运行的checkoutservice-2等服务的性能",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-06 节点的 node_filesystem_usage_rate 指标从正常值54.42%突然飙升至78.23%，变化率达到35.9%",
+            "Step 2: 分析 aiops-k8s-06 节点上运行的 checkoutservice-2 服务，发现其所有操作的延迟均出现4.0-5.7倍的显著增加",
+            "Step 3: 确认日志中未发现明显的I/O错误或资源不足错误，符合磁盘空间压力但未达到临界值的特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Sudden increase from baseline (54.42% → 78.23%, 35.9% change rate)",
+                "instruction": "检查 aiops-k8s-06 节点的 node_filesystem_usage_rate 指标是否出现异常飙升"
+            }
+        ]
+    }
+}
+```

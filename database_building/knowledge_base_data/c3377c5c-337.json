@@ -1,0 +1,59 @@
+{
+  "uuid": "c3377c5c-337",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "Network packet corruption and data corruption leading to service latency, errors, and degraded performance.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth instance list, and 'adservice' appears in Full Context metric and trace data).",
+      "Step 2: Check Observation - Found keyword [deadlineexceeded] in Log (From Ground Truth key_observations, appears in log data as 'DeadlineExceeded' error messages).",
+      "Step 3: Check Observation - Found keyword [rrt] and [rrt_max] in Metric (From Ground Truth key_observations, appear in metric data with abnormal increases).",
+      "Step 4: Check Observation - Found keyword [frontend] in Trace with latency anomalies (From Ground Truth key_observations, appears in trace data for frontend service calls).",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "deadlineexceeded",
+        "expected_pattern": "Log entries contain 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded'",
+        "instruction": "Search for keyword 'DeadlineExceeded' in the log data to identify RPC timeout errors."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Log messages include 'rpc error' indicating communication failures",
+        "instruction": "Search for keyword 'rpc error' in logs to detect RPC-related issues."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "rrt metric shows significant increase, e.g., from 12163.8 to 38541.94 for frontend-2",
+        "instruction": "Check rrt metric values during the fault period for abnormal spikes."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max metric exhibits extreme values, such as from 238895 to 620221 for frontend-0",
+        "instruction": "Monitor rrt_max metric for severe latency anomalies."
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Trace data indicates latency anomalies for frontend service calls, e.g., 'hipstershop.AdService/GetAds' with increased duration",
+        "instruction": "Analyze trace data for latency issues in frontend service operations."
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "request metric shows abnormal changes, e.g., drop from 298.5 to 107 for adservice-1",
+        "instruction": "Inspect request metric for unusual fluctuations indicating service load issues."
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "response metric displays significant variations, such as decrease from 300 to 98 for adservice-1",
+        "instruction": "Check response metric for anomalies in service output."
+      }
+    ]
+  }
+}

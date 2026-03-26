@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "eba76009-152",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace in adservice",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-0 组件因 Byteman agent 注入的 adservice-getrandomads-exception 导致 JVM 异常和 RPC 调用失败",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 的日志中出现大量 'AdService-getRandomAds-exception-1749406206 execute()' 和 'Exception in thread \"grpc-default-executor-6471\" java.lang.Error: Injected error' 记录，表明存在异常注入",
+            "Step 2: 分析 adservice-0 的 pod_cpu_usage 指标在故障期间 p99 值从 0.01 上升到 0.08，变化率 157.36%，显示异常处理消耗资源",
+            "Step 3: 确认所有 frontend 实例（frontend-0, frontend-1, frontend-2）都报告 'failed to get ads: rpc error: code = Unknown desc =' 错误，表明 adservice-0 的异常导致上游服务调用失败"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getrandomads-exception",
+                "expected_pattern": "包含 'AdService-getRandomAds-exception' 关键词的异常记录",
+                "instruction": "在 adservice-0 的日志中搜索 'adservice-getrandomads-exception' 关键词，检查是否存在 Byteman agent 注入的异常"
+            },
+            {
+                "modality": "Log",
+                "target": "Caught|throwexception",
+                "expected_pattern": "包含 'caught ThrowException' 或异常捕获记录",
+                "instruction": "检查 adservice-0 日志中是否有 'caught ThrowException' 或类似的异常捕获信息"
+            },
+            {
+                "modality": "Log",
+                "target": "grpc-default-executor",
+                "expected_pattern": "grpc 线程中出现异常堆栈",
+                "instruction": "搜索 adservice-0 日志中 'grpc-default-executor' 线程的异常信息"
+            },
+            {
+                "modality": "Log",
+                "target": "injected|error",
+                "expected_pattern": "包含 'Injected error' 关键词",
+                "instruction": "检查 adservice-0 日志中是否有 'Injected error' 记录，表明存在异常注入"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "包含 InvocationTargetException 异常",
+                "instruction": "搜索 adservice-0 日志中是否有 'InvocationTargetException' 异常记录"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "包含 Byteman agent 相关的 transformlistener 记录",
+                "instruction": "检查 adservice-0 日志中是否有 'transformlistener' 或 Byteman agent 相关的记录"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "p99 值显著上升",
+                "instruction": "检查 adservice-0 的 pod_cpu_usage 指标在故障期间是否异常升高，特别是 p99 值的变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "网络流量模式异常",
+                "instruction": "检查 adservice-0 的网络指标（接收/发送字节数、包数）是否出现异常模式，可能反映 RPC 调用失败"
+            }
+        ]
+    }
+}
+```

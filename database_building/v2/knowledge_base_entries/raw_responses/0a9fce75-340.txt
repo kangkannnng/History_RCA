@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "0a9fce75-340",
+    "fault_type": "metric",
+    "symptom_vector": "HTTP 500 errors and request failures in frontend services, increased latency in downstream calls, surge in database query failures.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB数据库的PD（Placement Driver）组件超时，导致依赖它的productcatalogservice等服务数据库操作失败。",
+        "reasoning_chain": [
+            "Step 1: 在2025-06-17T21:10:07Z至2025-06-17T21:28:07Z期间，观察到多个frontend服务实例出现HTTP 500错误（如`frontend-0`的`server_error_ratio`从0.0升至9.24），表明系统用户体验层出现故障。",
+            "Step 2: 通过日志和追踪分析，发现前端服务的错误都源于对`productcatalogservice`的调用失败。错误日志中大量出现\"PD server timeout: start timestamp may fall behind safe point\"关键词，且追踪数据显示`frontend->productcatalogservice`调用链状态码为2（错误）或13（失败），具体错误信息与此日志一致。",
+            "Step 3: 进一步分析指标数据，发现TiDB数据库层的关键指标异常：`tidb-tidb`服务的`memory_usage`从900,550,656.0显著下降到663,379,968.0，同时`failed_query_ops`从0.0激增至459.34。这表明数据库实例可能发生重启或内存泄漏，导致处理能力下降和查询失败。结合日志中指向PD（TiDB的元数据管理和调度组件）的timeout错误，可以确认根因是PD组件超时，进而导致整个数据库服务不稳定，并向上层应用传播。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "\"PD server timeout: start timestamp may fall behind safe point\"",
+                "expected_pattern": "Contains error",
+                "instruction": "在指定时间范围内，搜索所有日志中是否包含PD server timeout关键词。特别注意来自productcatalogservice和frontend服务的错误日志。如果大量出现此错误，强烈暗示底层TiDB PD服务异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "failed_query_ops",
+                "expected_pattern": "Sudden spike from near zero to a high value",
+                "instruction": "检查`tidb-tidb`服务的`failed_query_ops`指标在故障期间是否出现剧烈飙升（例如从0猛增到数百）。同时检查`memory_usage`是否出现异常下降，这可能与进程重启或OOM（若存在内存持续增长的记录）有关。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio, server_error_ratio",
+                "expected_pattern": "Increase from near zero",
+                "instruction": "检查所有`frontend`服务实例的`error_ratio`和`server_error_ratio`指标。在故障期间，这些值从0显著上升（例如到10%以上），是用户侧故障的直接证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.ProductCatalogService/GetProduct",
+                "expected_pattern": "Increased latency (rrt_max) and failed status codes (2, 13)",
+                "instruction": "分析从`frontend`发往`productcatalogservice`的`GetProduct`调用。观察其平均或最大响应时间（`rrt_max`）是否显著增加，以及状态码是否为失败状态（如2-错误，或13-内部错误），并关联状态信息是否包含PD timeout。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,33 @@
+{
+  "uuid": "56c934bb-205",
+  "fault_type": "error_ratio",
+  "symptom_vector": "A surge in service error ratio (from 0% to ~28%) and server errors (HTTP 500) on frontend services, accompanied by the complete unavailability of shopping cart functions (add item, get cart, checkout).",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice进程崩溃导致其7070端口连接拒绝，引发上游服务（frontend, checkoutservice）的级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据的异常状态组合中观察到，所有针对 `cartservice` (IP: 10.233.46.196，端口: 7070) 的调用（如 `CartService/GetCart`, `CartService/AddItem`）均以状态码14失败，错误信息明确为 'connection error: desc = \"transport: Error while dialing dial tcp 10.233.46.196:7070: connect: connection refused\"'。这表明cartservice服务端点已不可达。",
+      "Step 2: 在Log数据中确认，所有frontend实例（frontend-0, frontend-1, frontend-2）均报告了与cartservice通信失败的错误，核心关键词为 'failed to add to cart: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing dial tcp 10.233.46.196:7070: connect: connection refused\"'。这验证了故障源头在于cartservice的连接问题，且影响范围覆盖所有调用方。",
+      "Step 3: 在Metric数据中观察到，故障期间 `cartservice` 的 `rrt` 和 `rrt_max` 指标出现显著异常增长（p99_change_ratio普遍 > 1.8），同时 `frontend` 服务的 `error_ratio` 和 `server_error_ratio` 从正常值0%飙升至约26%-28%。这构成了从下游（cartservice延迟/不可用）到上游（frontend错误率激增）的完整故障传播证据链，锁定cartservice为根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "CartService/GetCart, CartService/AddItem",
+        "expected_pattern": "状态码 (status_code) 为 14（或其他错误码），且状态消息 (status_message) 包含 'connection refused' 或 'Error while dialing' 等连接失败关键词。",
+        "instruction": "检查所有调用链数据中，目标服务为 cartservice 的操作（如 GetCart, AddItem）的状态信息。重点关注是否有大量失败记录，并且错误原因明确指向网络连接失败。"
+      },
+      {
+        "modality": "Log",
+        "target": "Connection, refused, Error while dialing, dial tcp",
+        "expected_pattern": "日志消息 (message) 包含 'connection refused'，并明确指向 cartservice 的IP地址和端口（例如 10.233.46.196:7070），通常来自 frontend 或 checkoutservice 等调用方。",
+        "instruction": "在调用方服务（特别是 frontend）的日志中，搜索包含 'connection refused'、'Error while dialing' 和具体IP端口号的错误条目。这些日志是连接失败的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max, error_ratio",
+        "expected_pattern": "cartservice 的 `rrt` (响应时间) 和 `rrt_max` 指标在故障期间出现飙升（例如p99分位数增长近2倍）。同时，调用方（如 frontend）的 `error_ratio` 或 `server_error_ratio` 指标从接近0的水平突然大幅升高。",
+        "instruction": "对比故障时段与正常时段的指标。首先检查 cartservice 的响应时间指标是否异常增高；其次，检查依赖 cartservice 的上游服务（如 frontend）的错误率指标是否同步出现峰值，这可以确认故障的传导路径。"
+      }
+    ]
+  }
+}

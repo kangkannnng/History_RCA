@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "97d37c35-186",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception leading to RPC failures in adservice",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 服务中 AdService-getRandomAds-exception-1749532239 规则触发注入错误，导致 JVM 异常与 RPC 失败。",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 服务的 error_ratio 和 client_error_ratio 的 p99 值从 0.0 飙升至 0.56，变化率达 200%，表明该服务出现高错误率。",
+            "Step 2: 分析 adservice 日志，发现大量关于 'AdService-getRandomAds-exception-1749532239' 规则执行、'Injected error' 异常抛出以及 'caught ThrowException' 的记录，这直接表明 JVM 层面被注入了运行时错误。",
+            "Step 3: 确认故障传播：frontend 服务日志中频繁出现 'failed to get ads: rpc error: code = Unknown desc'，这正是调用异常 adservice 时出现的 RPC 失败，与 adservice 的 JVM 异常日志在时间上吻合，构成清晰的因果链。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "AdService-getRandomAds-exception-1749532239|Injected error|caught ThrowException|grpc-default-executor|java.lang.Error|invocationtargetexception",
+                "expected_pattern": "Contains keywords indicating Byteman rule execution and injected JVM exceptions",
+                "instruction": "检查 adservice 组件（尤其是 adservice-0）的日志，搜索是否存在 'AdService-getRandomAds-exception'、'Injected error'、'caught ThrowException' 等关键词，确认是否有 JVM 异常被故意触发。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Sudden increase from baseline (e.g., 0.0 to >0.5)",
+                "instruction": "检查 adservice 服务，特别是 adservice-0 实例的 error_ratio 指标，是否在故障期间出现异常飙升。"
+            }
+        ]
+    }
+}
+```

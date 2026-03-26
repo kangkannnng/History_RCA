@@ -1,0 +1,28 @@
+{
+  "uuid": "a6536c80-576",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Node memory exhaustion, saturation, high usage, leak, or stress as described in fault_description.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component aiops-k8s-05 experienced node_memory_usage_rate fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is aiops-k8s-05 (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword node_memory_MemAvailable_bytes in Metric data (From Ground Truth key_observations), as it appears in the anomaly_metrics list for nodes like aiops-k8s-01 and aiops-k8s-08, indicating memory availability monitoring.",
+      "Step 3: Check Observation - Found keyword node_memory_usage_rate in Metric data (From Ground Truth key_observations), as it appears in the anomaly_metrics list for nodes like aiops-k8s-04 and aiops-k8s-03, indicating memory usage rate monitoring.",
+      "Step 4: Derive Root Cause - Based on the above features from key_observations and the instance, determined cause is node_memory_usage_rate (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Low or decreasing value indicating reduced available memory, as seen in anomaly_metrics for other nodes (e.g., aiops-k8s-01 shows a decrease).",
+        "instruction": "Search for metric node_memory_MemAvailable_bytes on node aiops-k8s-05 in the metric data and check if the value is abnormally low or decreasing during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "High or increasing value indicating memory saturation, as seen in anomaly_metrics for other nodes (e.g., aiops-k8s-03 shows an increase).",
+        "instruction": "Search for metric node_memory_usage_rate on node aiops-k8s-05 in the metric data and check if the value is abnormally high or increasing during the fault period."
+      }
+    ]
+  }
+}

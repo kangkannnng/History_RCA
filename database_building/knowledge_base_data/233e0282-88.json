@@ -1,0 +1,41 @@
+{
+  "uuid": "233e0282-88",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, overload, usage spike, and CPU stress indicating service degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component currencyservice experienced pod_cpu_usage fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is currencyservice (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword pod_cpu_usage in Metric data showing spike from 0.0 to 0.4 for currencyservice pods (From GT key_observations and Full Context metric data).",
+      "Step 3: Check Observation - Found keyword pod_processes in Metric data showing increase from 1.0 to 8.0 for currencyservice pods (From GT key_observations and Full Context metric data).",
+      "Step 4: Check Observation - Found keywords rrt and rrt_max in Metric data showing degradation, e.g., rrt_max increased from 3400.0 to 96585.0 for currencyservice-0 (From GT key_observations and Full Context metric data).",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is pod_cpu_usage (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Value spiked from normal median 0.0 to fault median 0.4 for currencyservice pods, as seen in Full Context metric data.",
+        "instruction": "Search for metric pod_cpu_usage in currencyservice pods during fault period 2025-06-06T00:10:14Z to 2025-06-06T00:29:14Z."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Increased from normal median 1.0 to fault median 8.0 for currencyservice pods, as indicated in Full Context metric data.",
+        "instruction": "Check pod_processes metric for all currencyservice pods to detect process count anomalies."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Response time degraded, e.g., median increased from 1181.54 to 26111.55 for currencyservice-0, as shown in Full Context metric data.",
+        "instruction": "Monitor rrt metric for currencyservice to identify latency issues."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Maximum response time severely increased, e.g., from 3400.0 to 96585.0 for currencyservice-0, as per Full Context metric data.",
+        "instruction": "Check rrt_max metric for currencyservice to assess worst-case latency degradation."
+      }
+    ]
+  }
+}

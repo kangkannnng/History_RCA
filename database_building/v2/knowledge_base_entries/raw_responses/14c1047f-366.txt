@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "14c1047f-366",
+    "fault_type": "code_error",
+    "symptom_vector": "Severe latency spikes in frontend and checkout services, along with cascading RPC errors (Canceled, Unavailable) in dependent services.",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice因代码递归逻辑错误导致调用栈溢出，服务不可用，引发级联故障。",
+        "reasoning_chain": [
+            "Step 1: 在 Log 数据中，观察到 currencyservice 服务产生大量 `\"conversion request failed: RangeError: Maximum call stack size exceeded\"` 错误。这是 JavaScript/Node.js 运行时中典型的递归过深或无限循环错误，表明服务的核心处理逻辑出现严重代码异常。",
+            "Step 2: 在 Metric 数据中，分析到 currencyservice 的 `timeout` 指标 p99 值从 0 激增至 10719，且服务自身错误率出现尖峰。同时，依赖于 currencyservice 的 frontend 服务的 `rrt`（响应时间）和 `rrt_max` 指标出现数个数量级的飙升，这符合下游核心服务故障导致上游服务调用阻塞或超时的模式。",
+            "Step 3: 在 Trace 数据中，确认了故障传播路径。所有从 frontend 和 checkoutservice 发往 currencyservice 的调用（如 `CurrencyService/Convert`）都以失败告终，状态为 `context canceled` 或 `connection refused`。这直接证明了 currencyservice 的不可用性是导致上游服务出现 HTTP 500 和极高延迟的直接原因。综合三类数据，根因锁定为 currencyservice 的代码执行错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "\"Maximum call stack size exceeded\"",
+                "expected_pattern": "Contains error",
+                "instruction": "请搜索 currencyservice 组件的错误日志，重点关注包含 \"Maximum call stack size exceeded\" 或 \"RangeError\" 关键字的日志条目。此类错误是运行时堆栈溢出的明确信号，通常由代码中的无限递归或死循环引起。"
+            },
+            {
+                "modality": "Metric",
+                "target": "timeout, error_ratio",
+                "expected_pattern": "Sudden spike",
+                "instruction": "请检查 currencyservice 服务的 `timeout` 和 `error_ratio` 相关指标在异常时间窗口内的变化。关注其 p99 或中位数是否从基线（如0）急剧上升。这是服务自身处理能力失效或不可用的量化证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->currencyservice, checkoutservice->currencyservice",
+                "expected_pattern": "High failure rate",
+                "instruction": "请分析调用链数据，筛选出所有调用方为 frontend 或 checkoutservice、目标服务为 currencyservice 的调用。检查这些调用的状态码（如 1:context canceled, 14:connection refused）和异常数量。高失败率直接证明了对 currencyservice 的依赖调用普遍失败。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "e6c9989b-173",
+    "fault_type": "rrt/rrt_max异常",
+    "symptom_vector": "Severe latency spikes (RTT/RTT_MAX) observed in paymentservice and checkoutservice, accompanied by elevated error rates in checkoutservice.",
+    "expert_knowledge": {
+        "root_cause_desc": "paymentservice服务自身性能严重退化（可能是资源瓶颈、代码问题或内部依赖故障），导致响应时间激增，并引发上游服务连锁异常。",
+        "reasoning_chain": [
+            "Step 1: 观察到paymentservice的三个实例（paymentservice-0/1/2）的rrt和rrt_max指标在故障时段均出现约200%的极端激增，这是全系统中最显著的异常。例如，paymentservice-0的rrt_max从1893.0增至1107171.0。",
+            "Step 2: 分析发现，上游服务checkoutservice-2和frontend也出现了显著的rrt/rrt_max升高，但变化幅度普遍低于paymentservice，且checkoutservice-2同时出现了error_ratio和client_error_ratio的异常。这种模式符合对下游性能瓶颈服务的调用失败或超时导致的连锁反应。",
+            "Step 3: 通过检查节点与Pod的映射关系，确认paymentservice的三个实例分布在不同的节点（aiops-k8s-03, 05, 08），排除了单一节点故障导致该服务全体异常的可能性，进一步将问题范围锁定在paymentservice服务本身。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Sudden spike (e.g., increase > 150%) across all instances of a service",
+                "instruction": "检查paymentservice所有实例的rrt和rrt_max指标在异常时间段是否出现突然的、大幅度的激增（例如变化率超过150%）。这是服务级性能问题的核心表征。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio, client_error_ratio",
+                "expected_pattern": "Numerical increase from baseline (usually 0) in upstream services",
+                "instruction": "检查调用paymentservice的上游服务（如checkoutservice）的error_ratio和client_error_ratio指标是否从正常状态的0值开始显著上升，这可能表明对下游服务（如paymentservice）的调用失败。"
+            }
+        ]
+    }
+}
+```

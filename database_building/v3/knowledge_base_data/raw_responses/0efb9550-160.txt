@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "0efb9550-160",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice-2 组件因内存压力(pod_memory_working_set_bytes)导致 Pod 重启，表现为 pod_processes 计数异常。",
+        "reasoning_chain": [
+            "Step 1: 观察到 productcatalogservice-2 的 pod_processes 指标 p99 值从 1.0 变化到 2.0（变化率 66.67%），这是 Pod 发生重启或进程异常的标志性事件。",
+            "Step 2: 分析同一故障窗口内，productcatalogservice-2 的 error_ratio 与 client_error_ratio 指标的 p99 值从 0.0 激增至 16.69（变化率 200%），表明在 Pod 重启期间产生了大量错误。",
+            "Step 3: 确认日志数据在故障窗口内无错误记录，这符合 Kubernetes 层面 Pod 快速重启，应用层未及时记录日志的特征。Trace 数据虽未直接捕获 productcatalogservice 的异常调用，但下游 cartservice 等服务出现的延迟异常（如 AddItem 操作延迟从 4.0 秒增至 23.4 秒）可作为 Pod 重启影响服务可用性的间接证据。根据故障诊断规则，Pod 生命周期异常 (pod_processes) 具有最高诊断优先级。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "计数值从 1.0 变为 2.0，表明 Pod 内进程数翻倍，是 Pod 重启的核心信号。",
+                "instruction": "检查名为 productcatalogservice-2 的 Pod，其 pod_processes 指标的 p99 值是否在故障期间从基准值 1.0 跳变为 2.0。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "内存使用量持续高位增长或出现尖峰，达到或超过 Pod 内存限制。",
+                "instruction": "检查名为 productcatalogservice-2 的 Pod，其 pod_memory_working_set_bytes 指标在故障发生前是否呈现异常增长、持续高位或泄漏趋势，这是触发 Pod 重启（pod_processes 变化）的潜在根本原因。"
+            }
+        ]
+    }
+}
+```

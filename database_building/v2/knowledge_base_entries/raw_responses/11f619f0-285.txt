@@ -1,0 +1,33 @@
+{
+    "uuid": "11f619f0-285",
+    "fault_type": "client_error_ratio",
+    "symptom_vector": "Service unavailable (HTTP 500) and spike in error_ratio across frontend services; Downstream gRPC connection failures (status code 14/UNAVAILABLE) to productcatalogservice.",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice 服务实例在特定端口 (10.233.54.177:3550) 出现连接拒绝，导致依赖它的上游服务大量报错，错误率激增。",
+        "reasoning_chain": [
+            "Step 1: 观察调用链(Trace)数据，发现 frontend、recommendationservice、checkoutservice 等多个服务在调用 productcatalogservice 时失败，状态码为 14 (UNAVAILABLE)，错误消息明确指向 IP 地址 10.233.54.177 的 3550 端口连接被拒绝 (connection refused)。这锁定了故障的调用路径和目标端点。",
+            "Step 2: 在日志(Log)中搜索相关错误，确认多个 frontend 服务实例的日志中均出现 `could not retrieve products: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing dial tcp 10.233.54.177:3550: connect: connection refused\"`。这为调用链的异常提供了直接、一致的证据，排除了偶发性网络问题的可能。",
+            "Step 3: 查看指标(Metric)数据，发现故障期间 productcatalogservice-2 的 `error_ratio` 和 `client_error_ratio` 指标从 0.0 激增至 6.44。同时，作为调用方的 frontend 服务的 `error_ratio` 也同步飙升至 40% 以上。该数据模式与根因服务（productcatalogservice）不可用导致上游服务产生大量客户端错误的逻辑链条完全吻合。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "Span status_code and status_message for calls to `productcatalogservice`",
+                "expected_pattern": "Status code 14 (UNAVAILABLE) with message containing 'connection refused' and a specific IP:Port (e.g., 10.233.54.177:3550)",
+                "instruction": "在调用链中，检查所有指向 productcatalogservice 的调用。筛选出状态码为 14 的异常 span，并分析其状态信息。如果发现大量异常指向同一个 IP:端口组合，且错误原因为连接拒绝，这很可能就是根因。"
+            },
+            {
+                "modality": "Log",
+                "target": "Keywords: 'Error while dialing', 'connection refused', '3550'",
+                "expected_pattern": "Log entries from frontend or other client services containing the exact error message describing a connection refusal to a specific IP and port.",
+                "instruction": "在日志中搜索关键词 'Error while dialing' 或 'connection refused'，特别是结合具体的端口号（如 3550）。检查这些日志是否来自多个不同的上游服务（如不同的 frontend pods），并且错误消息中是否包含一致的、无法访问的 IP 地址和端口号。这用于确认 Trace 发现的异常是普遍现象。"
+            },
+            {
+                "modality": "Metric",
+                "target": "productcatalogservice.<instance>.error_ratio, productcatalogservice.<instance>.client_error_ratio, frontend.<instance>.error_ratio",
+                "expected_pattern": "A sudden spike (from near-zero to a high value) in `error_ratio` or `client_error_ratio` on one or more productcatalogservice pods, correlated with a spike in `error_ratio` on frontend pods.",
+                "instruction": "查看 productcatalogservice 各实例的 error_ratio 和 client_error_ratio 指标。如果在故障时间段内，某个实例的这两个指标出现从零开始的突增，表明该实例处理请求时产生了错误。同时，检查 frontend 服务的 error_ratio 指标，确认其异常时间窗口是否与 productcatalogservice 的异常时间窗口匹配，以构建因果关联。"
+            }
+        ]
+    }
+}

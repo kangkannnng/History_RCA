@@ -1,0 +1,39 @@
+{
+  "uuid": "cc451a15-174",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload with high CPU usage and service degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-04 节点因 node_cpu_usage_rate 指标异常飙升导致节点资源耗尽，引发服务性能下降",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-04 节点的 node_cpu_usage_rate 指标从正常中位数 19.62% 飙升至 93.54%，变化率高达 1.3065",
+      "Step 2: 分析该节点上运行的服务（frontend-2, currencyservice-1, checkoutservice-0）普遍出现 rrt_max 和 error_ratio 指标异常",
+      "Step 3: 确认节点级 CPU 资源耗尽是根本原因，能够合理解释多个服务同时出现性能问题的现象"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Significant increase from baseline (19.62% → 93.54%, change rate 1.3065)",
+        "instruction": "检查 aiops-k8s-04 节点的 node_cpu_usage_rate 指标是否出现异常飙升，重点关注中位数和 P99 值的变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Abnormal pattern that may correlate with CPU usage",
+        "instruction": "检查 aiops-k8s-04 节点的网络接收包总数指标，分析是否与 CPU 使用率异常存在关联"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Increased response times for services running on affected node",
+        "instruction": "检查运行在 aiops-k8s-04 节点上的服务（如 frontend-2, currencyservice-1, checkoutservice-0）的 rrt_max 指标是否显著增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "Elevated error rates for services on affected node",
+        "instruction": "检查运行在 aiops-k8s-04 节点上的服务的 error_ratio 指标是否出现异常升高"
+      }
+    ]
+  }
+}

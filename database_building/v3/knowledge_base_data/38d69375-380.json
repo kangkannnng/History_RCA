@@ -1,0 +1,81 @@
+{
+  "uuid": "38d69375-380",
+  "fault_type": "connection_count",
+  "symptom_vector": "pod crash with connection refused errors and latency spike",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tidb-0 和 tidb-tidb 组件因连接配置问题导致连接失败，引发 pod failure",
+    "reasoning_chain": [
+      "Step 1: 观察到日志中大量出现 'dial tcp 223.193.36.56:32187: connect: connection refused' 错误，涉及 productcatalogservice 和 frontend 服务",
+      "Step 2: 分析 tidb-tidb 组件的 memory_usage 指标从正常中位数 479252480.0 增加到故障中位数 855060480.0，变化率为 0.5633",
+      "Step 3: 确认 trace 数据显示 frontend->productcatalogservice 调用失败，error_ratio 激增，rrt_max 从正常值激增至异常水平"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "rrt_max 和 rrt 指标异常飙升，延迟倍数超过2000倍",
+        "instruction": "检查 frontend->productcatalogservice 调用链的延迟异常，特别是 rrt_max 和 rrt 指标是否激增"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "productcatalogservice 相关调用出现异常状态码和错误比例",
+        "instruction": "分析 productcatalogservice 调用的状态码分布，检查 error_ratio 是否异常升高"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "包含 'connection refused', 'dial tcp', 'failed to query product' 等错误信息",
+        "instruction": "在 productcatalogservice 和 frontend 日志中搜索 failure 相关关键词，特别是连接失败错误"
+      },
+      {
+        "modality": "Metric",
+        "target": "block_cache_size",
+        "expected_pattern": "内存使用异常增长或缓存命中率下降",
+        "instruction": "检查 tidb-tidb 组件的 block_cache_size 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "connection_count",
+        "expected_pattern": "连接数异常波动或连接失败率升高",
+        "instruction": "监控 tidb-tidb 组件的 connection_count 指标，检查连接状态是否正常"
+      },
+      {
+        "modality": "Metric",
+        "target": "failed_query_ops",
+        "expected_pattern": "查询失败操作数增加",
+        "instruction": "检查 failed_query_ops 指标是否在故障期间显著增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "slow_query",
+        "expected_pattern": "慢查询数量增加",
+        "instruction": "分析 slow_query 指标是否异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "查询吞吐量异常变化",
+        "instruction": "监控 qps 指标，检查查询性能是否下降"
+      },
+      {
+        "modality": "Metric",
+        "target": "uptime",
+        "expected_pattern": "服务运行时间异常中断",
+        "instruction": "检查 tidb-tidb 组件的 uptime 指标，确认服务是否持续运行"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU使用率异常波动",
+        "instruction": "分析 tidb-tidb 组件的 cpu_usage 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "内存使用量异常增长",
+        "instruction": "检查 tidb-tidb 组件的 memory_usage 指标是否显著增加"
+      }
+    ]
+  }
+}

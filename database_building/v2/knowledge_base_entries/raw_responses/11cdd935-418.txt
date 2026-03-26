@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "11cdd935-418",
+    "fault_type": "Pod Restart & Dependency Latency",
+    "symptom_vector": "Increased server_error_ratio on frontend services, HTTP 500 status codes in traces, high latency in cartservice->redis calls, pod_processes count change in cartservice pods.",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 服务发生 Pod 重启，导致其与下游 Redis 的连接中断，进而引发高延迟和上游服务错误。",
+        "reasoning_chain": [
+            "Step 1: 从指标数据中发现 cartservice-1 和 cartservice-2 的 `pod_processes` 值从 1.0 异常增加到 2.0，这是一个明确的 Pod 重启信号。",
+            "Step 2: 在日志数据中，多个 frontend 实例的日志反复抱怨 'failed to add to cart: rpc error: code = FailedPrecondition desc = Can't access cart storage.'，且 cartservice 自身的日志记录了 'Connecting to Redis: redis-cart:6379'，这表明 cartservice 在尝试重新建立 Redis 连接。",
+            "Step 3: 在追踪数据中，观察到 `cartservice->redis` 的调用（如 HMSET）延迟激增，异常时段平均耗时从 1573.06ms 增至 26876.11ms（约 17 倍），这证实了重启后的 cartservice 与 Redis 的通信出现了严重延迟，从而引发了整个调用链的故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden increase from 1.0 to a higher value (e.g., 2.0) for cartservice pods.",
+                "instruction": "检查 cartservice 相关 Pod 的 `pod_processes` 指标，查看在故障时间窗口内该数值是否发生从 1 到 2（或更高）的跳变，这是判断 Pod 是否发生重启的关键信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "FailedPrecondition, Can't access cart storage",
+                "expected_pattern": "Log messages containing the keywords 'FailedPrecondition' and 'Can't access cart storage', originating from cartservice or complaining about cartservice.",
+                "instruction": "在日志中搜索包含 'FailedPrecondition' 和 'Can't access cart storage' 关键词的错误信息，定位这些日志的来源服务（如 frontend）和指向的目标服务（cartservice）。"
+            },
+            {
+                "modality": "Trace",
+                "target": "cartservice->redis (HMSET/HGET)",
+                "expected_pattern": "Significant latency spike (e.g., >10x increase) in the duration of calls from cartservice to redis for operations like HMSET or HGET.",
+                "instruction": "分析追踪数据，筛选出源服务为 cartservice，目标服务为 redis，操作名为 HMSET 或 HGET 的调用链。重点对比故障前后（或正常与异常时段）的平均耗时或 P99 耗时，确认是否存在数量级级别的延迟增长。"
+            }
+        ]
+    }
+}
+```

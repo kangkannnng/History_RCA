@@ -1,0 +1,39 @@
+{
+  "uuid": "3d6c95dd-595",
+  "fault_type": "request",
+  "symptom_vector": "Connection refused errors due to target port misconfiguration leading to request failures and error ratio spikes",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice 由于端口配置错误导致连接被拒绝，引发请求错误率飙升",
+    "reasoning_chain": [
+      "Step 1: 从 Trace 数据中观察到 frontend->shippingservice 调用出现大量连接拒绝错误（状态码14），错误信息包含 'connection refused' 和 'Error while dialing dial tcp 10.233.27.213:50051'",
+      "Step 2: 分析 Metric 数据显示 shippingservice-0 的 client_error_ratio 和 error_ratio 指标从 0.0 飙升至 38.0，表明请求处理异常",
+      "Step 3: 确认故障根因为 shippingservice 的端口配置错误，导致所有调用方无法连接 50051 端口"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend->shippingservice",
+        "expected_pattern": "状态码14，错误消息包含 'connection refused' 和 'Error while dialing'",
+        "instruction": "检查所有调用 shippingservice 的链路，特别是从 frontend 和 checkoutservice 发起的调用，是否出现连接拒绝错误"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice",
+        "expected_pattern": "请求比例异常，大量 PlaceOrder 操作失败",
+        "instruction": "分析 checkoutservice 的调用链路，检查请求失败比例是否异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "请求指标异常变化",
+        "instruction": "检查 shippingservice 的请求相关指标是否出现异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "response",
+        "expected_pattern": "响应指标异常变化",
+        "instruction": "检查 shippingservice 的响应相关指标是否出现异常模式"
+      }
+    ]
+  }
+}

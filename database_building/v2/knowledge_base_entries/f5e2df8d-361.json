@@ -1,0 +1,33 @@
+{
+  "uuid": "f5e2df8d-361",
+  "fault_type": "database_coordination_failure",
+  "symptom_vector": "High error rates (HTTP 500) and latency increases in frontend services; query timeouts and failure propagation originating from TiDB database interactions.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB集群PD组件超时导致数据库事务处理异常，进而引发上层服务故障。",
+    "reasoning_chain": [
+      "Step 1: 观察到日志中 productcatalogservice 和 frontend 服务出现大量重复错误，错误关键词为 'PD server timeout: start timestamp may fall behind safe point' (Error 9001)。其中 productcatalogservice-1 实例的错误出现次数高达696次，表明该错误是核心且高频的。",
+      "Step 2: 分析指标数据，发现 tidb-tidb 组件的 memory_usage 在故障期间中位数从 1440911360.0 降至 784515072.0 (下降了58.99%)，同时 failed_query_ops 指标出现非零值 (故障P99为501.27)。此外，tidb-tikv 组件的 io_util P99值从0.15上升至0.32，增加了69.89%。这些指标变化与数据库协调服务(PD)故障导致查询失败、处理中断的假设一致。",
+      "Step 3: 通过链路追踪数据确认，productcatalogservice 调用 TiDB 的 GetProduct 操作出现大量状态码为2的失败，错误消息与日志一致。同时，大量上游 frontend 服务因下游调用失败而返回 HTTP 500 状态码（状态码13）。证据链完整显示故障从底层数据库PD服务超时开始，向上传播至 productcatalogservice，最终导致前端服务失败。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "PD server timeout",
+        "expected_pattern": "Contains error",
+        "instruction": "在 productcatalogservice 和数据库相关服务的日志中，搜索包含 'PD server timeout' 和 'Error 9001' 的错误记录。如果这些关键词在短时间内大量出现（如单实例数百次），则强烈提示 TiDB 的 Placement Driver (PD) 协调服务出现超时问题。"
+      },
+      {
+        "modality": "Metric",
+        "target": "tidb-tidb.memory_usage, tidb-tidb.failed_query_ops",
+        "expected_pattern": "Sudden drop for memory_usage; Sudden spike for failed_query_ops",
+        "instruction": "检查 TiDB 实例的内存使用率和失败查询操作数。如果观察到内存使用率在故障时段内突然显著下降（例如超过50%），同时 failed_query_ops 从0激增，则表明数据库处理进程可能因协调超时而中断或重启。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice->TiDB operation status",
+        "expected_pattern": "Contains error with status_code 2 and PD timeout message",
+        "instruction": "分析从 productcatalogservice 到 TiDB 的调用链路（如 GetProduct）。重点检查这些链路的 status_code 是否为非成功状态（如2），以及 status_message 是否包含 'PD server timeout'。大量的此类失败链路是数据库层为根因的直接证据。"
+      }
+    ]
+  }
+}

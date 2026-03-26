@@ -1,0 +1,45 @@
+{
+  "uuid": "91b14fe1-386",
+  "fault_type": "Database_Performance",
+  "symptom_vector": "Latency spike, high error rate, and failed database queries (Error 9005: Region is unavailable) across multiple services.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB-TiKV存储节点区域不可用，导致数据库查询失败并引发上游服务级联故障。",
+    "reasoning_chain": [
+      "Step 1: 从Metric数据中观察到TiDB数据库核心指标严重劣化：duration_99th从0.01ms飙升至64.85ms，failed_query_ops从0增加到42.67，同时监控到store_unhealth_count p99从0增加到1，指示存储层健康状态异常。",
+      "Step 2: 从Log数据中确认了故障的直接表现：productcatalogservice日志中高频次出现\"failed to query product by id: Error 9005 (HY000): Region is unavailable\"（出现148次），且多个frontend实例的日志均显示因该数据库错误导致RPC调用失败。",
+      "Step 3: 从Trace数据中验证了故障的传播路径：调用链下游的productcatalogservice出现严重延迟（rrt从毫秒级增长到秒级）和高错误率（状态码2，消息为\"Region is unavailable\"），并导致上游的frontend、checkoutservice等服务出现HTTP 500错误和延迟增长，确认故障源头为依赖TiDB数据库的底层服务。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "rrt",
+        "expected_pattern": "Sudden spike from ~10ms to ~40s",
+        "instruction": "检查productcatalogservice服务的响应时间(rrt)是否出现异常飙升，通常表明其依赖的数据库或外部服务出现严重延迟。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "High frequency occurrence (>100 times)",
+        "instruction": "在productcatalogservice的日志中搜索包含\"Error 9005 (HY000): Region is unavailable\"的错误信息，高频次出现是TiDB Region不可用的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "duration_99th",
+        "expected_pattern": "Sudden spike (e.g., from sub-millisecond to tens of milliseconds)",
+        "instruction": "检查TiDB组件（如tidb-tidb, tidb-tikv）的duration_99th指标是否在故障时间窗口内出现急剧上升，表明数据库处理性能严重下降。"
+      },
+      {
+        "modality": "Metric",
+        "target": "failed_query_ops",
+        "expected_pattern": "Increase from zero to a significant number",
+        "instruction": "检查TiDB的failed_query_ops指标是否从正常时的0或低位值突增至高位值，表明数据库查询大量失败。"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_unhealth_count",
+        "expected_pattern": "Increase from 0 to >0",
+        "instruction": "检查TiDB PD组件的store_unhealth_count指标，若从0变为1或更高，表明底层存储节点（TiKV）健康状态异常，是Region不可用的潜在原因。"
+      }
+    ]
+  }
+}

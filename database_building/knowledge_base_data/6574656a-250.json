@@ -1,0 +1,21 @@
+{
+  "uuid": "6574656a-250",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [paymentservice] experienced [pod_processes] fault, accompanied by [client_error, client_error_ratio, error, error_ratio, request, response] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [paymentservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [pod_processes] in Metric data showing abnormal drop from 1.0 to 0.0 (From GT key_observations)",
+      "Step 3: Derive Root Cause - Based on pod_processes termination feature, determined cause is [pod_processes] fault (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Value drops from 1.0 to 0.0 during fault window (22:10:13Z to 22:10:14Z)",
+        "instruction": "Check if metric [pod_processes] for paymentservice shows abrupt termination (1.0→0.0)"
+      }
+    ]
+  }
+}

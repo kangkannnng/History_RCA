@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "de83df2d-281",
+    "fault_type": "pod failure",
+    "symptom_vector": "pod crash and connection refused errors causing service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 组件出现 pod failure，导致 client_error 和 client_error_ratio 激增，前端服务连接被拒绝。",
+        "reasoning_chain": [
+            "Step 1: 观察到来自 frontend 组件的 Log 中出现大量包含 'connection refused' 和 'Error while dialing dial tcp 10.233.8.174:9555' 的错误，直接指向 adservice:9555 端口连接失败。",
+            "Step 2: 分析 adservice-1 的 Metric 数据，发现其 request 和 response 指标从正常值约 873 和 881 暴跌至 24，变化率高达 189%，表明 adservice 服务流量和处理能力完全丧失。",
+            "Step 3: 结合 Trace 数据分析，确认 frontend->adservice 的调用出现大量失败（状态码 14，'connection refused'），累计错误次数高达 4756 次，验证了 adservice 服务完全不可用，导致前端通信失败，符合 pod failure 的特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection|refused|Error while dialing|unavailable",
+                "expected_pattern": "日志中出现大量 'connection refused' 及 'Error while dialing' 关键词，指向特定服务的特定端口（如 adservice:9555）",
+                "instruction": "在所有相关服务（特别是调用方如 frontend）的日志中搜索 'connection refused'、'Error while dialing' 和 'unavailable' 等关键词，定位连接失败的目标服务。"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error|client_error_ratio|error|error_ratio",
+                "expected_pattern": "client_error 或 error_ratio 指标出现异常峰值或从基线大幅上升",
+                "instruction": "检查故障服务及其上游依赖服务的 client_error、client_error_ratio、error、error_ratio 指标，确认是否存在请求失败率飙升的情况。"
+            },
+            {
+                "modality": "Metric",
+                "target": "request|response",
+                "expected_pattern": "服务的 request 和/或 response 数量急剧下降（接近归零）或发生剧烈波动",
+                "instruction": "检查疑似故障服务（如 adservice）的 request 和 response 流量指标，判断服务是否已停止处理请求。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Pod 的 CPU 使用率跌至接近零或发生异常变化",
+                "instruction": "检查疑似故障 Pod（如 adservice-1）的 pod_cpu_usage 指标，确认其是否已停止运行或资源使用异常。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes|pod_network_receive_bytes|pod_network_transmit_bytes",
+                "expected_pattern": "Pod 的内存使用量或网络流量指标出现异常下降或归零",
+                "instruction": "检查疑似故障 Pod 的资源使用指标（内存、网络），作为判断其运行状态的辅助证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "error_ratio",
+                "expected_pattern": "特定服务调用链路（如 frontend->adservice）的错误率（status_code 14 等）急剧升高",
+                "instruction": "分析调用链数据，定位错误率（error_ratio）最高的服务调用对，确认故障的传播源头。"
+            }
+        ]
+    }
+}
+```

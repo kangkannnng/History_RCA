@@ -1,0 +1,49 @@
+{
+  "uuid": "de83df2d-281",
+  "fault_type": "client_error, client_error_ratio, error, error_ratiopod_processes, request, response",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword [Connection, refused] in [Log] (From GT key_observations). Evidence: Log entries show 'transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused'.",
+      "Step 3: Check Observation - Found keyword [Error, while, dialing] in [Log] (From GT key_observations). Evidence: Log entries show 'transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused'.",
+      "Step 4: Check Observation - Found keyword [unavailable] in [Log] (From GT key_observations). Evidence: Log entries show 'rpc error: code = Unavailable desc = connection error'.",
+      "Step 5: Check Observation - Found keyword [client_error, client_error_ratio, error, error_ratio] in [Trace] (From GT key_observations). Evidence: Trace status combinations show status code 14 errors for frontend->adservice calls, indicating client errors.",
+      "Step 6: Check Observation - Found keyword [request, response] in [Metric] (From GT key_observations). Evidence: Metric data shows adservice-1 request dropped from 873.5 to 24 (189.3% change rate) and response dropped from 881 to 24 (189.39% change rate).",
+      "Step 7: Derive Root Cause - Based on the above features (connection refused logs, unavailable errors, client errors in traces, and drastic drop in request/response metrics), determined cause is [client_error, client_error_ratio, error, error_ratiopod_processes, request, response] (From Ground Truth)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Connection, refused",
+        "expected_pattern": "Log entries containing the phrase 'connection refused' related to adservice.",
+        "instruction": "Search for keyword 'connection refused' in logs for service 'adservice' or from callers like 'frontend'."
+      },
+      {
+        "modality": "Log",
+        "target": "Error, while, dialing",
+        "expected_pattern": "Log entries containing the phrase 'Error while dialing' followed by an adservice address.",
+        "instruction": "Search for keyword 'Error while dialing' in logs, particularly from services attempting to connect to adservice."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries with error code 'Unavailable' related to adservice communication.",
+        "instruction": "Search for keyword 'Unavailable' in logs, especially in RPC/gRPC error contexts."
+      },
+      {
+        "modality": "Trace",
+        "target": "client_error, client_error_ratio, error, error_ratio",
+        "expected_pattern": "Trace spans with status code indicating client-side errors (e.g., code 14) for calls to adservice.",
+        "instruction": "Analyze trace data for calls to 'adservice' and check for high error ratios or specific failure status codes (e.g., 14)."
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "A significant drop (e.g., >100% change rate) in the 'request' and 'response' metric values for the adservice pod.",
+        "instruction": "Load metrics for service 'adservice' and compare 'request' and 'response' values between normal and fault periods."
+      }
+    ]
+  }
+}

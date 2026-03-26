@@ -1,0 +1,82 @@
+{
+  "uuid": "ba4ffa4e-416",
+  "fault_type": "region_pending",
+  "symptom_vector": "Pod crash and termination with container exit due to pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [region_pending] fault, accompanied by [qps, grpc_qps, io_util, tidb-tikv] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data showing latency anomalies and request proportion anomalies (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [failure] in Log data (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log data (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [grpc_qps, qps] in Metric data (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [io_util, region_pending] in Metric data (From GT key_observations)",
+      "Step 7: Check Observation - Found keyword [store_size] in Metric data (From GT key_observations)",
+      "Step 8: Check Observation - Found keyword [cpu_usage] in Metric data (From GT key_observations)",
+      "Step 9: Check Observation - Found keyword [memory_usage] in Metric data (From GT key_observations)",
+      "Step 10: Derive Root Cause - Based on above features, determined cause is [region_pending] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Trace data shows productcatalogservice calls with latency anomalies (normal_avg_duration ~10ms, anomaly_avg_duration ~39,000,000ms) and status_code 2 with 'Error 9005 (HY000): Region is unavailable'",
+        "instruction": "Search for trace entries where service_name contains 'productcatalogservice' and check for latency spikes and error status"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries contain 'failed to query product by id: Error 9005 (HY000): Region is unavailable' with 237 occurrences across productcatalogservice pods",
+        "instruction": "Search for keyword 'failure' or 'failed' in log messages, particularly in productcatalogservice logs"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries contain 'Region is unavailable' error message with Error 9005 (HY000)",
+        "instruction": "Search for keyword 'unavailable' in log messages, especially in TiDB-related error logs"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "GRPC QPS metrics show abnormal patterns for TiDB components",
+        "instruction": "Check if grpc_qps metric is available for tidb-tikv component and shows anomalies"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "QPS metrics show abnormal patterns during fault period",
+        "instruction": "Check if qps metric shows significant changes during the fault timeframe"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization metrics show abnormal patterns",
+        "instruction": "Check if io_util metric is elevated for storage components"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Region pending metrics show abnormal increases indicating TiKV region unavailability",
+        "instruction": "Check if region_pending metric is available and shows significant increase"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_size",
+        "expected_pattern": "Store size metrics may show abnormal patterns",
+        "instruction": "Check if store_size metric shows anomalies for TiKV components"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "CPU usage metrics show abnormal patterns (pod_cpu_usage metric available in data)",
+        "instruction": "Check if cpu_usage or pod_cpu_usage metrics show anomalies for tidb-tikv pods"
+      },
+      {
+        "modality": "Metric",
+        "target": "memory_usage",
+        "expected_pattern": "Memory usage metrics show significant changes (tidb-tidb memory_usage changed from 1.28GB to 677MB)",
+        "instruction": "Check if memory_usage metric shows significant changes for TiDB components"
+      }
+    ]
+  }
+}

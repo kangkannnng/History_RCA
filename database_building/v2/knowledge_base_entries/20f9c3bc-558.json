@@ -1,0 +1,33 @@
+{
+  "uuid": "20f9c3bc-558",
+  "fault_type": "pod_processes.timeout",
+  "symptom_vector": "Extreme latency spike on CurrencyService/Convert RPC calls, cascading context canceled errors in upstream services (frontend, checkoutservice), and anomalous pod CPU usage pattern on the affected currency service instance.",
+  "expert_knowledge": {
+    "root_cause_desc": "CurrencyService进程因代码递归逻辑错误导致JavaScript运行时堆栈溢出，引发进程处理能力崩溃，进而造成所有相关RPC调用超时和级联故障。",
+    "reasoning_chain": [
+      "Step 1: 观察到故障时间段内，`currencyservice`的日志中高频次出现`conversion request failed: RangeError: Maximum call stack size exceeded`错误。此错误表明服务内部存在递归调用失控或无限循环，是明确的代码级运行时故障。",
+      "Step 2: 分析Trace数据发现，从`frontend`发往`currencyservice`的`CurrencyService/Convert`调用，其平均延迟从正常的2.3秒飙升至1092万秒（约4696倍）。同时，这些调用的状态码大量为`1`（context canceled）和`14`（transport is closing），证明上游调用因下游无响应而主动取消或连接中断。",
+      "Step 3: 检查Metrics数据确认，故障组件`currencyservice-2`的`pod_cpu_usage`指标中位数从0.01异常下降至0.0，但p99值却从0.02上升至0.17。这种模式符合进程因严重错误（如堆栈溢出）而终止或进入异常状态，导致CPU使用率归零，同时偶有恢复尝试的异常模式，与日志和Trace发现的根本原因完全对应。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "currencyservice",
+        "expected_pattern": "Contains error messages with keywords: 'RangeError', 'Maximum call stack size exceeded', 'conversion request failed'.",
+        "instruction": "请搜索currencyservice服务在故障时间窗口内的错误日志。重点关注是否有表示递归深度超限或代码执行错误的日志，例如包含'Maximum call stack size exceeded'的RangeError。"
+      },
+      {
+        "modality": "Trace",
+        "target": "CurrencyService/Convert",
+        "expected_pattern": "Sudden spike in both average duration (rrt) and maximum duration (rrt_max), accompanied by a high occurrence of 'context canceled' or 'transport is closing' status codes.",
+        "instruction": "请分析调用链路中指向`currencyservice`的`Convert`操作。检查其响应时间（rrt, rrt_max）是否在故障期间出现极端的数量级增长，并同时检查这些调用链的详细状态（status_code/message），确认是否存在大量由于超时或下游不可用导致的取消错误。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Median CPU usage dropping to near zero or abnormally low, while p99 value may show spikes, indicating an unstable or crashed process state.",
+        "instruction": "请检查currencyservice相关Pod的CPU使用率（pod_cpu_usage）。观察其在故障时间前后的变化模式，特别留意中位数是否异常降低（可能为0），以及p99分位数是否存在尖峰。这种模式常暗示进程崩溃或陷入不可服务状态。"
+      }
+    ]
+  }
+}

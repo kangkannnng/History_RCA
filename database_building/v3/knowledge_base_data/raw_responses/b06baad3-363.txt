@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "b06baad3-363",
+    "fault_type": "request & port",
+    "symptom_vector": "target port misconfiguration causing connection refused errors and complete service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 服务因目标端口配置错误，导致 request 和 response 流量急剧下降，引发前端服务大量连接拒绝错误。",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-2 实例的 request 和 response 指标急剧下降 144% (从约300降至48)，这是服务故障的直接表现。",
+            "Step 2: 分析 adservice 相关日志，发现所有 frontend 实例的日志均报告 'transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused'，表明对特定IP和端口(9555)的连接被拒绝。",
+            "Step 3: 确认 Trace 数据中所有 frontend 到 adservice (hipstershop.AdService/GetAds) 的调用都出现状态码为14的连接拒绝错误，且错误消息指向同一地址，证明这是一个普遍且明确的端口可达性问题，结合流量归零，确认为 adservice 端口配置错误导致的完全不可用。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Traffic volume drops significantly (e.g., >50%)",
+                "instruction": "检查 adservice 服务的 request 流量指标是否出现断崖式下跌。"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Traffic volume drops significantly (e.g., >50%)",
+                "instruction": "检查 adservice 服务的 response 流量指标是否出现断崖式下跌。"
+            },
+            {
+                "modality": "Log",
+                "target": "connection refused",
+                "expected_pattern": "Logs contain 'connection refused' errors pointing to a specific IP:Port",
+                "instruction": "在 frontend 或调用 adservice 的其他服务的日志中搜索 'connection refused' 或 'connect: connection refused' 关键词，并确认其指向的目标地址。"
+            },
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing",
+                "expected_pattern": "RPC call failed with dialing error on a specific port",
+                "instruction": "在日志中搜索 'transport: Error while dialing' 短语，这通常表明网络层连接建立失败。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.AdService/GetAds",
+                "expected_pattern": "Calls to this operation have high failure rate with status code indicating 'Unavailable' or 'connection error'",
+                "instruction": "分析调用链，聚焦于对 adservice 的 GetAds 操作的调用，检查其状态码和错误信息是否普遍为连接失败。"
+            }
+        ]
+    }
+}
+```

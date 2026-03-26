@@ -1,0 +1,33 @@
+{
+  "uuid": "cbd1f06b-565",
+  "fault_type": "dns error",
+  "symptom_vector": "DNS resolution failure leading to server error ratio spike and RPC connection errors in frontend and checkout services",
+  "expert_knowledge": {
+    "root_cause_desc": "cartservice 的 DNS 解析失败，导致 checkoutservice 调用 cartservice 时出现 server_error_ratio 和 error_ratio 激增以及连接超时错误",
+    "reasoning_chain": [
+      "Step 1: 在 Log 数据中观察到 frontend 服务存在明确的错误信息：'transport: Error while dialing dial tcp: lookup cartservice on 10.233.33.139:53: server misbehaving'，这直接表明 cartservice 域名解析失败。",
+      "Step 2: 分析 Metric 数据，发现 checkoutservice-0 的 server_error_ratio 和 error_ratio 指标从 0% 飙升至 86.75%，同时 rrt（响应时间）从 6.72ms 增加到 253.67ms，表明 checkoutservice 出现严重错误且响应延迟。",
+      "Step 3: 通过 Trace 数据确认，checkoutservice 调用 cartservice 的 GetCart 操作大量失败，失败状态码为 14 和 13，错误信息同样为 'lookup cartservice...server misbehaving'，验证了因 cartservice DNS 不可达导致的级联故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "transport: Error while dialing|lookup cartservice|server misbehaving",
+        "expected_pattern": "包含DNS解析失败的关键词，错误指向cartservice",
+        "instruction": "在 frontend、checkoutservice 等服务的日志中搜索包含 'lookup cartservice'、'Error while dialing'、'server misbehaving' 等关键词的报错条目。"
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio|error_ratio",
+        "expected_pattern": "从正常基线（接近0%）突然飙升到高数值（如 >50%）",
+        "instruction": "检查 checkoutservice 及其上游服务（如 frontend）的 server_error_ratio 和 error_ratio 指标是否在异常时间段内出现急剧上升。"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->cartservice",
+        "expected_pattern": "调用链失败率高，状态码为14（Unavailable）或13（Internal），且错误信息包含DNS相关关键词",
+        "instruction": "分析 checkoutservice 调用 cartservice 的追踪数据（特别是 GetCart 操作），检查失败率和错误状态码（如 14, 13），并查看具体错误描述。"
+      }
+    ]
+  }
+}

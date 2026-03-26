@@ -1,0 +1,55 @@
+```json
+{
+    "uuid": "332adc3a-317",
+    "fault_type": "region_pending, io_util, raft_apply_wait, memory_usage, tidb, io",
+    "symptom_vector": "IO fault with filesystem call errors, read/write operation errors, permission denied errors, and file descriptor errors",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv] experienced [region_pending, io_util, raft_apply_wait, memory_usage, tidb, io] fault. Specifically, region_pending dropped from 10467 to 739 (change rate 1.7362) and io_util P99 increased from 0.1 to 0.35 (change rate 1.1131).",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth instance field, matches service_name in metric data)",
+            "Step 2: Check Observation - Found keyword [region_pending] in Metric data with significant change: 10467→739 (change rate 1.7362) (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [io_util] in Metric data with P99 change: 0.1→0.35 (change rate 1.1131) (From GT key_observations)",
+            "Step 4: Check Observation - Keywords [raft_apply_wait], [snapshot_apply_count], [store_size], [memory_usage] were listed in GT but NOT found in available metric data (From GT key_observations)",
+            "Step 5: Derive Root Cause - Based on verified metric anomalies, determined cause is [region_pending, io_util] with supporting evidence from [tidb, io] fault description"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Significant decrease from normal median 10467 to fault median 739 (change rate 1.7362)",
+                "instruction": "Search for metric [region_pending] in tidb-tikv service data and check for abnormal decrease"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "P99 value increased from 0.1 to 0.35 (change rate 1.1131)",
+                "instruction": "Search for metric [io_util] in tidb-tikv service data and check for abnormal increase"
+            },
+            {
+                "modality": "Metric",
+                "target": "raft_apply_wait",
+                "expected_pattern": "NOT FOUND in available metric data - metric was listed in GT but not present in collected data",
+                "instruction": "Search for metric [raft_apply_wait] in tidb-tikv service data (note: may not be available)"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "NOT FOUND in available metric data - metric was listed in GT but not present in collected data",
+                "instruction": "Search for metric [memory_usage] in tidb-tikv service data (note: may not be available)"
+            },
+            {
+                "modality": "Log",
+                "target": "filesystem call error, read operation error, write operation error, permission denied error, file descriptor error",
+                "expected_pattern": "Log data not collected - system reported '加载日志数据失败 (返回None)'",
+                "instruction": "Search for IO-related error keywords in logs at path /var/lib/tikv/**/* (note: log collection failed)"
+            },
+            {
+                "modality": "Trace",
+                "target": "TiDB storage layer calls",
+                "expected_pattern": "Trace data not collected - system reported '加载trace数据失败 (返回None)'",
+                "instruction": "Check trace data for calls to tidb-tikv component (note: trace collection failed)"
+            }
+        ]
+    }
+}
+```

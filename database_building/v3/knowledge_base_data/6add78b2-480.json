@@ -1,0 +1,45 @@
+{
+  "uuid": "6add78b2-480",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "CPU stress with high CPU utilization and latency degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice 组件因 pod_cpu_usage 飙升和 pod_processes 异常增加导致 CPU 过载，引发服务性能严重下降",
+    "reasoning_chain": [
+      "Step 1: 观察到 paymentservice 的 pod_cpu_usage 指标从正常值 0.0 飙升至 0.4（2倍变化），同时 pod_processes 从 1.0 增加到 9.0（1.6倍变化）",
+      "Step 2: 分析 paymentservice 的 rrt_max 指标从 2519ms 严重退化到 97518ms，rrt 指标也显著上升，表明服务响应时间急剧恶化",
+      "Step 3: 通过 Trace 数据确认 checkoutservice 调用 hipstershop.PaymentService/Charge 的时长从 13865.84ms 增加到 103683.57ms（7.48倍），验证了支付服务是性能瓶颈"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice",
+        "expected_pattern": "Latency anomalies in PaymentService/Charge calls",
+        "instruction": "检查从 checkoutservice 发起的 hipstershop.PaymentService/Charge 调用是否存在显著的延迟异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Significant increase in response time",
+        "instruction": "检查 paymentservice 的 rrt 指标是否存在异常上升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Severe degradation in maximum response time",
+        "instruction": "检查 paymentservice 的 rrt_max 指标是否出现严重退化"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Spike in CPU utilization",
+        "instruction": "检查 paymentservice 的 pod_cpu_usage 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormal increase in process count",
+        "instruction": "检查 paymentservice 的 pod_processes 指标是否出现异常增加"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "de83df2d-281",
+  "fault_type": "error_ratio",
+  "symptom_vector": "Connection refused errors from upstream services, sharp drop in request/response metrics, service unavailability.",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice服务不可用，导致前端服务连接被拒绝。",
+    "reasoning_chain": [
+      "Step 1: 观察到所有frontend服务实例的日志中，集中出现大量连接adservice的9555端口被拒绝的错误（`connection refused`， `Error while dialing`）。这表明调用方服务无法访问adservice。",
+      "Step 2: 分析adservice的监控指标，发现其实例`adservice-1`的`request`和`response`指标值从正常基线（约873）急剧下降至24，变化率高达189%，表明该实例几乎停止处理请求。同时，追踪数据显示frontend到adservice的调用出现4756次状态码为14（连接错误）的失败。",
+      "Step 3: 综合多模态证据（Log中的明确错误信息、Metric中请求量的断崖式下跌、Trace中大量的调用失败），确认adservice处于不可用状态，是其下游服务（frontend）出现故障表象的根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "\"connection refused\"， \"Error while dialing\"",
+        "expected_pattern": "Contains error",
+        "instruction": "在frontend服务的日志中，搜索是否存在与连接adservice（特别是9555端口）相关的连接拒绝或拨号错误。这些错误通常是服务不可达的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "adservice的`request`， `response`指标",
+        "expected_pattern": "Sudden drop to near-zero levels",
+        "instruction": "检查adservice服务的请求和响应指标。观察在故障时间窗口内，指标值是否出现从正常水平骤降至接近零的异常变化，这直接指示服务处理能力丧失。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->adservice调用链的状态码（`status_code`）",
+        "expected_pattern": "High volume of status code 14 (Unavailable)",
+        "instruction": "分析frontend服务调用adservice（`hipstershop.AdService/GetAds`）的调用链。重点检查状态码为14（UNAVAILABLE）的请求数量，大量此类失败是服务不可用的强有力证明。"
+      }
+    ]
+  }
+}

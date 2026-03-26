@@ -1,0 +1,39 @@
+{
+  "uuid": "3d3f68e9-554",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点因 node_memory_usage_rate 异常导致内存压力故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-08 节点的 node_memory_usage_rate 指标在故障期间出现异常变化",
+      "Step 2: 分析节点上运行的 redis-cart-0 等关键服务可能因内存压力导致性能下降",
+      "Step 3: 确认 Trace 数据中 redis-cart 的 HMSET 操作延迟增加20倍与节点内存压力时间点吻合"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status,302",
+        "expected_pattern": "HTTP 302 重定向响应频繁出现",
+        "instruction": "在异常时间段内搜索包含 'http.resp.status' 和 '302' 的日志条目"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total,node_disk_read_time_seconds_total",
+        "expected_pattern": "磁盘读取字节数和读取时间异常增加",
+        "instruction": "检查 aiops-k8s-08 节点的 node_disk_read_bytes_total 和 node_disk_read_time_seconds_total 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes,node_memory_usage_rate",
+        "expected_pattern": "可用内存减少，内存使用率异常升高",
+        "instruction": "检查 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 和 node_memory_usage_rate 指标是否显示内存压力"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "内存使用率持续高位或异常波动",
+        "instruction": "重点关注 aiops-k8s-08 节点的 node_memory_usage_rate 指标变化趋势"
+      }
+    ]
+  }
+}

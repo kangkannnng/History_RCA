@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "eaf978d7-208",
+    "fault_type": "pod_processes",
+    "symptom_vector": "pod killed with forceful pod termination and container eviction",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice-2 Pod 因 pod_processes 指标归零导致进程终止，表现为 pod kill 故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 currencyservice-2 所在的 aiops-k8s-07 节点上多个 Pod 的 pod_network_transmit_packets 和 pod_network_receive_packets 指标同步归零，变化率均为200%",
+            "Step 2: 分析 currencyservice-2 的 pod_processes 指标从正常值降至0.0，表明 Pod 进程已终止",
+            "Step 3: 确认 Trace 数据中 frontend 到 shippingservice 的请求比例异常，符合 pod kill 故障的传播特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "frontend 到 shippingservice 的请求比例异常",
+                "instruction": "检查 Trace 数据中 frontend 到 shippingservice 的请求比例是否出现异常分布"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "从正常值（如1.0）降至0.0，变化率200%",
+                "instruction": "检查 currencyservice-2 的 pod_processes 指标是否归零，表明 Pod 进程终止"
+            }
+        ]
+    }
+}
+```

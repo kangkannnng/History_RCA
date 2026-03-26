@@ -1,0 +1,92 @@
+{
+  "uuid": "55b23e04-325",
+  "fault_type": "dns resolution failure (server_error, server_error_ratio, error, error_ratio, http.resp.status 302)",
+  "symptom_vector": "DNS resolution failures leading to service unavailability and cascading errors, including internal RPC errors and HTTP 500/302 statuses.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice-2] experienced [dns, server_error, server_error_ratio, error, error_ratio, http.resp.status, 302] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice-2] (From Ground Truth). This instance shows severe metric anomalies in Full Context: `error_ratio` from 0.0% to 67.59%, `server_error_ratio` from 0.0% to 67.59%, `rrt` increased by 1885%, `rrt_max` increased by 174%.",
+      "Step 2: Check Observation - Found keyword [latency_anomalies] and [frontend] in [Trace] (From GT key_observations). In Full Context, trace analysis shows `frontend` calling `checkoutservice` operations like `PlaceOrder` with latency spikes from ~150ms to ~1400-1500ms.",
+      "Step 3: Check Observation - Found keyword [http.resp.status, 302] in [Log] (From GT key_observations). While the specific status 302 is not in the provided logs, the trace `status_combinations` show related HTTP 500 errors for frontend operations (`HTTP status code: 500`).",
+      "Step 4: Check Observation - Found keyword [Internal] in [Log] (From GT key_observations). In Full Context, log entries contain `\"rpc error: code = Internal desc = failed to prepare order: failed to get product\"`.",
+      "Step 5: Check Observation - Found keyword [request error] in [Log] (From GT key_observations). In Full Context, log entries contain `\"message\": \"request error\"`.",
+      "Step 6: Check Observation - Found keyword [rpc, error] in [Log] (From GT key_observations). In Full Context, log entries contain `\"rpc error\"`.",
+      "Step 7: Check Observation - Found keyword [error, error_ratio, server_error, server_error_ratio] in [Metric] (From GT key_observations). In Full Context, metric data for `checkoutservice-2` shows `error_ratio` and `server_error_ratio` both spiked from 0.0% to 67.59%.",
+      "Step 8: Derive Root Cause - Based on the above features (especially the DNS error in traces and the associated metric spikes in the faulty component), determined cause is [dns, server_error, server_error_ratio, error, error_ratio, http.resp.status, 302] (From Ground Truth). The most direct evidence is the DNS resolution failure in traces causing the component's metrics to degrade."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Significant increase in operation duration (rrt, rrt_max) for calls involving the faulty component [checkoutservice-2].",
+        "instruction": "Search for traces where `parent_pod` or `child_pod` is `checkoutservice-2` and check the `anomaly_avg_duration` vs `normal_avg_duration` for operations like `hipstershop.CheckoutService/PlaceOrder` or `hipstershop.ProductCatalogService/GetProduct`."
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Traces showing `frontend` pods (`frontend-0`, `frontend-1`, `frontend-2`) as parents calling `checkoutservice-2`, with associated errors or high latency.",
+        "instruction": "Search in trace `status_combinations` or `filtered_traces` where `parent_pod` contains `frontend-` and `child_pod` is `checkoutservice-2`."
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "Log entries or trace statuses containing HTTP response status codes, particularly error codes like 302, 500.",
+        "instruction": "Search in log `message` fields or trace `status_combinations` for patterns containing 'status' and a numeric code."
+      },
+      {
+        "modality": "Log",
+        "target": "302",
+        "expected_pattern": "The specific HTTP status code '302' appearing in logs or trace statuses.",
+        "instruction": "Search for the exact string '302' in all log `message` fields and trace `status_message` fields."
+      },
+      {
+        "modality": "Log",
+        "target": "Internal",
+        "expected_pattern": "Log entries containing the string 'Internal', often as part of an RPC error description.",
+        "instruction": "Search for the keyword 'Internal' in log `message` fields."
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "Log entries where the `message` field is exactly 'request error'.",
+        "instruction": "Search for log entries where `message` equals '\"request error\"'."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc",
+        "expected_pattern": "Log entries containing the string 'rpc', often in error contexts.",
+        "instruction": "Search for the keyword 'rpc' in log `message` fields."
+      },
+      {
+        "modality": "Log",
+        "target": "error",
+        "expected_pattern": "Log entries containing the string 'error' in any field.",
+        "instruction": "Search for the keyword 'error' in log `message` or `error` fields."
+      },
+      {
+        "modality": "Metric",
+        "target": "error",
+        "expected_pattern": "Metric named `error_ratio` showing abnormal values for the faulty component `checkoutservice-2`.",
+        "instruction": "Load metrics for `service_name`='checkoutservice' and `pod_name`='checkoutservice-2', filter for `metric_name` containing 'error_ratio', and check for significant value increases during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "Metric named `error_ratio` showing abnormal values for the faulty component `checkoutservice-2`.",
+        "instruction": "Load metrics for `service_name`='checkoutservice' and `pod_name`='checkoutservice-2', filter for `metric_name`='error_ratio', and check for significant value increases during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error",
+        "expected_pattern": "Metric named `server_error_ratio` showing abnormal values for the faulty component `checkoutservice-2`.",
+        "instruction": "Load metrics for `service_name`='checkoutservice' and `pod_name`='checkoutservice-2', filter for `metric_name`='server_error_ratio', and check for significant value increases during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio",
+        "expected_pattern": "Metric named `server_error_ratio` showing abnormal values for the faulty component `checkoutservice-2`.",
+        "instruction": "Load metrics for `service_name`='checkoutservice' and `pod_name`='checkoutservice-2', filter for `metric_name`='server_error_ratio', and check for significant value increases during the fault period."
+      }
+    ]
+  }
+}

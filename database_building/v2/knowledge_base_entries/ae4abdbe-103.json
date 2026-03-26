@@ -1,0 +1,39 @@
+{
+  "uuid": "ae4abdbe-103",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "Connection refused errors from frontend to productcatalogservice, sudden service load transfer between Pod replicas, increased latency in dependent services.",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice-2 Pod因内存耗尽导致进程异常重启，引发连接拒绝和负载不均。",
+    "reasoning_chain": [
+      "Step 1: 在日志数据中观察到来自 `frontend-0` 到 `productcatalogservice` 的 `connection refused` 和 `Error while dialing` 错误，表明该服务无法访问。",
+      "Step 2: 在指标数据中，发现 `productcatalogservice-2` 的 `pod_processes` 的 p99 值从 1.0 增加到 2.0，变化率达 66.67%。同时，`productcatalogservice-2` 的 `request` 流量从 3350.5 骤降到 22.0，而 `productcatalogservice-1` 的 `request` 从 36.0 激增到 3802.0，表明发生了严重的负载不均衡和 Pod 可用性变化。",
+      "Step 3: 在链路追踪数据中，确认 `frontend` 到 `productcatalogservice` 的调用出现状态码为 14 的连接错误（connection refused），与日志和指标异常时间点吻合。结合指标名称 `pod_memory_working_set_bytes` 和故障描述 `high memory usage`, `memory exhaustion` 等关键词，推断 `productcatalogservice-2` Pod 因内存耗尽导致进程不稳定、重启或异常，进而触发连接拒绝和请求被转移至其他副本。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error while dialing",
+        "expected_pattern": "Contains error",
+        "instruction": "搜索日志中是否包含 'Error while dialing' 和 'connection refused' 等关键词，特别是从上游服务（如frontend, checkoutservice）到productcatalogservice的调用失败信息。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden spike or change",
+        "instruction": "检查 productcatalogservice 相关 Pod 的 `pod_processes` 指标（尤其是 p99），寻找从稳定值（如 1.0）到更高值（如 2.0）的突变，这可能暗示进程重启、崩溃或异常fork。"
+      },
+      {
+        "modality": "Metric",
+        "target": "request",
+        "expected_pattern": "Sudden load transfer",
+        "instruction": "比较同一服务（如 productcatalogservice）下不同 Pod 实例（如 -1, -2）的 `request` 指标。查找一个实例请求量断崖式下跌，而另一个实例请求量激增的模式，这是 Pod 失效导致负载转移的典型迹象。"
+      },
+      {
+        "modality": "Trace",
+        "target": "status_code",
+        "expected_pattern": "Contains error code (e.g., 14)",
+        "instruction": "分析涉及 productcatalogservice 的调用链路，筛选 status_code 或 status_message 字段，查找包含 'Unavailable', 'connection refused' 或具体错误码（如14）的失败调用。"
+      }
+    ]
+  }
+}

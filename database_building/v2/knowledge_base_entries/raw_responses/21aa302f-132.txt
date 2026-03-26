@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "21aa302f-132",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Severe latency spikes across service calls, notably in Redis HGET operations.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-07 内存使用率过高，导致在该节点上运行的服务性能出现延迟。",
+        "reasoning_chain": [
+            "Step 1: 从 Trace 数据中观察到多级服务调用链出现显著的延迟，其中最严重的异常是 Redis HGET 操作，其延迟从正常的1.74秒激增至77.56秒（44.6倍）。这表明存在一个底层瓶颈。",
+            "Step 2: 为了定位根本原因，分析所有可能的根源。Metric 数据显示，aiops-k8s-07 节点的 CPU 使用率 p99 从21.47%上升至25.11%，变化率为15.63%，表明该节点负载有显著增高。同时，检查了其他节点的内存指标，虽然 aiops-k8s-05 等节点有内存减少的迹象，但调用链中的关键延迟无法直接对应。",
+            "Step 3: 交叉检查节点与 Pod 的映射关系，发现 aiops-k8s-07 节点上运行着包括 frontend-1 在内的多个服务实例。结合 Step 1 中观测到的、由 aiops-k8s-07 节点上 frontend-1 发起的操作（如 ListProducts）也出现延迟翻倍，以及该节点 CPU 负载增加的指标，可以推断该节点的资源压力（如内存使用率过高）是导致其承载服务性能劣化的根本原因，并可能通过调用链影响了 Redis 等下游服务。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "HGET",
+                "expected_pattern": "Sudden spike in operation duration, especially with >40x increase from baseline.",
+                "instruction": "检查调用链数据，筛选出延迟激增倍数最高的操作，特别是数据库或存储类的操作。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate for node aiops-k8s-07",
+                "expected_pattern": "Significant increase in p99 value during fault window.",
+                "instruction": "检查故障时段内 aiops-k8s-07 节点的 CPU 使用率 p99 指标，确认是否存在异常峰值，以作为节点资源压力的佐证。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,21 @@
+{
+  "uuid": "985de575-334",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full leading to high disk utilization and subsequent service performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 `aiops-k8s-07` 因 `node_filesystem_usage_rate` 指标异常升高导致的磁盘空间耗尽故障。",
+    "reasoning_chain": [
+      "Step 1: 在 Metric 数据中观察到 `aiops-k8s-07` 节点的 `node_filesystem_usage_rate` 指标中位数从 49.57% 异常升高至 75.38% (变化率+41.32%)，P99 值从 57.13% 升高至 93.89%，表明磁盘使用率极高。",
+      "Step 2: 分析 `aiops-k8s-07` 节点上运行的服务，根据 `node_pod_mapping` 信息，其上运行着 `cartservice-0` 等关键应用服务，这些服务的性能异常可能与节点资源不足存在关联。",
+      "Step 3: 确认此次故障中，尽管其他指标（如 TiDB 存储容量下降、Redis 延迟增加、cartservice 延迟增加）也表现出异常，但根据 Ground Truth，这些是节点磁盘满导致的次级影响，而非根本原因。根本原因节点 `aiops-k8s-07` 的文件系统使用率指标是关键异常信号。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Median value significantly increased compared to baseline, p99 value may approach 100%",
+        "instruction": "检查 `node_filesystem_usage_rate` 指标，特别关注各节点的中位数与 P99 值。确认是否有节点的磁盘使用率出现异常且持续的飙升（例如超过70%或更高）。"
+      }
+    ]
+  }
+}

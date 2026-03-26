@@ -1,0 +1,42 @@
+```json
+{
+    "uuid": "fc44280d-133",
+    "fault_type": "rrt, rrt_max",
+    "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [emailservice] experienced [rrt, rrt_max] fault, accompanied by [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] anomaly.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [emailservice] (From Ground Truth `instance` list, verified as the specific component showing extreme latency in Full Context).",
+            "Step 2: Check Observation - Found keyword [checkoutservice] and latency_anomalies in [Trace] data, showing `checkoutservice->emailservice` call chain with extreme latency spike (From GT `key_observations`).",
+            "Step 3: Check Observation - Found keyword [rrt, rrt_max] in [Metric] data, showing values increased from ~3000ms to ~2.9 million ms (199% change rate) for emailservice (From GT `key_observations`).",
+            "Step 4: Derive Root Cause - Based on the combined features of extreme latency in the trace call chain and the corresponding metric spikes, determined cause is [rrt, rrt_max] (From Ground Truth `key_metrics`)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice",
+                "expected_pattern": "Call chain from `checkoutservice` to `emailservice` (operation: `hipstershop.EmailService/SendOrderConfirmation`) shows extreme latency anomaly (e.g., from 20ms normal to 8,404,729ms anomaly).",
+                "instruction": "Search for trace entries where `parent_pod` or `service_name` contains 'checkoutservice' and `child_pod` or operation involves 'emailservice'. Check `anomaly_avg_duration` for significant increase."
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "The `anomaly_avg_duration` for the `checkoutservice->emailservice` call chain is orders of magnitude higher than `normal_avg_duration`.",
+                "instruction": "Filter trace data for rows where `anomaly_avg_duration` / `normal_avg_duration` ratio is extremely high (e.g., > 100x)."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Metric `rrt` for service `emailservice` shows a massive increase in median value (e.g., from ~1700ms to ~470,000ms) and P99 value during the fault window.",
+                "instruction": "Query metric data where `service_name` is 'emailservice' and `metric_name` is 'rrt'. Compare `fault_median`/`fault_p99` against `normal_median`/`normal_p99`."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Metric `rrt_max` for service `emailservice` shows a massive increase in median value (e.g., from ~3000ms to ~2.9 million ms) and P99 value during the fault window.",
+                "instruction": "Query metric data where `service_name` is 'emailservice' and `metric_name` is 'rrt_max'. Compare `fault_median`/`fault_p99` against `normal_median`/`normal_p99`."
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "46fc7b93-360",
+    "fault_type": "metric:abnormal_region_count",
+    "symptom_vector": "Frontend services experience high error rates (11-13%) and HTTP 500 errors. Product catalog service calls show increased latency and fail with database timeout errors. TiDB database shows anomalous memory usage and failed queries.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB Placement Driver (PD) 组件超时，导致数据库元数据操作失败，进而引发依赖数据库的上游服务级联故障。",
+        "reasoning_chain": [
+            "Step 1: 观察到 Metric 数据中 TiDB 组件的 memory_usage 中位数下降 52.77%，且出现 failed_query_ops (p99: 509.82)，表明数据库层面存在不稳定。",
+            "Step 2: 分析 Log 数据，发现 productcatalogservice 的 pod（特别是 productcatalogservice-1）记录了高达 1092 次的同一关键错误：“failed to query product by id: Error 9001 (HY000): PD server timeout: start timestamp may fall behind safe point”。同时，所有 frontend pod 的日志都包含由此错误引发的 RPC 调用失败，例如“failed to get product recommendations...”。",
+            "Step 3: 确认 Trace 数据，发现 frontend->productcatalogservice 的调用链路（如 GetProduct）频繁失败，状态码为 2，伴随的错误消息与 Log 中发现的完全一致：“Error 9001 (HY000): PD server timeout...”。这证实了底层数据库故障向上游服务的传播路径。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "tidb-tidb.memory_usage, tidb-tidb.failed_query_ops",
+                "expected_pattern": "Significant decrease in memory usage (e.g., >50%) and presence of failed queries at high percentiles.",
+                "instruction": "检查 TiDB 集群核心组件的内存使用量和失败查询操作数。内存的急剧下降可能指示进程重启或异常，而失败查询的出现直接关联到数据库服务不可用。"
+            },
+            {
+                "modality": "Log",
+                "target": "productcatalogservice pod logs, keyword: 'PD server timeout' AND 'start timestamp may fall behind safe point'",
+                "expected_pattern": "High frequency of identical error messages containing the phrases 'PD server timeout' and 'Error 9001 (HY000)'.",
+                "instruction": "在 productcatalogservice 服务的 pod 日志中搜索 'PD server timeout' 和 'Error 9001 (HY000)' 等关键词。这些错误是 TiDB 客户端库报告的，直接指向底层数据库集群的 PD 组件故障，是定位根因的关键证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->productcatalogservice calls, status_code: 2",
+                "expected_pattern": "Failed distributed calls with status_code 2 and error messages indicating PD/database timeouts.",
+                "instruction": "分析从 frontend 服务发往 productcatalogservice 的调用链路（特别是 GetProduct 操作）。观察失败请求（状态码非成功）的错误消息，确认其内容是否与数据库超时相关，以建立从应用层错误到底层基础设施故障的关联。"
+            }
+        ]
+    }
+}
+```

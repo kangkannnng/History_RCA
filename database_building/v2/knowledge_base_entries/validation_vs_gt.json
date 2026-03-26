@@ -1,0 +1,106 @@
+{
+  "summary": {
+    "total": 3,
+    "valid": 0,
+    "invalid": 3,
+    "missing_gt": 0,
+    "valid_rate": 0.0
+  },
+  "results": {
+    "046aefa7-170": {
+      "uuid": "046aefa7-170",
+      "overall_valid": false,
+      "checks": {
+        "instance_match": {
+          "passed": true,
+          "message": "组件 ['shippingservice'] 在推理中被正确识别"
+        },
+        "key_metrics_match": {
+          "passed": true,
+          "issues": []
+        },
+        "fault_description_match": {
+          "passed": false,
+          "issues": [
+            "GT故障描述 'high CPU utilization' 的关键特征未在KB中体现",
+            "GT故障描述 'CPU saturation' 的关键特征未在KB中体现",
+            "GT故障描述 'CPU overload' 的关键特征未在KB中体现",
+            "GT故障描述 'CPU usage spike' 的关键特征未在KB中体现",
+            "GT故障描述 'cpu stress' 的关键特征未在KB中体现"
+          ]
+        },
+        "modality_coverage": {
+          "passed": true,
+          "issues": []
+        }
+      }
+    },
+    "0a9fce75-340": {
+      "uuid": "0a9fce75-340",
+      "overall_valid": false,
+      "checks": {
+        "instance_match": {
+          "passed": false,
+          "message": "组件不匹配：GT=['tidb-pd-0', 'tidb-pd']，但推理中未明确提及"
+        },
+        "key_metrics_match": {
+          "passed": false,
+          "issues": [
+            "GT关键指标 'abnormal_region_count' 未在critical_checks中体现",
+            "GT关键指标 'region_health' 未在critical_checks中体现",
+            "GT关键指标 'leader_count' 未在critical_checks中体现",
+            "GT关键指标 'tidb-pd' 未在critical_checks中体现"
+          ]
+        },
+        "fault_description_match": {
+          "passed": false,
+          "issues": [
+            "GT故障描述 'pod crash' 的关键特征未在KB中体现",
+            "GT故障描述 'pod terminated unexpectedly' 的关键特征未在KB中体现",
+            "GT故障描述 'container exit' 的关键特征未在KB中体现",
+            "GT故障描述 'pod failure' 的关键特征未在KB中体现"
+          ]
+        },
+        "modality_coverage": {
+          "passed": true,
+          "issues": []
+        }
+      }
+    },
+    "bc9db995-235": {
+      "uuid": "bc9db995-235",
+      "overall_valid": false,
+      "checks": {
+        "instance_match": {
+          "passed": true,
+          "message": "组件 ['adservice-1'] 在推理中被正确识别"
+        },
+        "key_metrics_match": {
+          "passed": false,
+          "issues": [
+            "GT关键指标 'client_error' 未在critical_checks中体现",
+            "GT关键指标 'client_error_ratio' 未在critical_checks中体现",
+            "GT关键指标 'error' 未在critical_checks中体现",
+            "GT关键指标 'error_ratio' 未在critical_checks中体现",
+            "GT关键指标 'pod_processes' 未在critical_checks中体现",
+            "GT关键指标 'request' 未在critical_checks中体现",
+            "GT关键指标 'response' 未在critical_checks中体现"
+          ]
+        },
+        "fault_description_match": {
+          "passed": false,
+          "issues": [
+            "GT故障描述 'pod killed' 的关键特征未在KB中体现",
+            "GT故障描述 'forceful pod termination' 的关键特征未在KB中体现",
+            "GT故障描述 'container killed' 的关键特征未在KB中体现",
+            "GT故障描述 'pod eviction' 的关键特征未在KB中体现"
+          ]
+        },
+        "modality_coverage": {
+          "passed": true,
+          "issues": []
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "5d022708-414",
+    "fault_type": "request_response_error",
+    "symptom_vector": "target port misconfiguration causing connection refused errors and service unavailability",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice 组件因目标端口配置错误导致 request 和 response 指标异常，引发连接拒绝错误",
+        "reasoning_chain": [
+            "Step 1: 观察到 shippingservice 所有 Pod 的 error_ratio 和 client_error_ratio 指标 p99 值从 0.0 激增至 57.6、47.5、57.0，表明服务级错误率异常飙升",
+            "Step 2: 分析日志发现 frontend 服务出现大量 'connection refused' 错误，目标地址为 10.233.27.213:50051，对应 shippingservice 的端口连接问题",
+            "Step 3: 确认链路追踪数据显示 shippingservice 完全不可用，出现 648 次连接拒绝错误，导致 checkoutservice→frontend 的级联故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Error rate spike from baseline to high values",
+                "instruction": "检查 shippingservice 的 request 相关错误率指标（如 error_ratio, client_error_ratio）是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Response time degradation or error responses",
+                "instruction": "检查 shippingservice 的 response 相关指标（如 rrt, rrt_max）是否异常"
+            },
+            {
+                "modality": "Log",
+                "target": "connection refused",
+                "expected_pattern": "Contains 'connection refused' errors targeting specific IP:port",
+                "instruction": "在 frontend 和 checkoutservice 日志中搜索 'connection refused' 错误，确认目标地址是否为 shippingservice"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,36 @@
+```json
+{
+    "uuid": "fb20d6d2-350",
+    "fault_type": "dns",
+    "symptom_vector": "Increased response time (rrt) for checkoutservice, potential upstream failures or client errors due to unresolved dependencies.",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice-2 因 DNS 解析故障（如超时、服务器不可达、包截断等）导致向 shippingservice 的请求失败，并可能伴随 302 状态码响应。",
+        "reasoning_chain": [
+            "Step 1: 在 Metric 数据中发现 checkoutservice 相关服务的响应时间（rrt, rrt_max）存在异常波动，提示服务性能或下游依赖可能存在问题。",
+            "Step 2: 检查 Log 数据，未发现直接的 DNS 报错或 302 状态码日志（在提供的上下文数据中未捕获到相关日志条目），这表明故障可能未在应用日志中明确记录，或者日志收集存在盲区。",
+            "Step 3: 分析 Trace 数据，确认在故障时间段内未检测到跨服务的显著异常调用链，这排除了大规模服务间调用故障，符合网络层/基础设施层（如DNS）问题的特征，其影响可能局限于单个服务的对外连接。",
+            "Step 4: 综合 Ground Truth 信息，虽然直接证据（特定错误日志）在提供的数据切片中未出现，但 Metric 的异常模式（checkoutservice延迟）与 Trace 的无异常模式，共同指向了可能发生在网络连接层面（如DNS解析）的内部故障，这会导致对 shippingservice 的请求失败，进而可能引发客户端的重定向（302）或错误。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Sudden increase or high volatility in response time metrics for the 'checkoutservice' service or its specific pods.",
+                "instruction": "检查故障时段内 checkoutservice 服务及其所有 pod 实例（如 checkoutservice-0, checkoutservice-1, checkoutservice-2）的响应时间（rrt）和最大响应时间（rrt_max）指标。寻找是否存在显著高于基准的峰值或持续的异常高延迟。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302, DNS, lookup, resolution, timeout, unreachable, truncated",
+                "expected_pattern": "Log entries containing keywords related to HTTP 302 status, DNS lookup failures, timeouts, or network connection errors, originating from the checkoutservice component.",
+                "instruction": "在 checkoutservice 所有 pod 的日志中，搜索包含 '302'、'DNS'、'lookup'、'resolution'、'timeout'、'unreachable'、'truncated' 等关键词的错误或警告信息，特别是与 HTTP 响应状态或网络连接相关的条目。"
+            },
+            {
+                "modality": "Trace",
+                "target": "trace anomalies, error propagation",
+                "expected_pattern": "Absence of widespread trace anomalies or error spans, especially those involving checkoutservice calling shippingservice.",
+                "instruction": "分析调用链追踪数据。确认在故障窗口内，从 checkoutservice 到 shippingservice 的调用链是否普遍缺失、失败（包含错误状态码），或表现出异常高延迟。若调用链整体表现正常或无数据，则可能支持网络层独立故障的假设。"
+            }
+        ]
+    }
+}
+```

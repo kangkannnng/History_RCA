@@ -1,0 +1,45 @@
+{
+  "uuid": "eb0c4ea8-182",
+  "fault_type": "rrt_max",
+  "symptom_vector": "high network latency with increased RTT and network delay spike",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 和 productcatalogservice 组件因 rrt_max 指标异常飙升导致网络延迟增加",
+    "reasoning_chain": [
+      "Step 1: 观察到 productcatalogservice 所有实例的 rrt_max 指标出现显著异常，变化率均超过180%，其中 productcatalogservice-1 的 rrt_max 从12755.5增加到637294.0（变化率192.15%）",
+      "Step 2: 分析 checkoutservice 组件的 rrt 和 rrt_max 指标也出现异常，checkoutservice-2 的 rrt 从7347.23增加到108553.53（变化率174.64%），rrt_max 从211566.5增加到2633469.0（变化率170.25%）",
+      "Step 3: Trace分析确认 checkoutservice->productcatalogservice 调用链出现严重延迟，GetProduct操作延迟从正常19.5ms激增至1247.8ms，延迟倍数高达63.9倍，出现42次异常"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->productcatalogservice",
+        "expected_pattern": "Latency spike in GetProduct operation",
+        "instruction": "检查 checkoutservice 调用 productcatalogservice 的 GetProduct 操作是否存在延迟异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Significant increase from baseline",
+        "instruction": "检查 checkoutservice 和 productcatalogservice 组件的 rrt 指标是否异常增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme spike with high change ratio",
+        "instruction": "检查 productcatalogservice 所有实例的 rrt_max 指标是否出现大幅飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes",
+        "expected_pattern": "Abnormal network traffic pattern",
+        "instruction": "检查故障组件的网络接收字节数指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_bytes",
+        "expected_pattern": "Abnormal network traffic pattern",
+        "instruction": "检查故障组件的网络发送字节数指标是否异常"
+      }
+    ]
+  }
+}

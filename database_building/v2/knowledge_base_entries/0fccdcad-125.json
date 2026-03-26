@@ -1,0 +1,39 @@
+{
+  "uuid": "0fccdcad-125",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "Response latency (rrt_max) spike across multiple services, starting from recommendationservice. CPU saturation is observed.",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice 发生进程数异常激增，导致CPU资源耗尽与请求响应延迟急剧上升。",
+    "reasoning_chain": [
+      "Step 1: 通过指标(Metric)分析，观察到 recommendationservice 的三个Pod（-0, -1, -2）的 `pod_processes` 指标均从正常值1.0异常激增至9.0，同时其 `pod_cpu_usage` 指标从近乎0.0飙升至0.4，变化率显著。",
+      "Step 2: 结合Trace分析，确认 frontend->recommendationservice 的调用延迟（rrt_max）从正常的约4秒激增至64秒（延迟倍数16.7倍），并且 recommendationservice->productcatalogservice 的调用延迟也同步恶化，表明延迟根源在 recommendationservice。",
+      "Step 3: 查阅日志(Log)数据，故障时间段内未发现任何错误日志，排除了代码级显性错误，进一步将问题锁定为以进程数异常为起点的静默性能退化与资源耗尽问题。综合分析，根因为 recommendationservice 的进程异常（泄漏或异常重启）引发CPU饱和，进而导致请求处理能力严重下降与延迟传播。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Sudden stepwise increase or sustained high value compared to baseline (e.g., from 1 to 9).",
+        "instruction": "Check the `pod_processes` metric for the suspected service (e.g., recommendationservice). Look for abnormal increases across all its pods. A significant, sustained rise indicates potential process leak or abnormal restart, which is a strong precursor to resource exhaustion."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sharp increase closely following or coinciding with the `pod_processes` anomaly. Value reaching high levels (e.g., >0.3).",
+        "instruction": "Correlate the timeline of `pod_cpu_usage` with the `pod_processes` spike. A concurrent sharp rise in CPU usage confirms resource strain caused by the abnormal process count."
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max (frontend->recommendationservice)",
+        "expected_pattern": "Severe and sustained latency spike (e.g., >10x normal latency) in calls to the suspected service.",
+        "instruction": "Analyze the trace data for the call path from upstream services (like frontend) to the suspected root cause service (recommendationservice). Focus on the `rrt_max` metric to identify latency degradation magnitude and confirm the service as the bottleneck."
+      },
+      {
+        "modality": "Log",
+        "target": "Error logs or any logs from recommendationservice during fault window",
+        "expected_pattern": "Absence of error logs (silent degradation).",
+        "instruction": "Search for any ERROR, FATAL, or exception logs within the suspected service during the fault period. The absence of such logs, combined with metric and trace anomalies, reinforces the hypothesis of a silent resource/performance issue rather than a functional failure."
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "1193b5d8-230",
+    "fault_type": "port_connection_refused_with_client_errors",
+    "symptom_vector": "Latency spike, connection refused errors, and elevated client error ratio observed on cartservice-1",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice-1实例因端口连接拒绝导致服务不可用，引发上游服务连锁故障",
+        "reasoning_chain": [
+            "Step 1: 在Log分析中发现多条由frontend服务记录的“connection refused”错误，错误信息明确指向目标地址cartservice (10.233.46.196:7070)，表明调用方无法连接到该服务端口。",
+            "Step 2: 在Metric分析中，发现cartservice-1的rrt_max指标从基准值5231.5飙升至77184.0，增幅达174.61%，同时其error_ratio的P99分位数达到22.46%，client_error_ratio的P99分位数达到20.73%，证实该服务响应极慢且错误率极高。",
+            "Step 3: 在Trace分析中，确认了错误传播路径，多个上游服务（frontend、checkoutservice）在调用cartservice的GetCart、AddItem等操作时均因“connection refused”而失败，排除了仅单个调用方异常的可能性，从而将根因定位至被调用方cartservice-1。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "connection refused, Error while dialing",
+                "expected_pattern": "Contains error",
+                "instruction": "检查frontend或调用cartservice的服务的错误日志，是否包含‘connection refused’或‘Error while dialing’等关键词，并指向cartservice的端口。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max, error_ratio",
+                "expected_pattern": "Sudden spike and high value",
+                "instruction": "检查cartservice-1的rrt_max和error_ratio（特别是P99分位数），是否出现突增或持续高值。"
+            },
+            {
+                "modality": "Trace",
+                "target": "CartService/GetCart, CartService/AddItem",
+                "expected_pattern": "Failure with connection refused error",
+                "instruction": "在调用链数据中，检查frontend->cartservice或checkoutservice->cartservice的调用（如GetCart、AddItem），是否出现状态码为13或14的失败，且错误信息包含‘connection refused’。"
+            }
+        ]
+    }
+}
+```

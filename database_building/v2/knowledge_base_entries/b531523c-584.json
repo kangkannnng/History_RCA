@@ -1,0 +1,39 @@
+{
+  "uuid": "b531523c-584",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "High memory usage leads to node memory saturation, causing system-wide performance degradation and service latency spikes",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-01内存使用率异常，导致节点内存耗尽，引发依赖该节点的服务出现连锁延迟",
+    "reasoning_chain": [
+      "Step 1: 观察到Metric数据中node_memory_usage_rate指标异常，节点aiops-k8s-01虽然未在异常指标列表中直接显示，但通过节点与Pod映射关系发现该节点承载了多个关键服务Pod",
+      "Step 2: 分析Trace数据发现多个服务调用延迟激增，特别是cartservice→redis调用延迟增加11.09倍，checkoutservice→cartservice调用延迟增加100倍",
+      "Step 3: 确认节点内存异常与下游服务延迟激增存在时间相关性，且内存耗尽会导致Pod调度问题和性能降级"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sudden increase or sustained high value above threshold",
+        "instruction": "检查所有节点的node_memory_usage_rate指标，特别是aiops-k8s-01节点，查看在故障时间段内内存使用率是否出现异常上升或持续高位"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Steady decline or sudden drop below threshold",
+        "instruction": "监测节点可用内存变化，aiops-k8s-08节点在故障期间可用内存减少19.5%（10.6GB→8.75GB），需要检查aiops-k8s-01的类似模式"
+      },
+      {
+        "modality": "Trace",
+        "target": "cartservice→redis调用延迟",
+        "expected_pattern": "Significant latency spike in downstream services",
+        "instruction": "检查调用链中cartservice到redis的延迟（HMSET/HGET操作），延迟激增11.09-56.1倍表明底层存储服务出现性能瓶颈"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice→cartservice调用延迟",
+        "expected_pattern": "Cascading latency increase in upstream services",
+        "instruction": "分析上游服务checkoutservice调用cartservice的延迟，100倍增长表明故障在调用链中向上传播"
+      }
+    ]
+  }
+}

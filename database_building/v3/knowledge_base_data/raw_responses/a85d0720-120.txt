@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "a85d0720-120",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "node disk full with high disk utilization causing IO performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-04 节点的 node_filesystem_usage_rate 指标异常飙升导致磁盘IO性能瓶颈",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-04 节点的 node_filesystem_usage_rate 指标从正常中位数25.6%飙升至故障期间中位数66.5%，变化率达88.83%",
+            "Step 2: 分析 aiops-k8s-04 节点上部署的 frontend-2 服务调用 cartservice 的 AddItem 操作延迟增加5.6倍，GetCart 操作延迟增加3.27倍",
+            "Step 3: 确认日志分析未发现应用层错误日志，符合基础设施层资源瓶颈的特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Sudden increase from baseline with high change rate",
+                "instruction": "检查 aiops-k8s-04 节点的 node_filesystem_usage_rate 指标是否异常飙升，关注中位数和变化率"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Significant latency increase in services deployed on affected node",
+                "instruction": "分析部署在 aiops-k8s-04 节点上的服务（如 frontend-2）的响应时间指标是否异常增加"
+            },
+            {
+                "modality": "Log",
+                "target": "error",
+                "expected_pattern": "No application-level error logs during fault window",
+                "instruction": "检查故障时间段内 aiops-k8s-04 节点相关日志中是否缺少应用层错误记录，这符合基础设施问题的特征"
+            }
+        ]
+    }
+}
+```

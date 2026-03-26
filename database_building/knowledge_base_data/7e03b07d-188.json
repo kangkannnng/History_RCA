@@ -1,0 +1,40 @@
+{
+  "uuid": "7e03b07d-188",
+  "fault_type": "client_error_ratio, error_ratio",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [shippingservice-1] experienced [client_error_ratio, error_ratio] fault, accompanied by [client_error, error, error_ratiopod_processes, request, response] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [shippingservice-1] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [client_error_ratio] in Metric data with value 31.66 (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [error_ratio] in Metric data with value 31.66 (From GT key_observations)",
+      "Step 4: Derive Root Cause - Based on above features, determined cause is [client_error_ratio, error_ratio] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio",
+        "expected_pattern": "shippingservice-1's client_error_ratio spiked to 31.66 with p99 change rate 2.0 in anomaly metrics table",
+        "instruction": "Search for metric [client_error_ratio] with pod_name=shippingservice-1 in metric anomaly data"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "shippingservice-1's error_ratio spiked to 31.66 with p99 change rate 2.0 in anomaly metrics table",
+        "instruction": "Search for metric [error_ratio] with pod_name=shippingservice-1 in metric anomaly data"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused",
+        "expected_pattern": "Multiple frontend logs show 'connection refused' errors when connecting to shippingservice at 10.233.27.213:50051",
+        "instruction": "Search for keyword 'connection refused' in logs, particularly with target IP 10.233.27.213:50051"
+      },
+      {
+        "modality": "Trace",
+        "target": "error_ratio",
+        "expected_pattern": "Trace analysis findings show shippingservice with 'connection refused' errors and status codes 13/14",
+        "instruction": "Check trace status combinations for shippingservice-related errors and status codes"
+      }
+    ]
+  }
+}

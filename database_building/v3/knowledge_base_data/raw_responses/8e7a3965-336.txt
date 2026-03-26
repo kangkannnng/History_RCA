@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "8e7a3965-336",
+    "fault_type": "region_pending_io_util_anomaly",
+    "symptom_vector": "Database performance degradation with severe IO bottlenecks and high pending requests, leading to upstream service latency anomalies.",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv 组件因 region_pending 和 io_util 指标严重异常，导致数据库IO性能急剧下降。",
+        "reasoning_chain": [
+            "Step 1: 观察到 tidb-tikv 的 region_pending 变化率高达172.94%，io_util 变化率高达164.65%，表明数据库层存在严重的请求堆积和IO性能瓶颈。",
+            "Step 2: 分析 Trace 数据，发现 productcatalogservice 服务出现极端延迟（例如 checkoutservice->productcatalogservice 延迟增长564倍），但 productcatalogservice 自身的 rrt_max 变化率仅0.14%，说明其延迟是下游依赖问题的症状。",
+            "Step 3: 确认 Log 数据中未检测到任何错误日志，符合性能类‘静默故障’的特征，排除应用层错误，将根因锁定在基础设施层的 tidb-tikv 数据库性能问题。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice",
+                "expected_pattern": "Extreme latency increase in call chains involving productcatalogservice (e.g., frontend->productcatalogservice, checkoutservice->productcatalogservice)",
+                "instruction": "扫描调用链数据，检查所有涉及 productcatalogservice 的调用是否存在异常高延迟，注意区分其是被调用者（下游症状）而非根本原因。"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Significant increase in change rate (e.g., >150%) during the fault window",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标，对比故障时段与正常时段的P99或中位数变化率，确认是否存在异常飙升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Significant increase in change rate (e.g., >150%) during the fault window",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标，对比故障时段与正常时段的P99或中位数变化率，确认是否存在异常飙升。"
+            }
+        ]
+    }
+}
+```

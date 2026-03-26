@@ -1,0 +1,30 @@
+[Trigger]
+- Log anomaly pattern: Application logs show repeated error messages with a consistent code indicating data unavailability, such as "Region is unavailable," occurring with high frequency in services that query data.
+- Metric anomaly pattern: Performance metrics for the data layer exhibit severe degradation, with response times increasing from milliseconds to tens of milliseconds and a significant rise in failed operations.
+- Trace anomaly pattern: Distributed traces reveal that service calls dependent on data queries experience extreme latency increases, often by orders of magnitude, and fail with errors related to data access.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Logs from data-dependent services show high-frequency errors specifically indicating data region unavailability – this matters because it directly signals a problem at the data source, not in application logic.
+- Evidence 2: Metrics from the data service indicate sharp performance drops and increased failure rates – this supports the hypothesis of an issue within the data storage infrastructure, as it reflects core operational health.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Trace data shows upstream services experiencing high error rates and delays when invoking data queries – this is a consequence of the primary data issue, as the failures propagate through the dependency chain.
+- Evidence 4: Various service metrics show elevated error ratios across multiple components – this can be deprioritized because these patterns correlate with the primary evidence and are likely secondary effects of the data layer failure.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the consistent log errors about data region unavailability and the dramatic performance degradation in data service metrics, we suspect a failure in the underlying data storage infrastructure."
+
+Step 2: Verification or elimination
+"If this were caused by an application-level bug or misconfiguration in the querying service, we would expect error patterns localized to that service or specific request types; however, actual observation shows widespread errors across multiple services all pointing to data unavailability, and the data service metrics themselves show internal failures. This rules out upstream application issues as the primary cause."
+
+Step 3: Convergence to conclusion
+"The combination of direct error logs indicating data access problems and performance anomalies within the data layer itself indicates that the root cause is an inability to access certain data regions due to a failure in the storage system."
+
+[Conclusion]
+"The root cause is a disruption in the data storage system that prevented access to specific data regions, leading to query failures and cascading performance degradation in services that depend on this data."
+
+[Next Action]
+- "Verify whether additional storage health or infrastructure metrics show underlying hardware or configuration anomalies."
+- "Check for any correlation patterns in system logs that might explain the sudden data region unavailability."

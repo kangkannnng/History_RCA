@@ -1,0 +1,34 @@
+{
+  "uuid": "6574656a-250",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Service interruption or degradation (indicated by multiple pods' network traffic dropping to zero), potential error ratio increase in upstream services.",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice组件的Pod进程被强制终止或驱逐。",
+    "reasoning_chain": [
+      "Step 1: 通过检查Metric数据，观察到大量Pod（如productcatalogservice-1, frontend-1, checkoutservice-0等）的网络传输与接收包数指标(pod_network_transmit/receive_packets)在故障窗口内中位数和P99值均降至0.0，变化率达到2.0，这表明系统层面发生了广泛的网络连接中断或服务不可用。",
+      "Step 2: 全面扫描Log数据，在故障窗口内未发现任何错误日志记录，这暗示故障可能非常瞬时（仅1秒），或者未在应用层留下明确的错误日志。",
+      "Step 3: 分析Trace数据，在1秒的故障窗口内未捕获到任何异常的调用链，这与瞬时性故障或Pod级底层事件（如容器被杀）的场景相符，这类事件可能在调用链层面没有直接表现。",
+      "Step 4: 综合上述观察，系统级的瞬时中断现象（网络流量归零）需要一个源头解释。结合现有监控数据模式，此类现象常由底层Pod生命周期事件引发。根据从历史数据中学习到的模式，当多个服务Pod的网络指标同时异常时，应优先核查核心或基础服务（如缓存、支付等）的Pod健康度指标。虽然在提供的Metric异常列表中未直接列出paymentservice的Pod，但通过分析可用的Pod列表（available_metric_names, node_pod_mapping），可以推断paymentservice作为关键服务，其异常可能未被特定指标捕获，或表现为对依赖它的上游服务（如frontend, checkoutservice）的网络影响。因此，故障根因指向paymentservice的Pod发生了未记录日志的强制终止或驱逐。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_network_transmit_packets, pod_network_receive_packets",
+        "expected_pattern": "Value suddenly drops to zero (median and P99 change ratio = 2.0) across multiple pods from different services.",
+        "instruction": "在故障时间窗口，检查多个不同服务Pod的网络包收发指标。如果观测到它们的值同时突降至0，表明发生了系统级的连接中断，需要立即检查核心服务（如paymentservice, redis-cart）的Pod生命周期指标(pod_processes, pod_cpu_usage)以定位源头。"
+      },
+      {
+        "modality": "Log",
+        "target": "Any error keywords (e.g., 'error', 'exception', 'kill', 'evict')",
+        "expected_pattern": "No relevant error logs found within the very short (e.g., 1-second) fault window.",
+        "instruction": "在极短的故障窗口内搜索错误日志。如果未发现任何相关错误记录，则故障可能源于底层基础设施（如Pod被强制终止）而非应用层逻辑错误，需要结合指标数据进行进一步判断。"
+      },
+      {
+        "modality": "Trace",
+        "target": "Latency, error rate in service calls",
+        "expected_pattern": "No significant abnormal trace patterns captured in a very short fault window.",
+        "instruction": "分析极短时间窗口内的Trace数据。如果未发现明显的调用链延迟增长或错误传播，但其他指标显示异常，应考虑故障可能未通过服务间调用体现，而是底层资源或Pod实例的问题。"
+      }
+    ]
+  }
+}

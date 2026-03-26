@@ -1,0 +1,70 @@
+{
+  "uuid": "eba76009-152",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice-0] experienced [adservice-getrandomads-exception] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice-0] (From Ground Truth)",
+      "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [Caught, throwexception] in Log (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [grpc-default-executor] in Log (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [injected, error] in Log (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+      "Step 7: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations)",
+      "Step 8: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+      "Step 9: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric (From GT key_observations)",
+      "Step 10: Derive Root Cause - Based on above features, determined cause is [adservice-getrandomads-exception] (From Ground Truth)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "Log entry 'AdService-getRandomAds-exception-1749406206 execute()' appears 1456 times in adservice-0 logs",
+        "instruction": "Search for keyword 'adservice-getrandomads-exception' in logs from pod adservice-0"
+      },
+      {
+        "modality": "Log",
+        "target": "Caught, throwexception",
+        "expected_pattern": "Log entry 'caught ThrowException' appears 1456 times in adservice-0 logs",
+        "instruction": "Search for keywords 'Caught' and 'throwexception' in logs from pod adservice-0"
+      },
+      {
+        "modality": "Log",
+        "target": "grpc-default-executor",
+        "expected_pattern": "Log entry 'Exception in thread \"grpc-default-executor-6471\" java.lang.Error: Injected error' appears 1456 times in adservice-0 logs",
+        "instruction": "Search for keyword 'grpc-default-executor' in logs from pod adservice-0"
+      },
+      {
+        "modality": "Log",
+        "target": "injected, error",
+        "expected_pattern": "Log entry 'Exception in thread \"grpc-default-executor-6471\" java.lang.Error: Injected error' appears 1456 times in adservice-0 logs",
+        "instruction": "Search for keywords 'injected' and 'error' in logs from pod adservice-0"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Log entry 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' appears 2 times in adservice-0 logs",
+        "instruction": "Search for keyword 'invocationtargetexception' in logs from pod adservice-0"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Log entry 'org.jboss.byteman.agent.Transformer : inserted trigger for AdService-getRandomAds-exception-1749406206 in class hipstershop.AdService' appears in adservice-0 logs",
+        "instruction": "Search for keyword 'transformlistener' in logs from pod adservice-0"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Metric 'pod_cpu_usage' for pod adservice-0 shows p99 change from 0.01 to 0.08 (157.36% increase)",
+        "instruction": "Check metric 'pod_cpu_usage' for pod adservice-0 during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network metrics for pod adservice-0 show abnormal patterns during fault period",
+        "instruction": "Check network metrics 'pod_network_receive_bytes', 'pod_network_receive_packets', 'pod_network_transmit_bytes', 'pod_network_transmit_packets' for pod adservice-0"
+      }
+    ]
+  }
+}

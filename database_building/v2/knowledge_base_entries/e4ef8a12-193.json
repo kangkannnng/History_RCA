@@ -1,0 +1,27 @@
+{
+  "uuid": "e4ef8a12-193",
+  "fault_type": "packet corruption",
+  "symptom_vector": "Significant latency increase and RPC call failures from frontend services, specifically when calling the RecommendationService for product recommendations, manifesting as 'context canceled', 'transport errors', and 'i/o timeout' errors.",
+  "expert_knowledge": {
+    "root_cause_desc": "底层网络数据包损坏导致服务间RPC调用失败及延迟飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到前端服务（frontend）的日志中出现大量针对‘product recommendations’调用的RPC错误，关键词包括‘context canceled’、‘transport: Error while dialing’和‘i/o timeout’，表明到推荐服务的网络连接存在严重问题。",
+      "Step 2: 分析指标（Metric）数据，发现与网络流量相关的关键指标出现异常模式，例如，尽管故障期间pod_cpu_usage等指标未显示服务本身过载，但与网络包收发相关的指标呈现显著变化或异常，这与网络层面数据损坏的假设相符，会直接导致TCP连接超时和重传。",
+      "Step 3: 确认链路追踪（Trace）数据显示前端服务调用RecommendationService/ListRecommendations的延迟出现灾难性增长（从毫秒级增至数十秒），同时伴随大量HTTP 500和context canceled状态码。综合Log的网络错误、Metric的网络指标异常以及Trace的延迟和状态，推断根本原因在于底层网络的数据包损坏，导致服务间通信失败并引发上游服务（frontend）的连锁故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "\"failed to get product recommendations\"",
+        "expected_pattern": "Contains RPC-level network/transport errors such as \"context canceled\", \"transport is closing\", \"Error while dialing\", \"i/o timeout\".",
+        "instruction": "搜索来自frontend服务的错误日志，重点查找包含‘failed to get product recommendations’的消息。检查这些消息中是否含有表明网络连接问题的gRPC错误码（如Canceled, Unavailable）和描述（如dial timeout, transport closing）。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_packets, pod_network_transmit_packets",
+        "expected_pattern": "Significant deviation from baseline (drastic drop or unusual pattern) during the fault window, potentially coupled with error counters.",
+        "instruction": "检查受影响的pod（如frontend-*和recommendationservice-*）在故障时间窗口内的网络包收发计数（pod_network_receive_packets, pod_network_transmit_packets）指标。寻找是否存在断崖式下跌、剧烈波动或与历史基线严重不符的模式，这暗示网络链路存在丢包或损坏。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "92e5a649-207",
+  "fault_type": "metric",
+  "symptom_vector": "Frontend HTTP 500 errors, extreme latency spike in checkout service, payment service connection timeouts, and handshake failures.",
+  "expert_knowledge": {
+    "root_cause_desc": "网络层面的数据包损坏或网络不稳定，导致paymentservice服务不可达，进而引发上游checkoutservice和frontend的连锁故障。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到，frontend服务所有实例的error_ratio从0%激增至16%-20%，同时rrt_max指标出现100倍以上的严重劣化，这表明系统前端开始出现大规模故障和响应延迟。",
+      "Step 2: 结合Trace数据深入分析，发现checkoutservice调用paymentservice的Charge操作出现极端延迟，平均耗时从约13秒激增至2275万秒（约6小时），变化率超过1600倍。调用状态码显示为'handshake_timeout'和'connection_timeout'，表明支付服务握手和连接层面出现问题。",
+      "Step 3: 进一步检查Log数据，确认了网络连接问题的具体表现：所有frontend实例日志均报告与paymentservice (IP: 10.233.55.4:50051) 的连接超时错误，核心错误信息为'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout'和'timed out waiting for server handshake'。这些持续性、底层的网络I/O和握手超时，是网络包损坏或链路故障的典型特征。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->paymentservice调用链路的延迟 (hipstershop.PaymentService/Charge)",
+        "expected_pattern": "平均延迟从10+秒级别激增至千万秒级别，变化率超过1000倍。",
+        "instruction": "请扫描Trace数据，检查checkoutservice调用paymentservice的Charge接口的延迟（anomaly_avg_duration vs normal_avg_duration）。若发现延迟异常飙升数个数量级，且状态码中出现'timeout'、'handshake_timeout'或'Unavailable'，则意味着下游支付服务存在严重的网络或可用性问题。"
+      },
+      {
+        "modality": "Log",
+        "target": "i/o timeout, timed out waiting for server handshake, Error while dialing",
+        "expected_pattern": "出现包含关键词'transport: Error while dialing', 'i/o timeout', 'timed out waiting for server handshake'的错误日志，且目标地址指向同一个服务（如paymentservice）。",
+        "instruction": "在日志中搜索网络连接相关的错误。重点关注连接建立阶段（dialing/handshake）的超时错误。如果发现大量此类错误集中在指向某个服务实例（如10.233.55.4:50051）的调用上，则强烈暗示该服务网络不可达或底层网络链路存在丢包/损坏。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "rrt_max指标在故障时段出现极端峰值，变化率（如1.9+）远大于1，意味着最大响应时间从毫秒级跃升至秒级甚至分钟级。",
+        "instruction": "检查受影响服务（如checkoutservice, frontend）的rrt_max指标。计算其故障时段的中位数（fault_median）与正常时段中位数（normal_median）的变化率（median_change_ratio）。变化率接近2表示数量级的增长，是服务等待下游响应直至超时的典型指标。"
+      }
+    ]
+  }
+}

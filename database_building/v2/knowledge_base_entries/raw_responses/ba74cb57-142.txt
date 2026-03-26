@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "ba74cb57-142",
+    "fault_type": "high_memory_usage",
+    "symptom_vector": "Pod connection refused error, RPC call failure ('failed to get product'), upstream service latency spike (frontend, checkoutservice).",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice-2 Pod因节点内存压力导致重启，重启过程中产生连接拒绝错误，引发上游服务调用失败。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中发现aiops-k8s-08节点的node_memory_MemAvailable_bytes指标中位数从正常状态的11,275,415,552 bytes下降到故障状态的8,703,750,144 bytes，变化率为0.2574，表明该节点存在显著的内存可用性下降问题。",
+            "Step 2: 在Metric数据中发现productcatalogservice-2 Pod的pod_processes指标的P99值从正常状态的1.0增长到故障状态的2.0，变化率为0.6667，这是Pod进程重启或异常变化的典型特征。通过node_pod_mapping数据交叉验证，productcatalogservice-2恰好运行在出现内存压力的aiops-k8s-03节点上。",
+            "Step 3: 在Log数据中，观察到frontend-1服务的唯一一条错误日志，内容显示其在调用productcatalogservice时出现了RPC错误（failed to get product）和连接拒绝（connection refused）。在Trace数据的状态组合中，也明确记录了checkoutservice-2调用productcatalogservice时出现的“connection refused”错误。这些现象与Pod在重启或不可用时的表现完全一致。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Sharp Decline",
+                "instruction": "检查运行可疑Pod（本例中为productcatalogservice-2）的节点是否存在内存可用性显著下降的异常。确认变化率（如>0.2）和时间窗口与故障发生时间吻合。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Integer Value Increase (e.g., 1→2)",
+                "instruction": "针对被怀疑的Pod（本例中为productcatalogservice-2），检查其pod_processes指标的P99值。若从基线整数（如1.0）上升到一个更大的整数（如2.0），则强烈暗示该Pod发生过重启（进程计数先归零后恢复）。"
+            },
+            {
+                "modality": "Log",
+                "target": "connection refused",
+                "expected_pattern": "Contains Error",
+                "instruction": "搜索来自调用方服务（如frontend, checkoutservice）的日志，查找是否包含指向被怀疑服务（如productcatalogservice）的“connection refused”或类似连接失败的RPC错误信息。"
+            },
+            {
+                "modality": "Trace",
+                "target": "status_code:14",
+                "expected_pattern": "Connection Error",
+                "instruction": "在追踪数据的状态组合中，查找状态码为14（UNAVAILABLE）的记录，并确认其错误信息描述是否指向被怀疑的服务端点发生连接失败。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,63 @@
+{
+  "uuid": "27956295-84",
+  "fault_type": "rrt_network_corrupt",
+  "symptom_vector": "packet corruption causing connection timeouts and rrt_max latency spikes",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice与paymentservice之间的网络通信链路发生数据包损坏，导致rrt和rrt_max指标异常飙升，引发连接超时和握手失败",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice-2 的 rrt_max 指标从正常 199453 飙升至 20122078.5，变化率高达1960.7%，同时 paymentservice-0 的 rrt p99 从2127.52升至2472178.23",
+      "Step 2: 分析 checkoutservice 与 paymentservice 之间的调用链路，发现 PaymentService/Charge 操作延迟从正常12.8ms激增至24,427ms（延迟倍数1,904倍），并出现43次异常连接超时",
+      "Step 3: 检查日志发现 frontend 服务报告 'failed to charge card: could not charge the card: rpc error: code = Unavailable desc = timed out waiting for server handshake' 和 'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout'，确认网络连接超时问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Extreme spike in p99 values (e.g., from 2127.52 to 2472178.23)",
+        "instruction": "检查 checkoutservice 和 paymentservice 之间的 rrt 指标是否出现异常飙升，特别是p99值的变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Drastic increase from baseline (e.g., 199453 to 20122078.5, change rate >1900%)",
+        "instruction": "分析 rrt_max 指标在故障期间是否出现极端异常，重点关注变化率超过1000%的异常点"
+      },
+      {
+        "modality": "Log",
+        "target": "Error|while|dialing",
+        "expected_pattern": "Connection dialing errors with timeout messages",
+        "instruction": "在 frontend 和 checkoutservice 日志中搜索包含 'Error while dialing' 关键词的连接错误记录"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc|error|code|canceled|desc|context canceled",
+        "expected_pattern": "RPC context canceled errors in gRPC calls",
+        "instruction": "查找包含 'rpc error: code = Canceled desc = context canceled' 的日志条目，确认请求被取消的情况"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Various timeout errors (i/o timeout, handshake timeout)",
+        "instruction": "检查所有服务日志中的timeout相关错误，包括i/o timeout和handshake timeout"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Service unavailable errors in RPC calls",
+        "instruction": "搜索包含 'code = Unavailable' 的RPC错误日志，确认服务不可用状态"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice|frontend",
+        "expected_pattern": "Latency anomalies in checkoutservice->paymentservice calls",
+        "instruction": "分析调用链数据，检查 checkoutservice 调用 paymentservice 的操作是否出现严重的延迟异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+        "expected_pattern": "Abnormal patterns in network packet statistics",
+        "instruction": "监控 checkoutservice 和 paymentservice 相关pod的网络收发字节数和包数，检查是否存在异常模式"
+      }
+    ]
+  }
+}

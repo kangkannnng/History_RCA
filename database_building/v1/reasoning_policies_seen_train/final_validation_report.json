@@ -1,0 +1,3507 @@
+{
+  "total": 248,
+  "valid": 248,
+  "invalid": 0,
+  "critical_issues": 0,
+  "high_issues": 0,
+  "results": {
+    "009be6db-313": {
+      "file": "reasoning_policies_seen_train/009be6db-313_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3452,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "0419ba04-373": {
+      "file": "reasoning_policies_seen_train/0419ba04-373_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3729,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "046aefa7-170": {
+      "file": "reasoning_policies_seen_train/046aefa7-170_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - network delay"
+      ],
+      "metrics": {
+        "length": 3247,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "05b57997-154": {
+      "file": "reasoning_policies_seen_train/05b57997-154_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3358,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "09b7c00b-344": {
+      "file": "reasoning_policies_seen_train/09b7c00b-344_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3717,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "0a373d08-149": {
+      "file": "reasoning_policies_seen_train/0a373d08-149_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2613,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "0a9fce75-340": {
+      "file": "reasoning_policies_seen_train/0a9fce75-340_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2718,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "0b81a605-339": {
+      "file": "reasoning_policies_seen_train/0b81a605-339_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2663,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "0efb9550-160": {
+      "file": "reasoning_policies_seen_train/0efb9550-160_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3027,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "0fccdcad-125": {
+      "file": "reasoning_policies_seen_train/0fccdcad-125_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2567,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1193b5d8-230": {
+      "file": "reasoning_policies_seen_train/1193b5d8-230_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3550,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "11cdd935-418": {
+      "file": "reasoning_policies_seen_train/11cdd935-418_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3136,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "11f619f0-285": {
+      "file": "reasoning_policies_seen_train/11f619f0-285_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3000,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "13ebf32d-216": {
+      "file": "reasoning_policies_seen_train/13ebf32d-216_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2765,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "146da42a-586": {
+      "file": "reasoning_policies_seen_train/146da42a-586_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3554,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "14c1047f-366": {
+      "file": "reasoning_policies_seen_train/14c1047f-366_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3687,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1573cbd5-588": {
+      "file": "reasoning_policies_seen_train/1573cbd5-588_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2716,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "162fe36a-151": {
+      "file": "reasoning_policies_seen_train/162fe36a-151_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod failure"
+      ],
+      "metrics": {
+        "length": 2725,
+        "line_count": 29,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "178aa45f-353": {
+      "file": "reasoning_policies_seen_train/178aa45f-353_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3820,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "17ed37a5-494": {
+      "file": "reasoning_policies_seen_train/17ed37a5-494_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3273,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "18b8cf77-318": {
+      "file": "reasoning_policies_seen_train/18b8cf77-318_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2292,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "192019ef-486": {
+      "file": "reasoning_policies_seen_train/192019ef-486_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - cpu stress"
+      ],
+      "metrics": {
+        "length": 3070,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1ae8a5c3-555": {
+      "file": "reasoning_policies_seen_train/1ae8a5c3-555_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3122,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1c47d7bf-157": {
+      "file": "reasoning_policies_seen_train/1c47d7bf-157_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod crash"
+      ],
+      "metrics": {
+        "length": 3408,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1c4a277a-491": {
+      "file": "reasoning_policies_seen_train/1c4a277a-491_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2832,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1e36872d-481": {
+      "file": "reasoning_policies_seen_train/1e36872d-481_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2885,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1ef94bd7-352": {
+      "file": "reasoning_policies_seen_train/1ef94bd7-352_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4007,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "1fbef130-185": {
+      "file": "reasoning_policies_seen_train/1fbef130-185_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2710,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "20f9c3bc-558": {
+      "file": "reasoning_policies_seen_train/20f9c3bc-558_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3862,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "21aa302f-132": {
+      "file": "reasoning_policies_seen_train/21aa302f-132_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2861,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "233e0282-88": {
+      "file": "reasoning_policies_seen_train/233e0282-88_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3056,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "238afe01-573": {
+      "file": "reasoning_policies_seen_train/238afe01-573_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3332,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "251c4f53-179": {
+      "file": "reasoning_policies_seen_train/251c4f53-179_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3115,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "25231384-574": {
+      "file": "reasoning_policies_seen_train/25231384-574_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3296,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "25368410-268": {
+      "file": "reasoning_policies_seen_train/25368410-268_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2824,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "26c9ab68-91": {
+      "file": "reasoning_policies_seen_train/26c9ab68-91_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2970,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "271c6b09-108": {
+      "file": "reasoning_policies_seen_train/271c6b09-108_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2742,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "27914c5a-288": {
+      "file": "reasoning_policies_seen_train/27914c5a-288_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3237,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "27956295-84": {
+      "file": "reasoning_policies_seen_train/27956295-84_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3907,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "2878f9f0-376": {
+      "file": "reasoning_policies_seen_train/2878f9f0-376_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2997,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "28eb3b8c-552": {
+      "file": "reasoning_policies_seen_train/28eb3b8c-552_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3472,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "2cce5582-215": {
+      "file": "reasoning_policies_seen_train/2cce5582-215_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2989,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "2ff9d8a6-501": {
+      "file": "reasoning_policies_seen_train/2ff9d8a6-501_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - memory stress"
+      ],
+      "metrics": {
+        "length": 3064,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "31392fda-93": {
+      "file": "reasoning_policies_seen_train/31392fda-93_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3128,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "332adc3a-317": {
+      "file": "reasoning_policies_seen_train/332adc3a-317_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2724,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "33492fcd-575": {
+      "file": "reasoning_policies_seen_train/33492fcd-575_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3584,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "3400061d-135": {
+      "file": "reasoning_policies_seen_train/3400061d-135_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3989,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "342d4820-100": {
+      "file": "reasoning_policies_seen_train/342d4820-100_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3374,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "343ba04c-129": {
+      "file": "reasoning_policies_seen_train/343ba04c-129_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3393,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "36937f85-134": {
+      "file": "reasoning_policies_seen_train/36937f85-134_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2872,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "36e2b5c1-242": {
+      "file": "reasoning_policies_seen_train/36e2b5c1-242_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2503,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "371ba498-375": {
+      "file": "reasoning_policies_seen_train/371ba498-375_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3009,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "38d69375-380": {
+      "file": "reasoning_policies_seen_train/38d69375-380_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3101,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "38ee3d45-82": {
+      "file": "reasoning_policies_seen_train/38ee3d45-82_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3454,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "3ae307d9-218": {
+      "file": "reasoning_policies_seen_train/3ae307d9-218_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3543,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "3c7d0c09-484": {
+      "file": "reasoning_policies_seen_train/3c7d0c09-484_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2784,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "3d284cf0-333": {
+      "file": "reasoning_policies_seen_train/3d284cf0-333_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2867,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "3d3f68e9-554": {
+      "file": "reasoning_policies_seen_train/3d3f68e9-554_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2794,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "3d6c95dd-595": {
+      "file": "reasoning_policies_seen_train/3d6c95dd-595_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3080,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "4153e4c6-397": {
+      "file": "reasoning_policies_seen_train/4153e4c6-397_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3089,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "448bc5e0-559": {
+      "file": "reasoning_policies_seen_train/448bc5e0-559_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3129,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "45c7bf97-487": {
+      "file": "reasoning_policies_seen_train/45c7bf97-487_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3271,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "462e3353-107": {
+      "file": "reasoning_policies_seen_train/462e3353-107_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2967,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "46fc7b93-360": {
+      "file": "reasoning_policies_seen_train/46fc7b93-360_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2772,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "47fe21f6-167": {
+      "file": "reasoning_policies_seen_train/47fe21f6-167_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3164,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "49e9814e-266": {
+      "file": "reasoning_policies_seen_train/49e9814e-266_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3023,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "4b225f4a-348": {
+      "file": "reasoning_policies_seen_train/4b225f4a-348_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3694,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "4b98f078-560": {
+      "file": "reasoning_policies_seen_train/4b98f078-560_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3077,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "4e221a94-277": {
+      "file": "reasoning_policies_seen_train/4e221a94-277_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3545,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "4fd42adb-327": {
+      "file": "reasoning_policies_seen_train/4fd42adb-327_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3870,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5028909d-391": {
+      "file": "reasoning_policies_seen_train/5028909d-391_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3399,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "50bce1c4-311": {
+      "file": "reasoning_policies_seen_train/50bce1c4-311_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2754,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "50f000ee-148": {
+      "file": "reasoning_policies_seen_train/50f000ee-148_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod failure"
+      ],
+      "metrics": {
+        "length": 3136,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "52c080d4-556": {
+      "file": "reasoning_policies_seen_train/52c080d4-556_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2861,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "52c722c7-571": {
+      "file": "reasoning_policies_seen_train/52c722c7-571_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3366,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "535dd1bd-273": {
+      "file": "reasoning_policies_seen_train/535dd1bd-273_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2928,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "53d5d618-289": {
+      "file": "reasoning_policies_seen_train/53d5d618-289_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3595,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "541f72de-115": {
+      "file": "reasoning_policies_seen_train/541f72de-115_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3428,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "555d145f-99": {
+      "file": "reasoning_policies_seen_train/555d145f-99_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3181,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "55b23e04-325": {
+      "file": "reasoning_policies_seen_train/55b23e04-325_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3052,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "569f2ed5-572": {
+      "file": "reasoning_policies_seen_train/569f2ed5-572_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3530,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "56c934bb-205": {
+      "file": "reasoning_policies_seen_train/56c934bb-205_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3124,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5934fe6f-561": {
+      "file": "reasoning_policies_seen_train/5934fe6f-561_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3295,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5a573d9d-212": {
+      "file": "reasoning_policies_seen_train/5a573d9d-212_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3703,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5c4502b0-551": {
+      "file": "reasoning_policies_seen_train/5c4502b0-551_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3238,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5c8eb611-200": {
+      "file": "reasoning_policies_seen_train/5c8eb611-200_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2760,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5cb1626b-401": {
+      "file": "reasoning_policies_seen_train/5cb1626b-401_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3889,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5d022708-414": {
+      "file": "reasoning_policies_seen_train/5d022708-414_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3656,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5d97906f-213": {
+      "file": "reasoning_policies_seen_train/5d97906f-213_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2595,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "5fb39f4b-500": {
+      "file": "reasoning_policies_seen_train/5fb39f4b-500_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3752,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "62e9d294-564": {
+      "file": "reasoning_policies_seen_train/62e9d294-564_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3080,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6375ea10-98": {
+      "file": "reasoning_policies_seen_train/6375ea10-98_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2977,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6574656a-250": {
+      "file": "reasoning_policies_seen_train/6574656a-250_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2988,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "68727566-367": {
+      "file": "reasoning_policies_seen_train/68727566-367_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3054,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6a9a1c00-210": {
+      "file": "reasoning_policies_seen_train/6a9a1c00-210_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3241,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6a9c8dc7-498": {
+      "file": "reasoning_policies_seen_train/6a9c8dc7-498_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3139,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6add78b2-480": {
+      "file": "reasoning_policies_seen_train/6add78b2-480_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3106,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6dee3cf4-590": {
+      "file": "reasoning_policies_seen_train/6dee3cf4-590_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2711,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6e08f907-417": {
+      "file": "reasoning_policies_seen_train/6e08f907-417_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2925,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6e8c4acb-219": {
+      "file": "reasoning_policies_seen_train/6e8c4acb-219_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3804,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6f84e51d-140": {
+      "file": "reasoning_policies_seen_train/6f84e51d-140_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2880,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "74a44ae7-81": {
+      "file": "reasoning_policies_seen_train/74a44ae7-81_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3277,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "74bd0298-209": {
+      "file": "reasoning_policies_seen_train/74bd0298-209_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3050,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7513dbaf-190": {
+      "file": "reasoning_policies_seen_train/7513dbaf-190_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2723,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "757fa56f-263": {
+      "file": "reasoning_policies_seen_train/757fa56f-263_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2767,
+        "line_count": 29,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "76222cb2-331": {
+      "file": "reasoning_policies_seen_train/76222cb2-331_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3454,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "772b36d0-389": {
+      "file": "reasoning_policies_seen_train/772b36d0-389_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3513,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7984364a-195": {
+      "file": "reasoning_policies_seen_train/7984364a-195_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2738,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7bd681bb-358": {
+      "file": "reasoning_policies_seen_train/7bd681bb-358_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3451,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7db04792-496": {
+      "file": "reasoning_policies_seen_train/7db04792-496_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3557,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7dbfd4c3-365": {
+      "file": "reasoning_policies_seen_train/7dbfd4c3-365_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3056,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7e03b07d-188": {
+      "file": "reasoning_policies_seen_train/7e03b07d-188_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3421,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7e54232b-275": {
+      "file": "reasoning_policies_seen_train/7e54232b-275_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3401,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7e7b6ea4-228": {
+      "file": "reasoning_policies_seen_train/7e7b6ea4-228_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2992,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "7f595b45-181": {
+      "file": "reasoning_policies_seen_train/7f595b45-181_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3498,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "80cdc066-374": {
+      "file": "reasoning_policies_seen_train/80cdc066-374_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3962,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "81a145a5-394": {
+      "file": "reasoning_policies_seen_train/81a145a5-394_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3636,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "825545e5-279": {
+      "file": "reasoning_policies_seen_train/825545e5-279_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4279,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8440ee17-580": {
+      "file": "reasoning_policies_seen_train/8440ee17-580_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3457,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "84f4b04a-283": {
+      "file": "reasoning_policies_seen_train/84f4b04a-283_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2907,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8781f965-388": {
+      "file": "reasoning_policies_seen_train/8781f965-388_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2986,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "87b43d57-223": {
+      "file": "reasoning_policies_seen_train/87b43d57-223_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3350,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "88b7daff-343": {
+      "file": "reasoning_policies_seen_train/88b7daff-343_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3145,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8a7a8a00-85": {
+      "file": "reasoning_policies_seen_train/8a7a8a00-85_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3366,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8c1e8ce9-237": {
+      "file": "reasoning_policies_seen_train/8c1e8ce9-237_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3644,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8c7ed41d-249": {
+      "file": "reasoning_policies_seen_train/8c7ed41d-249_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3243,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8ce0cd7e-578": {
+      "file": "reasoning_policies_seen_train/8ce0cd7e-578_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3176,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8cf433b4-122": {
+      "file": "reasoning_policies_seen_train/8cf433b4-122_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2644,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "8e7a3965-336": {
+      "file": "reasoning_policies_seen_train/8e7a3965-336_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2809,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "913e1ecf-194": {
+      "file": "reasoning_policies_seen_train/913e1ecf-194_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2909,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "91b14fe1-386": {
+      "file": "reasoning_policies_seen_train/91b14fe1-386_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3152,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "91c4c773-252": {
+      "file": "reasoning_policies_seen_train/91c4c773-252_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2782,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "92e5a649-207": {
+      "file": "reasoning_policies_seen_train/92e5a649-207_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4433,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "934844b2-156": {
+      "file": "reasoning_policies_seen_train/934844b2-156_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3832,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "9450018e-372": {
+      "file": "reasoning_policies_seen_train/9450018e-372_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2932,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "958ecb16-253": {
+      "file": "reasoning_policies_seen_train/958ecb16-253_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2716,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "97d37c35-186": {
+      "file": "reasoning_policies_seen_train/97d37c35-186_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - network delay, pod crash"
+      ],
+      "metrics": {
+        "length": 3947,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "985de575-334": {
+      "file": "reasoning_policies_seen_train/985de575-334_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3212,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "98eacd31-244": {
+      "file": "reasoning_policies_seen_train/98eacd31-244_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3339,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "9a257bd5-150": {
+      "file": "reasoning_policies_seen_train/9a257bd5-150_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3731,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "9b0d8a50-187": {
+      "file": "reasoning_policies_seen_train/9b0d8a50-187_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2912,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "9d5bc038-419": {
+      "file": "reasoning_policies_seen_train/9d5bc038-419_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2923,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "9f49250a-383": {
+      "file": "reasoning_policies_seen_train/9f49250a-383_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4062,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a0761b38-172": {
+      "file": "reasoning_policies_seen_train/a0761b38-172_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2401,
+        "line_count": 28,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a0d5329b-489": {
+      "file": "reasoning_policies_seen_train/a0d5329b-489_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod failure"
+      ],
+      "metrics": {
+        "length": 2839,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a0e512ba-384": {
+      "file": "reasoning_policies_seen_train/a0e512ba-384_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2988,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a482d876-315": {
+      "file": "reasoning_policies_seen_train/a482d876-315_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2779,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a499f40d-202": {
+      "file": "reasoning_policies_seen_train/a499f40d-202_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3433,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a63a0c8b-290": {
+      "file": "reasoning_policies_seen_train/a63a0c8b-290_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2723,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a6536c80-576": {
+      "file": "reasoning_policies_seen_train/a6536c80-576_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3120,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a7b21b38-262": {
+      "file": "reasoning_policies_seen_train/a7b21b38-262_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3468,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a7ed866b-406": {
+      "file": "reasoning_policies_seen_train/a7ed866b-406_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3298,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a85d0720-120": {
+      "file": "reasoning_policies_seen_train/a85d0720-120_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2811,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "a87be781-351": {
+      "file": "reasoning_policies_seen_train/a87be781-351_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2975,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "aa100326-220": {
+      "file": "reasoning_policies_seen_train/aa100326-220_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3500,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "aa53ee7c-259": {
+      "file": "reasoning_policies_seen_train/aa53ee7c-259_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3091,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "abb62970-110": {
+      "file": "reasoning_policies_seen_train/abb62970-110_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3391,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ad030412-354": {
+      "file": "reasoning_policies_seen_train/ad030412-354_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3334,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ad13b37a-146": {
+      "file": "reasoning_policies_seen_train/ad13b37a-146_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3670,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ae4abdbe-103": {
+      "file": "reasoning_policies_seen_train/ae4abdbe-103_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3855,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b06b79b6-265": {
+      "file": "reasoning_policies_seen_train/b06b79b6-265_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2981,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b06baad3-363": {
+      "file": "reasoning_policies_seen_train/b06baad3-363_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3223,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b168261d-355": {
+      "file": "reasoning_policies_seen_train/b168261d-355_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3216,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b1ab098d-83": {
+      "file": "reasoning_policies_seen_train/b1ab098d-83_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3522,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b1affa2a-424": {
+      "file": "reasoning_policies_seen_train/b1affa2a-424_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3592,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b1dff953-217": {
+      "file": "reasoning_policies_seen_train/b1dff953-217_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3178,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b4feec3f-413": {
+      "file": "reasoning_policies_seen_train/b4feec3f-413_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2794,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b531523c-584": {
+      "file": "reasoning_policies_seen_train/b531523c-584_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3202,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b67cbc30-102": {
+      "file": "reasoning_policies_seen_train/b67cbc30-102_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2850,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b78dafc3-312": {
+      "file": "reasoning_policies_seen_train/b78dafc3-312_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3285,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b9319370-341": {
+      "file": "reasoning_policies_seen_train/b9319370-341_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3718,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "b9e3efbd-357": {
+      "file": "reasoning_policies_seen_train/b9e3efbd-357_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3339,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ba4ffa4e-416": {
+      "file": "reasoning_policies_seen_train/ba4ffa4e-416_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2925,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ba74cb57-142": {
+      "file": "reasoning_policies_seen_train/ba74cb57-142_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3075,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "bb585575-589": {
+      "file": "reasoning_policies_seen_train/bb585575-589_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3388,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "bbfefe10-321": {
+      "file": "reasoning_policies_seen_train/bbfefe10-321_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2854,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "bc7e1bf2-405": {
+      "file": "reasoning_policies_seen_train/bc7e1bf2-405_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3501,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "bc9db995-235": {
+      "file": "reasoning_policies_seen_train/bc9db995-235_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2627,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "bd4bafd7-567": {
+      "file": "reasoning_policies_seen_train/bd4bafd7-567_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3069,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "bd9203a8-568": {
+      "file": "reasoning_policies_seen_train/bd9203a8-568_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3736,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c0cdda5e-314": {
+      "file": "reasoning_policies_seen_train/c0cdda5e-314_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3203,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c3377c5c-337": {
+      "file": "reasoning_policies_seen_train/c3377c5c-337_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2837,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c3f4fde9-330": {
+      "file": "reasoning_policies_seen_train/c3f4fde9-330_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3436,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c4b46577-499": {
+      "file": "reasoning_policies_seen_train/c4b46577-499_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3472,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c54cf2d2-581": {
+      "file": "reasoning_policies_seen_train/c54cf2d2-581_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3248,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c6e9faa0-270": {
+      "file": "reasoning_policies_seen_train/c6e9faa0-270_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2741,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c730da7b-260": {
+      "file": "reasoning_policies_seen_train/c730da7b-260_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2790,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "c9fbd527-582": {
+      "file": "reasoning_policies_seen_train/c9fbd527-582_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3369,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cbd1f06b-565": {
+      "file": "reasoning_policies_seen_train/cbd1f06b-565_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4216,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cc451a15-174": {
+      "file": "reasoning_policies_seen_train/cc451a15-174_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3021,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cc62b887-583": {
+      "file": "reasoning_policies_seen_train/cc62b887-583_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3065,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cc8e0450-593": {
+      "file": "reasoning_policies_seen_train/cc8e0450-593_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3024,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cd049902-400": {
+      "file": "reasoning_policies_seen_train/cd049902-400_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - network delay, pod failure"
+      ],
+      "metrics": {
+        "length": 3698,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cd81a09b-101": {
+      "file": "reasoning_policies_seen_train/cd81a09b-101_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod failure"
+      ],
+      "metrics": {
+        "length": 2875,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "cebb47f5-165": {
+      "file": "reasoning_policies_seen_train/cebb47f5-165_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2847,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d0be3c58-178": {
+      "file": "reasoning_policies_seen_train/d0be3c58-178_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3308,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d124f9b7-379": {
+      "file": "reasoning_policies_seen_train/d124f9b7-379_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3736,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d1e74aa8-214": {
+      "file": "reasoning_policies_seen_train/d1e74aa8-214_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3607,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d3691ad9-492": {
+      "file": "reasoning_policies_seen_train/d3691ad9-492_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2886,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d36dd82b-255": {
+      "file": "reasoning_policies_seen_train/d36dd82b-255_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3188,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d3bd27f3-90": {
+      "file": "reasoning_policies_seen_train/d3bd27f3-90_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4803,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d3dd6ed7-183": {
+      "file": "reasoning_policies_seen_train/d3dd6ed7-183_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4125,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d4cf6596-245": {
+      "file": "reasoning_policies_seen_train/d4cf6596-245_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2974,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d99a98a0-233": {
+      "file": "reasoning_policies_seen_train/d99a98a0-233_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2766,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "d9eb1e98-410": {
+      "file": "reasoning_policies_seen_train/d9eb1e98-410_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2781,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "dac96ecf-483": {
+      "file": "reasoning_policies_seen_train/dac96ecf-483_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3023,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "dc331a0b-118": {
+      "file": "reasoning_policies_seen_train/dc331a0b-118_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3317,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "dc62e30c-113": {
+      "file": "reasoning_policies_seen_train/dc62e30c-113_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3534,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "de4a919c-126": {
+      "file": "reasoning_policies_seen_train/de4a919c-126_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3535,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "de83df2d-281": {
+      "file": "reasoning_policies_seen_train/de83df2d-281_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3577,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "df11e2f0-229": {
+      "file": "reasoning_policies_seen_train/df11e2f0-229_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3194,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "df892932-168": {
+      "file": "reasoning_policies_seen_train/df892932-168_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3179,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e1562aa2-335": {
+      "file": "reasoning_policies_seen_train/e1562aa2-335_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3875,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e1c6a610-408": {
+      "file": "reasoning_policies_seen_train/e1c6a610-408_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3083,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e4dae239-284": {
+      "file": "reasoning_policies_seen_train/e4dae239-284_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3520,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e4ef8a12-193": {
+      "file": "reasoning_policies_seen_train/e4ef8a12-193_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3359,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e4ff5a70-231": {
+      "file": "reasoning_policies_seen_train/e4ff5a70-231_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3391,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e566fa68-404": {
+      "file": "reasoning_policies_seen_train/e566fa68-404_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2761,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e6c9989b-173": {
+      "file": "reasoning_policies_seen_train/e6c9989b-173_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2552,
+        "line_count": 28,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e7f160ac-422": {
+      "file": "reasoning_policies_seen_train/e7f160ac-422_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4033,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e909315f-411": {
+      "file": "reasoning_policies_seen_train/e909315f-411_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3265,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "e955714b-280": {
+      "file": "reasoning_policies_seen_train/e955714b-280_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3292,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "eaf978d7-208": {
+      "file": "reasoning_policies_seen_train/eaf978d7-208_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod failure"
+      ],
+      "metrics": {
+        "length": 2999,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "eb0c4ea8-182": {
+      "file": "reasoning_policies_seen_train/eb0c4ea8-182_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3385,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "eb79e778-204": {
+      "file": "reasoning_policies_seen_train/eb79e778-204_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2949,
+        "line_count": 29,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "eba76009-152": {
+      "file": "reasoning_policies_seen_train/eba76009-152_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3361,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ec746a17-395": {
+      "file": "reasoning_policies_seen_train/ec746a17-395_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3429,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ed40c5a3-324": {
+      "file": "reasoning_policies_seen_train/ed40c5a3-324_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3693,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ee77456a-222": {
+      "file": "reasoning_policies_seen_train/ee77456a-222_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3086,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "ef2a4fbb-87": {
+      "file": "reasoning_policies_seen_train/ef2a4fbb-87_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3614,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f066e1dd-145": {
+      "file": "reasoning_policies_seen_train/f066e1dd-145_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - pod failure"
+      ],
+      "metrics": {
+        "length": 2674,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f18b68cd-119": {
+      "file": "reasoning_policies_seen_train/f18b68cd-119_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3053,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f35a1832-257": {
+      "file": "reasoning_policies_seen_train/f35a1832-257_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3161,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f370cf6d-291": {
+      "file": "reasoning_policies_seen_train/f370cf6d-291_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3181,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f475f2fe-594": {
+      "file": "reasoning_policies_seen_train/f475f2fe-594_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3268,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f5d0349a-276": {
+      "file": "reasoning_policies_seen_train/f5d0349a-276_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3509,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f5e2df8d-361": {
+      "file": "reasoning_policies_seen_train/f5e2df8d-361_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2449,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f625bd45-479": {
+      "file": "reasoning_policies_seen_train/f625bd45-479_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2800,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f78ef469-175": {
+      "file": "reasoning_policies_seen_train/f78ef469-175_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3152,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f99b1645-137": {
+      "file": "reasoning_policies_seen_train/f99b1645-137_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3887,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f9b9169c-407": {
+      "file": "reasoning_policies_seen_train/f9b9169c-407_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3161,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fa555038-392": {
+      "file": "reasoning_policies_seen_train/fa555038-392_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3185,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fb20d6d2-350": {
+      "file": "reasoning_policies_seen_train/fb20d6d2-350_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2558,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fb327034-184": {
+      "file": "reasoning_policies_seen_train/fb327034-184_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2816,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fbd6edf4-579": {
+      "file": "reasoning_policies_seen_train/fbd6edf4-579_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 2866,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fc3737af-320": {
+      "file": "reasoning_policies_seen_train/fc3737af-320_policy.txt",
+      "valid": true,
+      "issues": [
+        "MEDIUM: Fault type labels detected - memory stress"
+      ],
+      "metrics": {
+        "length": 2797,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fc44280d-133": {
+      "file": "reasoning_policies_seen_train/fc44280d-133_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 4047,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "fe4efdc8-364": {
+      "file": "reasoning_policies_seen_train/fe4efdc8-364_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3853,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    }
+  }
+}

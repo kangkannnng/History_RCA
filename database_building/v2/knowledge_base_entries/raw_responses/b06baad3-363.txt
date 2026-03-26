@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "b06baad3-363",
+    "fault_type": "request/response traffic anomaly",
+    "symptom_vector": "Frontend services failing to call adservice, potentially causing missing ads or page errors for end users.",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice服务端口配置错误，导致服务完全不可用。",
+        "reasoning_chain": [
+            "Step 1: 从Metric数据观察到，adservice-2实例的请求流量(request)从正常中位数298急剧下降到故障中位数48，响应流量(response)从300下降到48，下降率均超过144%，表明adservice服务功能严重受损或完全不可用。",
+            "Step 2: 从Log数据中发现，多个frontend实例（frontend-0, frontend-1, frontend-2）均报告了相同的连接错误，关键词为'connection refused'和'transport is closing'，错误信息明确指出目标地址为'10.233.8.174:9555'，这强烈暗示adservice在端口9555上无法被访问。",
+            "Step 3: 从Trace数据中确认，所有frontend实例对adservice的调用（操作名hipstershop.AdService/GetAds）均返回状态码14，状态消息为连接被拒绝，指向同一个IP和端口(10.233.8.174:9555)。这结合Metric的流量暴跌和Log的连接错误，形成了完整的证据链，证明adservice因端口配置错误而完全不可用是根因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "request, response",
+                "expected_pattern": "Sudden and significant drop (e.g., >50%)",
+                "instruction": "检查adservice实例的'request'和'response'指标。如果发现其数值在故障期间相比正常基线出现断崖式下跌（如下降率超过50%），则表明该服务处理能力严重丧失或完全不可用。"
+            },
+            {
+                "modality": "Log",
+                "target": "connection refused, transport is closing, dial tcp [IP]:[PORT]",
+                "expected_pattern": "Contains error",
+                "instruction": "在调用方服务（如frontend）的日志中搜索包含'connection refused'、'transport is closing'或'dial tcp'等关键词的错误。特别关注错误信息中提到的目标IP和端口号（如10.233.8.174:9555），这直接指向了不可达的服务端点。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.AdService/GetAds",
+                "expected_pattern": "High error ratio with status code 14",
+                "instruction": "分析从上游服务（如frontend）到adservice的调用链（操作名通常包含hipstershop.AdService）。检查这些调用的状态码，如果大量失败并返回特定的错误码（如gRPC状态码14 - Unavailable）及明确的连接错误描述，则证实了服务间的连通性问题。"
+            }
+        ]
+    }
+}
+```

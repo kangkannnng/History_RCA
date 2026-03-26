@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "2cce5582-215",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "High latency spike in service calls, CPU usage saturation on specific pods, potential service errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "Byteman故障注入工具执行的Stress测试导致adservice Pod的CPU使用率飙升，进而引发服务响应时间急剧增加。",
+        "reasoning_chain": [
+            "Step 1: 通过分析Metric数据，观察到adservice的所有三个Pod实例（adservice-0/1/2）的CPU使用率（pod_cpu_usage）和响应时间（rrt, rrt_max）在故障期间出现协同的、极为显著的飙升。其中adservice-0的CPU使用率从0.01增长至0.6（增长193%），最大响应时间从42秒增长至192秒（增长127%），表明存在严重的资源过载问题。",
+            "Step 2: 通过分析Log数据，发现在同一时间范围内，所有adservice实例的日志中频繁出现Byteman故障注入工具相关的记录。关键证据包括：Stress测试规则'AdService--stress-1749636645'被重复执行超过250次；出现多次'Agent failed to start!'及'java.lang.Exception: Main : attempting to load Byteman agent more than once'错误，表明Agent重复加载失败。这为CPU过载提供了直接的行为原因。",
+            "Step 3: 通过分析Trace数据，确认了adservice性能恶化的下游影响：所有frontend实例调用adservice的延迟从正常的约5.5秒激增至47-50秒，延迟倍数高达8.5-9.2倍。该延迟异常的模式与Metric和Log中发现的CPU过载及故障注入活动在时间和组件上高度吻合，形成了完整的证据链，从而确认故障注入是导致本次性能问题的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden spike and sustained high value (e.g., from near 0 to >0.5, increase >100%) across multiple pods of the same service.",
+                "instruction": "检查目标服务的所有Pod实例的CPU使用率时序数据。重点关注其是否在短时间内出现陡峭增长，并持续处于高位。这是资源瓶颈的典型信号。"
+            },
+            {
+                "modality": "Log",
+                "target": "AdService--stress, Byteman, StressHelper, InvocationTargetException",
+                "expected_pattern": "Contains error or warning messages related to fault injection tools, stress testing rules (e.g., 'execute()' calls), or agent loading failures.",
+                "instruction": "搜索目标服务日志中是否存在'stress'、'Byteman'、'Agent failed'、'InvocationTargetException'等关键词。这些是人为或自动化故障注入操作的明确痕迹，可能直接解释CPU和延迟异常的成因。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->adservice latency",
+                "expected_pattern": "Sudden and severe increase in latency (e.g., multiple times of normal duration) for calls from upstream services (like frontend) to the suspected component.",
+                "instruction": "分析调用链数据，查找所有以疑似故障组件（如adservice）为下游的调用路径。确认这些调用的延迟是否在故障时间窗口内出现异常飙升，以验证性能影响的范围和严重程度。"
+            }
+        ]
+    }
+}
+```

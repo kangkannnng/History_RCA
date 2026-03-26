@@ -1,0 +1,21 @@
+{
+  "uuid": "eb79e778-204",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "node disk full, high disk utilization, disk space exhaustion",
+  "expert_knowledge": {
+    "root_cause_desc": "根因是 aiops-k8s-06 节点的磁盘空间耗尽，由 node_filesystem_usage_rate 指标异常飙升导致。",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-06 节点的 node_filesystem_usage_rate（文件系统使用率）指标从正常中位数的 56.36% 显著上升至故障中位数的 80.66%，变化率达 35.46%，其 P99 值也从 70.81% 上升至 91.0%。",
+      "Step 2: 分析 aiops-k8s-06 节点上运行的 checkoutservice-2 服务，在 Trace 数据中其内部 `EmptyCart` 操作的平均响应时间从正常的 15802.07ms 急剧增加到 84802.67ms，表明该节点上的服务性能受到严重影响。",
+      "Step 3: 确认节点文件系统使用率达到高位，可能导致磁盘 I/O 性能下降甚至阻塞，从而影响到该节点上运行的所有服务。Metric与Trace证据共同指向节点磁盘资源枯竭是问题的根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "数值持续高企或快速上涨，例如从基线值56.36%上升至80.66%",
+        "instruction": "检查 `aiops-k8s-06` 节点的 `node_filesystem_usage_rate` 指标在故障时段是否出现异常上升，并关注其绝对值和变化趋势。"
+      }
+    ]
+  }
+}

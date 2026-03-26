@@ -1,0 +1,39 @@
+{
+  "uuid": "bb585575-589",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload with high CPU usage spike causing performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-08 节点因 node_cpu_usage_rate 异常飙升91.94%（从33%升至89.16%）导致节点性能下降",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-08 节点的 node_cpu_usage_rate 指标从正常中位数33.0%飙升至故障中位数89.16%，变化率高达91.94%",
+      "Step 2: 分析 aiops-k8s-08 节点上运行的Pod（包括redis-cart-0、checkoutservice-0、frontend-2等）的 pod_cpu_usage 指标，发现均无明显异常增长，符合Node自身故障模式",
+      "Step 3: 确认该节点上服务的响应时间指标（如checkoutservice-0的rrt_max下降57.52%，frontend-2的rrt_max下降50.95%）出现异常变化，表明节点资源紧张影响了服务性能"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike from baseline (33% → 89.16%, 91.94% change)",
+        "instruction": "检查 aiops-k8s-08 节点的 node_cpu_usage_rate 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Abnormal increase or decrease in network packet count",
+        "instruction": "检查 aiops-k8s-08 节点的 node_network_receive_packets_total 指标是否异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_transmit_packets_total",
+        "expected_pattern": "Abnormal increase or decrease in network packet count",
+        "instruction": "检查 aiops-k8s-08 节点的 node_network_transmit_packets_total 指标是否异常"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "Contains HTTP response status code 302",
+        "instruction": "在相关日志中搜索 http.resp.status 为 302 的记录"
+      }
+    ]
+  }
+}

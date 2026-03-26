@@ -1,0 +1,45 @@
+{
+  "uuid": "8781f965-388",
+  "fault_type": "region_pending",
+  "symptom_vector": "io fault with filesystem call errors and permission denied errors",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0 和 tidb-tikv 组件因 region_pending 和 io_util 指标异常飙升导致存储层性能退化",
+    "reasoning_chain": [
+      "Step 1: 观察到 tidb-tikv 的 region_pending 指标中位数变化率高达163.66%（从7384.5降至738.0），P99变化率168.03%，表明Region处理出现严重阻塞",
+      "Step 2: 分析 tidb-tikv 的 io_util 指标P99变化率116.74%（从0.07升至0.27），显示存储IO利用率显著增加，与region_pending异常时间完全吻合",
+      "Step 3: 确认故障时间段内日志分析未发现错误日志，符合存储层性能瓶颈的静默故障特征，而非代码错误或连接问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "productcatalogservice的GetProduct操作延迟显著增加",
+        "instruction": "检查productcatalogservice的调用链中是否存在严重的延迟异常，特别是GetProduct操作"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "P99值从正常基线显著上升",
+        "instruction": "检查tidb-tikv组件的io_util指标P99值是否在故障时间段内异常增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "中位数和P99值显著下降（变化率超过100%）",
+        "instruction": "检查tidb-tikv组件的region_pending指标中位数和P99值是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "QPS指标异常波动",
+        "instruction": "检查tidb-tikv组件的grpc_qps和qps指标是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "snapshot_apply_count",
+        "expected_pattern": "Snapshot应用计数异常",
+        "instruction": "检查tidb-tikv组件的snapshot_apply_count和store_size指标是否异常"
+      }
+    ]
+  }
+}

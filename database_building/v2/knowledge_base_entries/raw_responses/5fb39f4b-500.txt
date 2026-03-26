@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "5fb39f4b-500",
+    "fault_type": "pod crash",
+    "symptom_vector": "latency spike (rrt_max), service errors (error_ratio), and connection errors in dependent services.",
+    "expert_knowledge": {
+        "root_cause_desc": "pod级应用崩溃导致的关联服务故障",
+        "reasoning_chain": [
+            "Step 1: 在Metrics数据中发现多个服务的rrt_max（最大响应时间）出现剧烈飙升，例如`productcatalogservice-2`的rrt_max从44952.0激增至31957151.0，变化率高达1.9944，表明存在严重的服务延迟或不可用。",
+            "Step 2: 在Trace数据中发现几乎所有故障追踪都源自`frontend`服务对`productcatalogservice`中`GetProduct`操作的调用，平均延迟从正常的10秒左右激增至13-30秒，且状态码大量为2（错误）和13（HTTP 500），伴随‘connection refused’和‘connection timed out’信息，这表明调用链路末端存在严重故障。",
+            "Step 3: 尽管在提供的Log和Metric数据中未能直接捕捉到目标组件 `tidb-tidb-0` 的‘pod crash’或‘container exit’的具体日志或资源指标（如cpu_usage, memory_usage），但下游关键服务 `productcatalogservice` 依赖它且观测到大量连接被拒的错误模式（‘dial tcp...connect: connection refused’）。结合Ground Truth的根因描述，此类大规模、系统性连接失败是底层核心依赖（如数据库Pod）崩溃的典型间接表现。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Sudden and extreme spike (increase by orders of magnitude) across multiple services.",
+                "instruction": "检查所有服务层级的rrt_max指标，寻找在故障时间窗口内激增（如变化率>1.5）的实例，特别是那些处于服务调用链下游或核心依赖层的组件。"
+            },
+            {
+                "modality": "Trace",
+                "target": "operation_name: GetProduct (or other critical operations)",
+                "expected_pattern": "Average latency spike accompanied by high frequency of error status codes (e.g., 2, 13) and error messages indicating connection failures.",
+                "instruction": "分析调用链，聚焦于失败率或延迟最高的具体操作。查看其状态码分布和状态信息，寻找如‘connection refused’、‘timeout’等网络或依赖故障的明确证据。"
+            },
+            {
+                "modality": "Log",
+                "target": "dial tcp ... connect: connection refused",
+                "expected_pattern": "High frequency of this error message appearing in logs from multiple, diverse services (e.g., frontend, productcatalogservice), all pointing to the same target endpoint.",
+                "instruction": "在日志中搜索包含‘connection refused’关键词的条目。分析这些错误的来源服务（调用方）和它们试图连接的目标地址/端口，识别出被共同依赖但无法访问的故障端点。"
+            }
+        ]
+    }
+}
+```

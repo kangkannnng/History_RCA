@@ -1,0 +1,34 @@
+{
+  "uuid": "162fe36a-151",
+  "fault_type": "client_error, client_error_ratio, error, error_ratio, pod_processes, request, response",
+  "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [productcatalogservice] experienced [client_error, client_error_ratio, error, error_ratio, pod_processes, request, response] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [productcatalogservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [request, response] in Metric data (From GT key_observations keyword list)",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations keyword list)",
+      "Step 4: Derive Root Cause - Based on above features, determined cause is [client_error, client_error_ratio, error, error_ratio, pod_processes, request, response] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "In Full Context, productcatalogservice-0 shows pod_network_transmit_packets dropped from 115.13 to 0 (200% change rate) and pod_network_receive_packets dropped from 102.78 to 0 (200% change rate), indicating request/response network traffic stopped",
+        "instruction": "Search for metric patterns showing request/response network packet drops for productcatalogservice pods"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "In Full Context, multiple pods show network metrics dropping to zero (pod_network_transmit_packets, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_receive_bytes), suggesting pod process termination",
+        "instruction": "Check for pod-level metrics indicating process termination or resource exhaustion"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error, client_error_ratio, error, error_ratio",
+        "expected_pattern": "In Full Context, adservice-0 shows pod_memory_working_set_bytes dropped from 2364.08 bytes to 0 bytes (200% change rate), indicating potential error conditions leading to pod termination",
+        "instruction": "Search for error-related metrics or ratios showing abnormal patterns during fault window"
+      }
+    ]
+  }
+}

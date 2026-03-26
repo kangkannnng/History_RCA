@@ -1,0 +1,43 @@
+{
+  "uuid": "b06baad3-363",
+  "fault_type": "request response port",
+  "symptom_vector": "Service port mismatch causing connection refused errors and complete service unavailability, as described by 'target port misconfig', 'service port mismatch', 'incorrect target port'.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [request, response, port] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth).",
+      "Step 2: Check Observation - Found keyword ['http.resp.status', '302'] in Log (From GT key_observations). This is implied by the presence of HTTP-related errors in the logs where the RPC call fails, leading to unavailable status.",
+      "Step 3: Check Observation - Found keyword ['rpc', 'error'] in Log (From GT key_observations). Evidence: Multiple log entries contain 'rpc error: code = Unavailable'.",
+      "Step 4: Check Observation - Found keyword ['transport', 'Error', 'while', 'dialing'] in Log (From GT key_observations). Evidence: Log entries show 'transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused'.",
+      "Step 5: Check Observation - Found keyword ['unavailable'] in Log (From GT key_observations). Evidence: Log and trace status messages contain 'code = Unavailable'.",
+      "Step 6: Check Observation - Found keyword ['request', 'response'] in Metric (From GT key_observations). Evidence: Metric data shows 'request' and 'response' for adservice-2 dropped from 298/300 to 48, a >144% change.",
+      "Step 7: Derive Root Cause - Based on the above features (connection refused on a specific port, RPC errors, and drastic traffic drop), the determined cause is [request, response, port] misconfiguration."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "Log entries containing the exact phrase 'transport: Error while dialing dial tcp 10.233.8.174:9555: connect: connection refused' appear multiple times from frontend pods.",
+        "instruction": "Search for keyword 'transport: Error while dialing' in Log data from the fault time window."
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "Log entries containing 'rpc error: code = Unavailable' appear, often paired with the 'transport: Error while dialing' message.",
+        "instruction": "Search for keyword 'rpc error' in Log data."
+      },
+      {
+        "modality": "Trace",
+        "target": "unavailable",
+        "expected_pattern": "Trace status combinations show status_code 14 with messages containing 'Unavailable', 'connection error', or 'transport is closing' for calls from frontend to adservice.",
+        "instruction": "In Trace status data, filter for operations 'hipstershop.AdService/GetAds' and check for status messages containing 'unavailable' or error code 14."
+      },
+      {
+        "modality": "Metric",
+        "target": "request response",
+        "expected_pattern": "Metric data for service 'adservice', pod 'adservice-2' shows 'request' median dropped from 298 to 48 and 'response' median dropped from 300 to 48, with change ratios >144%.",
+        "instruction": "Query metric data for 'request' and 'response' values related to the 'adservice' during the fault time window and compare with baseline."
+      }
+    ]
+  }
+}

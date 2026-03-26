@@ -1,0 +1,53 @@
+{
+  "uuid": "9d5bc038-419",
+  "fault_type": "qps, grpc_qps, region_pending, io_util, tidb-tikv",
+  "symptom_vector": "Pod crash, pod terminated unexpectedly, container exit, pod failure.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv] experienced [qps, grpc_qps, region_pending, io_util, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth). The service 'tidb-tikv' is listed in the metric data's unique_entities (service_name).",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in [Trace] (From GT key_observations). The trace data shows multiple entries for service 'productcatalogservice' with extreme latency spikes (e.g., anomaly_avg_duration: 39462969.72603519 ms) and status 'Error 9005 (HY000): Region is unavailable'.",
+      "Step 3: Check Observation - Found keyword [failure] in [Log] (From GT key_observations). The log data contains messages like 'failed to query product by id' and 'failed to get product recommendations'.",
+      "Step 4: Check Observation - Found keyword [unavailable] in [Log] (From GT key_observations). The log and trace data repeatedly show the error 'Region is unavailable'.",
+      "Step 5: Derive Root Cause - Based on the above features linking database region unavailability to the storage layer, and the Ground Truth key_metrics, determined cause is [qps, grpc_qps, region_pending, io_util, tidb-tikv]."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "Service 'productcatalogservice' appears in trace data with extreme latency anomalies (e.g., anomaly_avg_duration ~39 million seconds) and status messages containing 'Region is unavailable'.",
+        "instruction": "Search for service_name 'productcatalogservice' in the trace data and check its anomaly_avg_duration and status_code/status_message fields."
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log messages containing the word 'failed' (e.g., 'failed to query product by id', 'failed to get product recommendations') appear with high occurrence counts.",
+        "instruction": "Search for keyword 'failed' in the log message field."
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log and trace status messages contain the phrase 'Region is unavailable'.",
+        "instruction": "Search for keyword 'unavailable' in the log message and trace status_message fields."
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps, qps",
+        "expected_pattern": "Metrics related to query rate (qps) or gRPC query rate (grpc_qps) show anomalous values. (Note: While these specific metric names are not in the provided metric list, they are part of the Ground Truth key_metrics and must be checked for in a broader dataset).",
+        "instruction": "Check for metrics named 'qps' or 'grpc_qps' related to the tidb-tikv service."
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "The metric 'region_pending' for tidb-tikv shows an abnormal increase. (Note: This specific metric name is not in the provided metric list but is part of the Ground Truth key_metrics).",
+        "instruction": "Check for the metric 'region_pending' for the tidb-tikv component."
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "The I/O utilization metric for the tidb-tikv storage node shows abnormal values. (Note: This specific metric name is not in the provided metric list but is part of the Ground Truth key_metrics).",
+        "instruction": "Check for the metric 'io_util' for the tidb-tikv component or its host node."
+      }
+    ]
+  }
+}

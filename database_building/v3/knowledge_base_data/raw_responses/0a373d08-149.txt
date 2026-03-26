@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "0a373d08-149",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown with application runtime error and exception stack trace",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 组件因 adservice-getrandomads-exception 指标异常导致 JVM 异常抛出",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-0 的 error_ratio 和 client_error_ratio 指标在故障期间 p99 值从 1.79 变为 0.0，表明错误率出现异常变化",
+            "Step 2: 分析 adservice 组件的关键指标 adservice-getrandomads-exception 在故障时间段内出现异常",
+            "Step 3: 确认故障描述符合 JVM exception thrown、application exception、runtime error 等特征"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "adservice-getrandomads-exception",
+                "expected_pattern": "异常值或异常变化",
+                "instruction": "检查 adservice 组件的 adservice-getrandomads-exception 指标在故障时间段内是否出现异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "从正常值 1.79 变为故障值 0.0，p99_change_ratio=2.0",
+                "instruction": "检查 adservice-0 的 error_ratio 指标是否在故障期间出现异常变化，特别是 p99 值从 1.79 变为 0.0"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "从正常值 1.79 变为故障值 0.0，p99_change_ratio=2.0",
+                "instruction": "检查 adservice-0 的 client_error_ratio 指标是否在故障期间出现异常变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "异常变化模式",
+                "instruction": "检查 adservice 组件的 pod_network_receive_bytes 指标在故障期间是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "异常变化模式",
+                "instruction": "检查 adservice 组件的 pod_network_receive_packets 指标在故障期间是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "异常变化模式",
+                "instruction": "检查 adservice 组件的 pod_network_transmit_bytes 指标在故障期间是否异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "异常变化模式",
+                "instruction": "检查 adservice 组件的 pod_network_transmit_packets 指标在故障期间是否异常"
+            }
+        ]
+    }
+}
+```

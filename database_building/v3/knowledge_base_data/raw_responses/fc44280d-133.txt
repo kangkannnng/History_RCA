@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "fc44280d-133",
+    "fault_type": "rrt",
+    "symptom_vector": "high network latency with increased RTT and network delay spike",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 和 emailservice 之间的网络延迟导致 rrt 和 rrt_max 指标异常飙升",
+        "reasoning_chain": [
+            "Step 1: 观察到 checkoutservice 和 emailservice 的 rrt 和 rrt_max 指标出现极端异常，rrt_max 从约3000ms上升到290万ms（变化率199%），rrt 从约1700ms上升到47万ms（变化率198%）",
+            "Step 2: 分析 Trace 数据发现 checkoutservice->emailservice 调用链中 EmailService/SendOrderConfirmation 操作延迟从正常的20,201ms激增至8,404,729ms，延迟倍数高达416倍",
+            "Step 3: 确认 Log 数据中未发现错误日志，这与网络延迟而非应用错误的特征相符，同时观察到 pod_network_receive_bytes 和 pod_network_transmit_bytes 等网络指标异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "checkoutservice,emailservice",
+                "expected_pattern": "Latency spike in checkoutservice->emailservice call chain",
+                "instruction": "检查 checkoutservice 到 emailservice 的调用链中是否存在显著的延迟异常，特别是 SendOrderConfirmation 操作"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Sudden increase from baseline",
+                "instruction": "检查 checkoutservice 和 emailservice 的 rrt 指标是否出现异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Extreme spike to millions of milliseconds",
+                "instruction": "检查 checkoutservice 和 emailservice 的 rrt_max 指标是否出现极端异常值"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Abnormal network traffic pattern",
+                "instruction": "检查相关服务的 pod_network_receive_bytes 指标是否存在异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "Abnormal network traffic pattern",
+                "instruction": "检查相关服务的 pod_network_transmit_bytes 指标是否存在异常模式"
+            }
+        ]
+    }
+}
+```

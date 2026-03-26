@@ -1,0 +1,39 @@
+{
+  "uuid": "7984364a-195",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "Significant increase in service latency and error rate; widespread DeadlineExceeded errors in upstream services.",
+  "expert_knowledge": {
+    "root_cause_desc": "AdService 服务因 Java 异常及延迟规则注入导致响应时间激增，进而引发全系统调用超时。",
+    "reasoning_chain": [
+      "Step 1: 观察日志数据，发现大量来自 frontend 服务的错误信息 'failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded'，这表明对 adservice 的调用持续超时。",
+      "Step 2: 进一步检查 adservice-0 的日志，发现其中存在 Java 异常 'java.lang.reflect.InvocationTargetException' 以及明确的延迟规则触发记录，如 'AdService-getRandomAds-latency-1749564659 execute()' 和 'Rule.execute called for AdService-getRandomAds-latency-1749564659'，表明该服务内部因规则注入而产生了异常延迟。",
+      "Step 3: 结合指标和追踪数据确认影响：Metric 数据显示 adservice-0 的 client_error_ratio 和 error_ratio P99 值从 0.51 飙升至 2.87；Trace 数据清晰显示 adservice 的 rrt_max 从正常的约 5.4 秒激增至 499 秒，增长约 92 倍，并伴随大量状态码为 4 (context deadline exceeded) 的错误。上游 frontend 服务的延迟指标 (rrt, rrt_max) 也相应显著升高。这形成了从根因组件(adservice-0)性能劣化，到依赖它的服务(frontend)出现大量超时错误的完整证据链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-0",
+        "expected_pattern": "Contains specific error keywords or rule triggers",
+        "instruction": "检查 adservice-0 的日志中是否同时出现 'java.lang.reflect.InvocationTargetException' 和 'AdService-getRandomAds-latency' 模式的关键词。这是延迟被有意注入并导致异常的直接证据。"
+      },
+      {
+        "modality": "Metric",
+        "target": "adservice-0.client_error_ratio, adservice-0.error_ratio",
+        "expected_pattern": "Sudden spike in P99 values",
+        "instruction": "对比故障时段与基线时段，检查 adservice-0 的 client_error_ratio 和 error_ratio 指标的 P99 值是否出现大幅异常增长（例如，增长数倍）。这指示了该服务错误率的显著上升。"
+      },
+      {
+        "modality": "Metric",
+        "target": "frontend-[0,1,2].rrt, frontend-[0,1,2].rrt_max",
+        "expected_pattern": "Consistent and significant increase",
+        "instruction": "检查所有 frontend 实例的 rrt (平均响应时间) 和 rrt_max (最大响应时间) 在故障期间是否均出现显著上升。这反映了故障影响的普遍性和严重性。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->adservice (operation: hipstershop.AdService/GetAds)",
+        "expected_pattern": "Extreme latency spike and high error count",
+        "instruction": "分析从 frontend 到 adservice 的调用链 (hipstershop.AdService/GetAds)。确认其平均延迟是否从毫秒级激增至百秒级（例如从~5秒到~499秒），并检查是否伴随大量的 'context deadline exceeded' (状态码 4) 错误。这是根因导致上游服务超时的直接链路证据。"
+      }
+    ]
+  }
+}

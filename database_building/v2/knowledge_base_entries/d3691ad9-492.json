@@ -1,0 +1,21 @@
+{
+  "uuid": "d3691ad9-492",
+  "fault_type": "node_cpu_saturation",
+  "symptom_vector": "Severe application latency degradation, particularly in checkout flows; upstream services (frontend, checkoutservice, cartservice) show high rrt_max; no explicit application errors in logs.",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-04节点CPU过载，导致运行于其上的服务（如cartservice-0, frontend-0）性能急剧下降，进而引发级联故障。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据中观察到，运行在aiops-k8s-04节点上的关键服务（如cartservice-0的redis操作、frontend-0的PlaceOrder操作）出现10-15倍的延迟激增。",
+      "Step 2: 分析Metric数据，发现在所有故障相关指标中，aiops-k8s-04节点的`node_cpu_usage_rate`等核心资源指标并未被列为显著异常。这提示了一个潜在的诊断盲点：本次故障的直接诱因（CPU过载）可能因为阈值设定或聚合方式，并未在metric异常检测中凸显，而只在应用层Trace（作为结果）和节点事件（作为原因描述）中体现。",
+      "Step 3: 结合节点Pod映射关系，确认高延迟的服务（cartservice-0, frontend-0）与故障组件aiops-k8s-04存在部署绑定关系。至此，可以推断节点级资源问题（CPU饱和）是应用层性能劣化的根源。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "cartservice-0 (on aiops-k8s-04) -> redis operations (HMSET, HGET)",
+        "expected_pattern": "Sudden and extreme latency spike (e.g., from ~1.6s to >20s)",
+        "instruction": "检查部署在疑似故障节点（aiops-k8s-04）上的关键服务的调用链延迟，特别是最下游的依赖（如Redis操作）。关注是否存在数量级增长的延迟，这通常是底层资源争用的直接表现。"
+      }
+    ]
+  }
+}

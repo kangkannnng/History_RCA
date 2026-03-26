@@ -1,0 +1,44 @@
+```json
+{
+    "uuid": "146da42a-586",
+    "fault_type": "region_pending and io_util fault",
+    "symptom_vector": "Database performance degradation with IO-related errors including filesystem call, read/write operation, permission denied, and file descriptor errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [tidb-tikv] experienced [region_pending] and [io_util] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv] (From Ground Truth `instance` field, matches `service_name` in Full Context metric data).",
+            "Step 2: Check Observation - Found keyword [productcatalogservice] in [Trace] (From GT `key_observations[0].keyword`, matches `service_name` in Full Context trace data showing latency anomalies).",
+            "Step 3: Check Observation - Found keyword [region_pending] in [Metric] (From GT `key_observations[2].keyword` and `key_metrics`, matches `metric_name` in Full Context metric data with 151.73% median change ratio).",
+            "Step 4: Check Observation - Found keyword [io_util] in [Metric] (From GT `key_observations[2].keyword` and `key_metrics`, matches `metric_name` in Full Context metric data).",
+            "Step 5: Check Observation - Found keyword [cpu_usage] in [Metric] (From GT `key_observations[4].keyword`, matches `metric_name` in Full Context metric data for tidb-tikv).",
+            "Step 6: Derive Root Cause - Based on the combined features of [productcatalogservice] latency spike, [region_pending] queue backlog, [io_util] anomaly, and [cpu_usage] change, determined cause is [region_pending] and [io_util] (From Ground Truth `key_metrics`)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice",
+                "expected_pattern": "Service calls involving `productcatalogservice` show significant latency increase (e.g., from checkoutservice-0 to productcatalogservice-2, latency increased from 10473.99ms to 1593610.25ms).",
+                "instruction": "Search for traces where `service_name` or `parent_pod`/`child_pod` contains keyword 'productcatalogservice' and check `anomaly_avg_duration` vs `normal_avg_duration`."
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "Metric `region_pending` for service `tidb-tikv` shows significant change (median from 7753.5 to 1064.0, change ratio 151.73%).",
+                "instruction": "Check metric data for `service_name`='tidb-tikv' and `metric_name`='region_pending', verify `median_change_ratio` and `p99_change_ratio`."
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "Metric `io_util` for service `tidb-tikv` is present and shows change (p99 from 0.17 to 0.07, change ratio 82.35%).",
+                "instruction": "Check metric data for `service_name`='tidb-tikv' and `metric_name`='io_util', verify `normal_p99`, `fault_p99`, and `p99_change_ratio`."
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "Metric `cpu_usage` for service `tidb-tikv` shows change (p99 from 0.2 to 0.3, change ratio 40.38%).",
+                "instruction": "Check metric data for `service_name`='tidb-tikv' and `metric_name`='cpu_usage', verify `normal_p99`, `fault_p99`, and `p99_change_ratio`."
+            }
+        ]
+    }
+}
+```

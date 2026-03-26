@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "569f2ed5-572",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "node memory exhaustion causing Redis and CartService performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-05 节点因 node_memory_usage_rate 激增导致内存压力，进而影响其上运行的 Redis 和 CartService 性能",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-05 节点的 node_memory_usage_rate 从 39.04% 激增至 57.63%（增长 47.4%），node_memory_MemAvailable_bytes 从 9.97GB 下降至 6.83GB",
+            "Step 2: 分析 aiops-k8s-05 节点上运行的 redis-cart-0 服务，其 HMSET 操作延迟从 1361ms 激增至 18310ms（13.4 倍增长），CartService 的 AddItem 操作延迟从 3583ms 增至 28491ms（7.9 倍增长）",
+            "Step 3: 确认故障期间无应用层错误日志，符合节点资源瓶颈特征，且拓扑映射显示 redis-cart-0 确实部署在 aiops-k8s-05 节点上"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Significant increase from baseline (39.04% → 57.63%, 47.4% growth)",
+                "instruction": "检查 aiops-k8s-05 节点的 node_memory_usage_rate 指标是否异常激增"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Significant decrease from baseline (9.97GB → 6.83GB, 31.4% reduction)",
+                "instruction": "检查 aiops-k8s-05 节点的 node_memory_MemAvailable_bytes 指标是否显著下降"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Severe latency increase in Redis HMSET operations (13.4x) and CartService operations (7.9x)",
+                "instruction": "检查 aiops-k8s-05 节点上 Redis 和 CartService 的 rrt_max 指标是否出现严重延迟"
+            },
+            {
+                "modality": "Log",
+                "target": "error",
+                "expected_pattern": "No error logs during fault window",
+                "instruction": "在故障时间段内检查 aiops-k8s-05 节点及相关服务的日志，确认是否存在错误日志"
+            }
+        ]
+    }
+}
+```

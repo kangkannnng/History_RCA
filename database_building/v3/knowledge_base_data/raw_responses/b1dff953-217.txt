@@ -1,0 +1,23 @@
+```json
+{
+    "uuid": "b1dff953-217",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload and high CPU usage, leading to service performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "根因是 aiops-k8s-07 节点的 node_cpu_usage_rate 指标飙升，导致节点CPU严重过载",
+        "reasoning_chain": [
+            "Step 1: 观察到 node_cpu_usage_rate 指标发生剧烈异常，其中节点 aiops-k8s-07 的指标中位数从正常的 18.97% 激增至故障期间的 89.48%，变化率达 130%。",
+            "Step 2: 分析故障节点 aiops-k8s-07 上运行的服务（如 emailservice-0, currencyservice-2, frontend-1），其在 Trace 数据中也出现了相关性能延迟（如 checkoutservice 调用 emailservice 的延迟从 699.97ms 降至 217.25ms，这种异常下降可能表明请求处理能力异常或上游请求减少）。",
+            "Step 3: 确认该节点的资源瓶颈是其上运行的服务性能问题的根本原因，排除了特定服务（如 Redis）作为唯一故障源的可能性。因为 Metric 数据中最严重的异常来自节点指标，且与故障描述吻合。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Usage rate exceeds high threshold (e.g., >80%) or shows significant increase from baseline (>100%)",
+                "instruction": "检查名为 aiops-k8s-07 的节点的 node_cpu_usage_rate 指标，确认其在故障窗口内是否出现异常飙升。"
+            }
+        ]
+    }
+}
+```

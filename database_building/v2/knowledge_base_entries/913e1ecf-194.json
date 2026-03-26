@@ -1,0 +1,33 @@
+{
+  "uuid": "913e1ecf-194",
+  "fault_type": "metric",
+  "symptom_vector": "Multi-service latency spike (rrt_max), no application error logs, high node disk utilization.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点文件系统使用率激增导致磁盘空间耗尽，进而引发部署在该节点上的服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 观察到Metric数据显示节点`aiops-k8s-01`的`node_filesystem_usage_rate`指标从中位数50.98%激增至71.43%，变化率高达33.41%，这表明该节点的磁盘空间已成为主要瓶颈。",
+      "Step 2: 通过节点与Pod的映射关系`node_pod_mapping`确认，`checkoutservice-1`, `emailservice-1`, `recommendationservice-2`, `shippingservice-0`, `productcatalogservice-1`等多个服务Pod均部署在该问题节点上。",
+      "Step 3: 综合分析Log、Trace和其他Metric数据发现：1）Log分析未发现应用层错误，符合底层资源瓶颈特征；2）Trace数据显示多个节点（包括aiops-k8s-01）上的服务均出现`rrt_max`延迟，且位于aiops-k8s-01节点的服务（如recommendationservice-2, shippingservice-0）有明确延迟记录，这支持了节点级资源瓶颈影响了其上所有Pod的判断。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden increase or sustained high value (e.g., >70%)",
+        "instruction": "请检查所有节点的`node_filesystem_usage_rate`指标，对比异常时间段与基线时间段的数值。重点关注变化率（`median_change_ratio`或`p99_change_ratio`）显著（例如>30%）或绝对值过高（例如>70%）的节点。"
+      },
+      {
+        "modality": "Log",
+        "target": "error logs",
+        "expected_pattern": "Absence of specific application errors",
+        "instruction": "请分析异常时间段内，来自疑似问题节点（如`aiops-k8s-01`）及其上运行的所有Pod的应用日志。虽然预期可能没有直接的“磁盘已满”错误，但需注意查找可能间接相关的I/O超时、写入失败或资源不可用等警告信息。‘无错误日志’这一事实本身也是支持基础设施层问题的证据。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max",
+        "expected_pattern": "Latency spikes across multiple services running on the same suspect node",
+        "instruction": "请筛选出所有发生`rrt_max`显著增长的调用链。然后，根据`node_pod_mapping`或trace数据中的`node_name`字段，将延迟异常的服务/Pod定位到具体的物理节点。如果发现多个延迟异常的服务都集中在同一个节点上，且该节点存在资源类Metric异常（如`node_filesystem_usage_rate`），则应优先怀疑节点级问题。"
+      }
+    ]
+  }
+}

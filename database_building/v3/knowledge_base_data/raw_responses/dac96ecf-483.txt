@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "dac96ecf-483",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice-1 组件的 pod_memory_working_set_bytes 指标异常升高导致内存压力",
+        "reasoning_chain": [
+            "Step 1: 观察到 adservice-1 的 pod_memory_working_set_bytes 指标在故障时段内显著超过正常基线",
+            "Step 2: 分析日志数据，在 adservice-1 的访问日志中发现大量 HTTP 302 状态码，表明服务可能因内存压力产生异常重定向",
+            "Step 3: 确认该内存压力模式与故障描述中的 high memory usage、memory exhaustion 等特征一致"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "持续升高或维持在异常高位",
+                "instruction": "检查 adservice-1 Pod 的内存使用指标 pod_memory_working_set_bytes 是否出现异常升高"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status 302",
+                "expected_pattern": "出现频率显著高于正常基线",
+                "instruction": "在 adservice-1 的日志中搜索 HTTP 响应状态码为 302 的条目，检查其出现频率是否异常"
+            }
+        ]
+    }
+}
+```

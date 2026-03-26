@@ -1,0 +1,21 @@
+{
+  "uuid": "a0d5329b-489",
+  "fault_type": "dns",
+  "symptom_vector": "checkoutservice experiencing DNS lookup failure, DNS resolution timeout, incorrect DNS response, HTTP 302 redirection status",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 组件由于 dns 解析错误导致其依赖的 shippingservice 调用失败，并在日志中观察到 http.resp.status 为 302 的状态码",
+    "reasoning_chain": [
+      "Step 1: 观察到 trace 数据显示 checkoutservice 调用其下游服务 shippingservice 的延迟（rrt_max）出现异常激增（例如 ShipOrder 和 GetQuote 操作），这与 DNS 解析失败导致连接超时的典型表现一致。",
+      "Step 2: 分析 Ground Truth 指定的故障组件 checkoutservice，其关键症状包含 DNS 相关错误（lookup failure, timeout），但相关 dns 解析指标（如 dns_lookup_time, dns_error_count）在全量提供的 Metric 数据中缺失。然而，Trace 中 checkoutservice 调用链的源头问题（延迟激增）与 DNS 故障导致服务不可达的症状相符。",
+      "Step 3: 确认关键证据需检查 checkoutservice 的日志，依据 Ground Truth 指示的关键观察（key_observations）搜索包含 'http.resp.status' 和 '302' 关键词的条目，这可能是 DNS 故障引发异常重定向或错误响应的直接表现。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "日志中出现 HTTP 响应状态码 302 的记录，可能指示重定向或错误响应，是 DNS 故障的间接表现之一",
+        "instruction": "在 checkoutservice 及其相关 Pod 的日志中，搜索包含 'http.resp.status' 字段且值为 '302' 的条目，分析其出现的上下文和时间是否与故障时间窗口吻合。"
+      }
+    ]
+  }
+}

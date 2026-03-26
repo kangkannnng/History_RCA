@@ -1,0 +1,33 @@
+{
+  "uuid": "1ef94bd7-352",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "Service latency spikes (rrt_max) across multiple downstream calls from frontend, increased error_ratio, and RPC DeadlineExceeded errors in logs.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-04 内存使用率异常，导致该节点上运行的 frontend 及其他服务实例性能下降，进而引发调用链延迟和超时错误。",
+    "reasoning_chain": [
+      "Step 1: 从 Metrics 数据中观察到，节点 aiops-k8s-04 的 node_memory_usage_rate 指标在故障期间中位数 (median) 从 47.37% 下降至 31.6% (变化率39.94%)，但 P99 值从 61.89% 上升至 63.42%。同时，该节点的 node_memory_MemAvailable_bytes 显著增加，表明可能存在内存压力导致的内存回收或异常释放。",
+      "Step 2: 结合 Trace 数据，发现 aiops-k8s-04 节点上的 frontend-0 实例在调用 currencyService、adService、cartService 等下游服务时，响应时间 (anomaly_avg_duration) 出现数量级增长 (例如 CurrencyService/Convert 从 2.35s 增至 12.6s)，这些延迟激增与节点资源异常的时间窗口吻合。",
+      "Step 3: 通过 Log 数据确认，虽然日志中未直接报告内存错误，但 frontend-1 实例记录了因下游服务 (如 adservice) 超时 (DeadlineExceeded) 而导致的失败。综合节点指标异常、该节点上服务的延迟表现，以及系统整体出现的超时症状，可以推断根因是 aiops-k8s-04 节点的内存异常，影响了其承载服务的性能。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sudden change in median value (drop) accompanied by an increase or sustained high value in P99 percentile, indicating potential memory pressure and abnormal usage patterns.",
+        "instruction": "Focus on the node-level metric 'node_memory_usage_rate' for the suspected faulty node (aiops-k8s-04). Compare the median and P99 values between the normal and fault periods. A significant drop in median with a sustained or increasing P99, alongside a corresponding spike in 'node_memory_MemAvailable_bytes', suggests memory pressure events or leaks leading to performance degradation."
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend-0",
+        "expected_pattern": "Significant latency increase (e.g., 5-10x) in multiple outgoing RPC calls (e.g., to currencyService, adService, cartService) originating from services/pods located on the faulty node (aiops-k8s-04).",
+        "instruction": "Filter the trace data for entries where 'node_name' is 'aiops-k8s-04' and 'parent_pod' or 'child_pod' is 'frontend-0'. Analyze the 'normal_avg_duration' vs 'anomaly_avg_duration' for its outgoing calls. A consistent pattern of high latency across multiple downstream services strongly correlates with node-level resource issues."
+      },
+      {
+        "modality": "Log",
+        "target": "DeadlineExceeded",
+        "expected_pattern": "Log messages containing 'DeadlineExceeded', 'context deadline exceeded', or similar RPC/client-side timeout errors, often reported by upstream services (like frontend) when calling downstream services.",
+        "instruction": "Search logs for keywords 'DeadlineExceeded' or 'deadline exceeded'. These errors are symptoms, not root cause. The task is to link these errors back to the affected node by checking which node hosts the service reporting the error or the target service that is timing out. While direct OOM logs might be absent, these timeout logs are indirect evidence of performance degradation likely caused by underlying resource issues."
+      }
+    ]
+  }
+}

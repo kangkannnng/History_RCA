@@ -1,0 +1,63 @@
+{
+  "uuid": "e7f160ac-422",
+  "fault_type": "qps grpc_qps region_pending io_util tidb-tikv",
+  "symptom_vector": "Pod crash and termination with container exit due to pod failure",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [tidb-tikv-0] experienced [qps, grpc_qps, region_pending, io_util, tidb-tikv] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [tidb-tikv-0] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [productcatalogservice] in Trace data with latency anomalies (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [failure] in Log data (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [unavailable] in Log data (From GT key_observations)",
+      "Step 5: Check Observation - Found keyword [grpc_qps] in Metric data (From GT key_observations)",
+      "Step 6: Check Observation - Found keyword [qps] in Metric data (From GT key_observations)",
+      "Step 7: Check Observation - Found keyword [io_util] in Metric data (From GT key_observations)",
+      "Step 8: Check Observation - Found keyword [region_pending] in Metric data (From GT key_observations)",
+      "Step 9: Derive Root Cause - Based on above features, determined cause is [qps, grpc_qps, region_pending, io_util, tidb-tikv] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "productcatalogservice shows latency anomalies with rrt from 7.16ms to 20.35 seconds (3800x increase) and 'Error 9005 (HY000): Region is unavailable' errors",
+        "instruction": "Search for keyword 'productcatalogservice' in trace data and check for latency spikes and region unavailable errors"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'failed to query product by id', 'failed to get product', 'failed to prepare order' with Error 9005",
+        "instruction": "Search for keyword 'failure' in logs to identify database query failures"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Multiple log entries with 'Region is unavailable' error message (Error 9005 HY000)",
+        "instruction": "Search for keyword 'unavailable' in logs to confirm database region unavailability"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps",
+        "expected_pattern": "GRPC query per second metrics showing abnormal patterns",
+        "instruction": "Check if grpc_qps metric shows abnormal values during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "qps",
+        "expected_pattern": "Query per second metrics showing abnormal patterns",
+        "instruction": "Check if qps metric shows abnormal values during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "IO utilization metrics showing spikes",
+        "instruction": "Check if io_util metric shows significant increase during fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "Region pending metrics showing spikes",
+        "instruction": "Check if region_pending metric shows significant increase during fault period"
+      }
+    ]
+  }
+}

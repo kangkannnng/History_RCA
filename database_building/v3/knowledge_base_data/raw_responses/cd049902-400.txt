@@ -1,0 +1,48 @@
+```json
+{
+    "uuid": "cd049902-400",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Client URL misconfiguration and code error leading to runtime panic, high error rates, and timeout anomalies",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 服务因代码错误（配置错误的镜像）导致进程异常（pod_processes），进而引发大量客户端错误（error_ratio）和超时（timeout）。",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 client_error_ratio 和 error_ratio 指标在三个实例（frontend-0, frontend-1, frontend-2）上从0.0激增至6.1-7.95，并伴随大量 timeout 异常（高达8329次），表明前端服务正在产生大量错误和超时。",
+            "Step 2: 分析 trace 数据，发现 frontend 服务在多个节点（aiops-k8s-04/06/08）上产生了总计5129次HTTP 404错误（status_code: 5），这是前端请求处理失败的明确信号。",
+            "Step 3: 同时检查到 frontend-0 的 pod_cpu_usage 指标中位数从0.02降至0.0，暗示其进程可能已停止或重启，这与故障类型 ‘pod_processes’ 相符，并导致后续请求无法正常处理，出现404错误和超时。",
+            "Step 4: 综合 log 分析虽未发现错误记录（可能与故障间歇性或日志记录层有关），但 metric 和 trace 的异常模式（前端错误、CPU使用率异常、下游服务延迟增加）共同指向 frontend 服务本身因代码/配置问题（如镜像 `223.193.36.130/faultimage/frontend:configerror` 所暗示）引发的进程级故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "http.resp.status",
+                "expected_pattern": "出现大量HTTP 404错误（status_code: 5）",
+                "instruction": "在 frontend 服务的调用链数据中，搜索并统计 HTTP 状态码为 404 的请求数量，确认其是否为故障的主要表现。"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "包含 302 状态码或相关错误信息",
+                "instruction": "检查 frontend 服务的应用日志，寻找与HTTP 302重定向或客户端请求处理失败相关的错误条目。"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "CPU使用率显著下降或归零",
+                "instruction": "检查 frontend 服务实例（尤其是 frontend-0）的 pod_cpu_usage 指标，查看其使用率是否在故障期间出现异常下降，这可能指示进程退出或不可用。"
+            },
+            {
+                "modality": "Metric",
+                "target": "timeout",
+                "expected_pattern": "timeout 计数从0开始异常激增",
+                "instruction": "检查 frontend 服务所有实例的 timeout 指标，确认在故障期间是否出现大量超时异常。"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "前端调用下游服务（如 productcatalogservice, shippingservice）的延迟（rrt, rrt_max）显著增加",
+                "instruction": "分析从 frontend 到其关键下游服务（如 productcatalogservice, shippingservice）的调用链路，检查是否存在响应时间（rrt, rrt_max）异常升高的情况，作为级联故障的佐证。"
+            }
+        ]
+    }
+}
+```

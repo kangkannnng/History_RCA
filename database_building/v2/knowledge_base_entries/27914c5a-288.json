@@ -1,0 +1,40 @@
+{
+  "uuid": "27914c5a-288",
+  "fault_type": "metric",
+  "symptom_vector": "Payment service unavailable with connection refused errors, upstream services experiencing abnormal response times (both decrease and increase patterns), and sudden release of node memory resources.",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice-2 Pod因故障（如crash、意外终止）被杀死或重启，导致服务实例消失，其他服务在请求该实例时收到'connection refused'错误，并引发上游服务的响应时间异常和节点内存资源释放。",
+    "reasoning_chain": [
+      "Step 1: 在Log数据中观察到关键错误信息 'transport: Error while dialing dial tcp 10.233.55.4:50051: connect: connection refused'。该错误出现在frontend的日志中，表明前端服务无法连接到目标地址 10.233.55.4:50051。结合系统拓扑，此地址极有可能属于paymentservice服务实例。",
+      "Step 2: 在Trace数据的`status_combinations`中，确认了 `checkoutservice` 调用 `paymentservice` 的失败状态。具体为操作 `hipstershop.PaymentService/Charge` 的状态码为14，消息同样明确指出 'connection refused'。这证实了支付流程因下游服务无法连接而中断。",
+      "Step 3: 分析Metric数据，发现了支持Pod级故障的间接证据。首先，`paymentservice-2` 的 `rrt`（响应时间）指标显示，中位数从1332.72ms降至736.5ms，但P99值却从2234.1ms大幅上升到8429.13ms。这种“中位数下降、P99飙升”的异常模式，可能与一个服务实例消失（导致部分请求快速失败，拉低中位数），剩余实例压力陡增（导致少数成功请求延迟飙升）有关。其次，观察到 `aiops-k8s-01` 和 `aiops-k8s-05` 节点的 `node_memory_usage_rate` 显著下降，`node_memory_MemAvailable_bytes` 大幅增加。这种节点层面内存的突然释放，是Pod被终止或重启释放其占用资源的典型迹象。",
+      "Step 4: 综合以上来自Log、Trace、Metric的多模态证据，可以推断出因果链条：`paymentservice-2` Pod发生故障（如crash）并被系统终止 -> 该Pod对应的服务端点（10.233.55.4:50051）消失 -> 上游服务（checkoutservice, frontend）发起调用时收到 'connection refused' 错误 -> 服务调用链失败，并可能触发熔断等机制，导致部分上游服务响应时间出现快速失败（Fast Fail）模式 -> 被终止的Pod释放其占用的内存，导致所在节点的内存使用率下降。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "status_combinations for service 'checkoutservice' and operation 'hipstershop.PaymentService/Charge'",
+        "expected_pattern": "Status code indicates failure (e.g., 13, 14), and status_message contains 'connection refused' or similar network-level errors.",
+        "instruction": "检查调用链数据中的状态组合（status_combinations）。重点关注上游服务（如checkoutservice）调用下游支付服务（paymentservice）的操作（如Charge）。寻找状态码非成功（非0）且错误消息明确指向网络连接问题的记录，如'connection refused'。这是服务不可用的直接证据。"
+      },
+      {
+        "modality": "Log",
+        "target": "Keyword: 'connection refused'",
+        "expected_pattern": "Log message contains 'connection refused', 'dial tcp ... connect: connection refused', or similar phrases, often paired with 'Error while dialing' and 'Unavailable'.",
+        "instruction": "在应用或前端服务的错误日志中搜索关键词'connection refused'。这类错误通常表明一个服务尝试建立TCP连接到另一个服务的IP和端口，但目标端没有进程在监听，是Pod/容器不在运行的典型表现。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate, node_memory_MemAvailable_bytes",
+        "expected_pattern": "Sudden and significant drop in node_memory_usage_rate, accompanied by a significant increase in node_memory_MemAvailable_bytes during the fault window.",
+        "instruction": "监控节点级内存指标。如果在故障时间窗口内，一个或多个节点的内存使用率（node_memory_usage_rate）突然显著下降，同时可用内存（node_memory_MemAvailable_bytes）大幅增加，这可能表明有占用内存较多的Pod被终止或重启，释放了其资源。这是Pod级别故障的重要旁证。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max for the suspected faulty service (e.g., paymentservice)",
+        "expected_pattern": "Abnormal pattern where median response time (rrt) may decrease (due to fast failures), but P99 response time spikes significantly (due to increased load on remaining instances or timeouts).",
+        "instruction": "分析可疑故障服务的响应时间指标。观察其中位数（rrt）和P99分位数（通常在rrt_max或单独P99指标中体现）在故障期间的变化。注意一种混合模式：由于部分请求快速失败，中位数响应时间可能降低；但由于剩余服务实例压力增大或长超时，P99响应时间会急剧上升。这种模式常伴随Pod实例减少。"
+      }
+    ]
+  }
+}

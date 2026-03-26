@@ -1,0 +1,33 @@
+{
+  "uuid": "a63a0c8b-290",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "node CPU overload with high CPU usage and CPU saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-05 节点因 node_cpu_usage_rate 指标从27.64%飙升至89.8%导致CPU资源耗尽，引发节点上运行的服务性能下降",
+    "reasoning_chain": [
+      "Step 1: 观察到 node_cpu_usage_rate 指标在 aiops-k8s-05 节点上从正常中位数27.64%飙升至故障中位数89.8%，变化率高达1.0585，表明CPU资源严重过载",
+      "Step 2: 分析 aiops-k8s-05 节点上运行的 pod 映射关系，发现 paymentservice-1 和 cartservice-1 等关键服务运行在该节点上，可能因CPU资源竞争而受影响",
+      "Step 3: 确认调用链数据中 frontend->cartservice 的延迟异常模式与节点资源耗尽导致的性能问题一致，且日志中未检测到显性错误，符合资源瓶颈故障特征"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden increase from baseline (e.g., 27.64% to 89.8%) with high change ratio (>1.0)",
+        "instruction": "检查 aiops-k8s-05 节点的 node_cpu_usage_rate 指标是否出现异常飙升，重点关注中位数和P99值的变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Abnormal pattern in network packet reception",
+        "instruction": "检查 aiops-k8s-05 节点的 node_network_receive_packets_total 指标是否存在异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_transmit_packets_total",
+        "expected_pattern": "Abnormal pattern in network packet transmission",
+        "instruction": "检查 aiops-k8s-05 节点的 node_network_transmit_packets_total 指标是否存在异常模式"
+      }
+    ]
+  }
+}

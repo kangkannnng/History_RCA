@@ -1,0 +1,33 @@
+{
+  "uuid": "26c9ab68-91",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "high CPU utilization, CPU saturation, CPU overload, CPU usage spike, cpu stress",
+  "expert_knowledge": {
+    "root_cause_desc": "emailservice 组件因 pod_cpu_usage 指标异常飙升导致 CPU 压力测试故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 emailservice 所有 Pod (emailservice-0, emailservice-1, emailservice-2) 的 pod_cpu_usage 指标从 0.0 上升到 0.4，变化率达到 2.0",
+      "Step 2: 分析 emailservice 组件的 pod_processes 指标从 1.0 急剧增加到 12.0，变化率达到 1.6923，表明进程数量激增",
+      "Step 3: 确认 emailservice 的 rrt_max 和 rrt 指标显著增长，其中 rrt_max 增长约 57 倍，响应时间从 700ms 激增至 40,281ms"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase from baseline (0.0 to 0.4)",
+        "instruction": "检查 emailservice 所有 Pod 的 pod_cpu_usage 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Dramatic increase in process count (1.0 to 12.0)",
+        "instruction": "检查 emailservice Pod 的 pod_processes 指标是否显示进程数量激增"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Significant response time degradation (57x increase)",
+        "instruction": "检查 emailservice 的 rrt_max 指标是否出现严重延迟异常"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "uuid": "9b0d8a50-187",
+  "fault_type": "application_exception",
+  "symptom_vector": "Frontend RPC calls to adservice failing with 'code = Unknown' error, accompanied by Java exceptions indicating error injection in the adservice.",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman代理在adservice的getRandomAds方法中注入了错误，导致服务抛出异常而不可用。",
+    "reasoning_chain": [
+      "Step 1: 在Log数据分析中，观察到adservice服务产生了大量、高频的Java异常日志，关键词包括'Injected error'、'AdService-getRandomAds-exception-1749535841'、'java.lang.Error'以及'Byteman agent'。这表明adservice内部发生了由Byteman工具触发的程序异常注入。",
+      "Step 2: 同时，在所有frontend服务实例的日志中，高频观察到'failed to get ads: rpc error: code = Unknown desc ='错误。结合Trace数据中frontend对adservice（/hipstershop.AdService/GetAds）的调用状态码均为'2'（成功）但缺失详细错误信息，可以推断frontend调用adservice的请求因adservice内部异常而失败，并返回了未明确描述的RPC错误。",
+      "Step 3: 检查Metric数据，adservice服务的rrt_max虽有轻微上升（P99增加52.2%），但与其他服务如paymentservice、emailservice的剧烈飙升（>148%）相比并不突出，且节点资源（如aiops-k8s-03节点的内存使用率升高）与adservice异常在时间上无强因果关联。这排除了底层资源瓶颈作为首要根因的可能，符合由软件层面错误注入触发的应用级故障特征。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Injected error, AdService-getRandomAds-exception-1749535841, java.lang.Error, Byteman agent",
+        "expected_pattern": "高频出现的错误日志，包含明确的错误注入关键词及具体的规则名称（AdService-getRandomAds-exception-1749535841）。",
+        "instruction": "搜索adservice组件的错误日志，检查是否存在包含'Injected error'、'Byteman'以及特定规则ID（如AdService-getRandomAds-exception-1749535841）的Java异常条目，并确认其出现频率是否在故障期间显著升高。"
+      },
+      {
+        "modality": "Log",
+        "target": "failed to get ads: rpc error: code = Unknown desc =",
+        "expected_pattern": "在frontend组件的日志中高频出现，且错误描述为无法获取广告的RPC错误，但原因描述（desc）为空或未知。",
+        "instruction": "搜索frontend组件的错误或警告日志，查找内容包含'failed to get ads'和'rpc error: code = Unknown'的条目，确认该错误是否在故障期间广泛存在于多个frontend实例中。"
+      },
+      {
+        "modality": "Metric",
+        "target": "service:adservice rrt_max (P99)",
+        "expected_pattern": "可能出现一定程度的增长，但增长幅度通常远小于其直接影响的上游服务（如frontend），且无相应的核心资源（CPU/内存）指标剧烈异常。",
+        "instruction": "对比故障期间与正常期间adservice服务的rrt_max（P99分位数）指标。观察其变化趋势，并同步检查adservice所在节点的CPU与内存使用率指标，确认性能劣化是否主要由资源压力导致。"
+      }
+    ]
+  }
+}

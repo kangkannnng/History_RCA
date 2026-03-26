@@ -1,0 +1,33 @@
+{
+  "uuid": "7e03b07d-188",
+  "fault_type": "client_error_ratio",
+  "symptom_vector": "pod failure with client error spike and connection refused errors",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice-1 因 client_error_ratio 异常飙升并伴随 'connection refused' 错误，导致 Pod 故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 shippingservice-1 的 client_error_ratio 和 error_ratio 指标从正常值 0.0 异常飙升至 31.66%，p99 变化率达到 2.0，表明该 Pod 服务异常",
+      "Step 2: 分析日志数据，发现多个 frontend 实例日志中均出现指向 shippingservice (10.233.27.213:50051) 的 'connection refused' 错误，模式一致，表明 shippingservice-1 无法连接",
+      "Step 3: 确认追踪数据中 checkoutservice->shippingservice 的调用因 'connection refused' 而失败，错误状态码为 13 和 14，这解释了上游 service (如 frontend) 的连锁 error_ratio 异常"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio, error_ratio",
+        "expected_pattern": "指标值从基准水平（如0.0）突然大幅飙升",
+        "instruction": "检查 shippingservice-1 Pod 的 client_error_ratio 和 error_ratio 指标在故障期间是否出现异常峰值"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "内存使用量可能出现突降或异常波动，可能反映 Pod 崩溃或重启",
+        "instruction": "检查 shippingservice-1 Pod 的 pod_memory_working_set_bytes 指标在故障时间窗口内的变化趋势，寻找异常模式"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "网络流量可能出现中断、陡降或异常模式",
+        "instruction": "检查 shippingservice-1 Pod 的网络相关指标（收发字节数、包数）在故障期间是否出现异常中断或变化"
+      }
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "772b36d0-389",
+    "fault_type": "region_unavailability_pod_failure",
+    "symptom_vector": "Cascading service errors and extreme latency spikes due to pod failure in database storage layer.",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv 组件因存储层性能问题导致 Region 不可用，表现为 region_pending 和 io_util 等指标异常，进而引发上游服务级联故障。",
+        "reasoning_chain": [
+            "Step 1: 观察到 Metric 数据中 tidb-pd 组件的 store_unhealth_count P99 从 0 增加到 1 (变化率 200%)，指示存储节点健康状态异常，这是 region_pending 和 io_util 问题的上游信号。",
+            "Step 2: 分析 Log 数据，在 productcatalogservice-1 中发现大量 (120次) 'Error 9005 (HY000): Region is unavailable' 错误，直接证实底层 tidb-tikv 数据库存储区域不可用。",
+            "Step 3: 确认 Trace 数据中，源自 frontend 对 productcatalogservice 的调用链延迟 (rrt_max) 从 9681.24ms 激增至 39880928.62ms (增长超 4000 倍)，且状态码为 2，携带相同的 'Region is unavailable' 错误，验证了底层 tidb-tikv 故障对上层的级联影响。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "store_unhealth_count",
+                "expected_pattern": "值从基线 0 突变为 1，指示存储节点不健康",
+                "instruction": "检查 tidb-pd 组件的 store_unhealth_count 指标是否有非零值，这是 tidb-tikv 存储节点健康问题的关键预警。"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending",
+                "expected_pattern": "指标值异常升高",
+                "instruction": "检查 tidb-tikv 组件的 region_pending 指标是否异常，高值表明数据区域处理积压或不可用。"
+            },
+            {
+                "modality": "Metric",
+                "target": "io_util",
+                "expected_pattern": "磁盘IO利用率异常升高",
+                "instruction": "检查 tidb-tikv 组件的 io_util 指标，高IO可能伴随 region_pending 问题，共同指向存储性能瓶颈。"
+            },
+            {
+                "modality": "Metric",
+                "target": "qps|grpc_qps",
+                "expected_pattern": "查询率或gRPC请求率可能下降或异常波动",
+                "instruction": "检查 tidb-tikv 或相关服务的 qps 和 grpc_qps 指标，观察是否因底层故障而受到影响。"
+            },
+            {
+                "modality": "Log",
+                "target": "Error 9005 (HY000): Region is unavailable",
+                "expected_pattern": "日志中包含该错误关键词，且出现频率显著",
+                "instruction": "在 productcatalogservice 和 tidb-tikv 相关 Pod 的日志中搜索 'Error 9005 (HY000): Region is unavailable'，确认数据库区域不可用的直接证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "关键调用链（如 frontend -> productcatalogservice）的响应时间 (如 rrt, duration_99th) 出现数量级级别的异常飙升",
+                "instruction": "分析涉及 productcatalogservice 的 trace 数据，检查其响应时间 (rrt) 的 P99 或最大值是否出现数千倍的增长，这是下游数据库故障的典型延迟症状。"
+            },
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "特定错误状态码（如状态码 2）的请求比例异常升高",
+                "instruction": "统计 trace 状态码，确认是否大量请求因 'Error 9005 (HY000): Region is unavailable' 而失败。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "f370cf6d-291",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "JVM CPU spike leading to high response times and system performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice实例因Byteman故障注入工具执行stress压力测试，导致pod_cpu_usage指标异常飙升",
+        "reasoning_chain": [
+            "Step 1: 在adservice所有实例的日志中，观察到大量包含'AdService--stress'关键词的Byteman规则安装与执行记录",
+            "Step 2: 分析adservice实例的性能指标，确认其pod_cpu_usage从正常基线0.0大幅增长至0.6，同时rrt与rrt_max指标显著恶化",
+            "Step 3: 综合日志中明确的故障注入活动与指标中观测到的CPU和响应时间异常，确认adservice的异常由计划内的压力测试触发"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "AdService--stress",
+                "expected_pattern": "高频出现规则执行记录（例如：Rule.execute called for AdService--stress-1749913849）",
+                "instruction": "在adservice所有实例的日志中搜索关键词'AdService--stress'，检查是否存在Byteman规则安装和执行记录"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "出现java.lang.reflect.InvocationTargetException及相关代理启动失败信息",
+                "instruction": "检查adservice日志中是否包含'InvocationTargetException'、'Agent failed to start'或'load Byteman agent more than once'等错误信息"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "指标值（如中位数或p99）相较于正常基线出现显著跃升",
+                "instruction": "比较故障时段与基线时段adservice所有实例的pod_cpu_usage指标，确认是否存在集群性CPU使用率飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "响应时间中位数及p99值显著增加",
+                "instruction": "检查故障时段adservice实例的rrt和rrt_max指标，确认是否存在严重的响应时间劣化"
+            }
+        ]
+    }
+}
+```

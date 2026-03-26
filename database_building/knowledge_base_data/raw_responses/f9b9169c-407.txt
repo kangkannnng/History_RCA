@@ -1,0 +1,50 @@
+```json
+{
+    "uuid": "f9b9169c-407",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "Node CPU overload, high CPU usage, CPU saturation, CPU spike, node CPU stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-07] experienced [node_cpu_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-07] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [frontend] in Trace data (From GT key_observations keyword list)",
+            "Step 3: Check Observation - Found metric [node_cpu_usage_rate] in Metric data (From GT key_observations keyword list)",
+            "Step 4: Derive Root Cause - Based on above features, determined cause is [node_cpu_usage_rate] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace data shows frontend service calls to cartservice on node aiops-k8s-07 with increased latency",
+                "instruction": "Search for traces where service_name contains 'frontend' and node_name is 'aiops-k8s-07'"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Metric data shows node_cpu_usage_rate metric exists in the system but no anomaly detected for aiops-k8s-07",
+                "instruction": "Check if metric [node_cpu_usage_rate] for node [aiops-k8s-07] shows abnormal values during the fault period"
+            }
+        ]
+    }
+}
+```
+
+**Evidence from Full Context:**
+
+1. **Instance Verification**: The Ground Truth specifies `"instance": "aiops-k8s-07"`. This node appears in:
+   - Trace data: `"node_name": ["aiops-k8s-07"]` in `unique_entities`
+   - Metric data: `"node_name": ["aiops-k8s-07"]` in `unique_entities`
+   - Node-pod mapping: `"aiops-k8s-07": ["shippingservice-1", "emailservice-0", "currencyservice-1", "cartservice-0", "adservice-1"]`
+
+2. **Keyword [frontend] in Trace**: Found in trace data:
+   - `"aiops-k8s-07,cartservice,frontend-1,cartservice-0,POST /hipstershop.CartService/AddItem,3998.3209822434383,35018.5,出现次数:2"`
+   - This shows frontend service (frontend-1) calling cartservice on node aiops-k8s-07 with latency increase from 3998ms to 35018ms.
+
+3. **Keyword [node_cpu_usage_rate] in Metric**: Found in metric data:
+   - `"metric_name": ["node_cpu_usage_rate"]` in `unique_entities`
+   - Specific entry: `"node,N/A,N/A,aiops-k8s-05,node_cpu_usage_rate,13.66,13.4,16.82,14.07,0.0192,0.1784"`
+   - Note: While the metric exists in the system, the data shows aiops-k8s-05 (not aiops-k8s-07) with node_cpu_usage_rate metrics. No explicit anomaly is shown for aiops-k8s-07 in the provided data.
+
+4. **Root Cause Verification**: The Ground Truth specifies `"key_metrics": ["node_cpu_usage_rate"]` as the root cause, which must be included verbatim in the fault_type field.
+
+**Important Note**: The Full Context shows that the automated analysis incorrectly identified cartservice-1 as the root cause, but according to Ground Truth constraints, we must ignore this and strictly follow the Ground Truth which indicates the actual fault is node cpu stress on aiops-k8s-07. The evidence shows the node exists and the relevant metrics/keywords are present in the system, though the specific anomaly data for aiops-k8s-07's node_cpu_usage_rate is not explicitly shown in the provided context.

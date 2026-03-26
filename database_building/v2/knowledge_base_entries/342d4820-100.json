@@ -1,0 +1,33 @@
+{
+  "uuid": "342d4820-100",
+  "fault_type": "packet corruption (network data corruption)",
+  "symptom_vector": "Extreme latency spikes (1296x increase) and connection timeout errors, cascading to upstream services and causing 500 errors and context cancellations.",
+  "expert_knowledge": {
+    "root_cause_desc": "由网络层数据包损坏引起的级联服务故障，导致下游服务(productcatalogservice)连接超时和响应时间飙升，进而影响上游服务(checkoutservice, frontend)。",
+    "reasoning_chain": [
+      "Step 1: 在Trace数据中观察到，`checkoutservice`调用`productcatalogservice`的`GetProduct`操作出现极端延迟，平均耗时从19.5ms飙升至25,343ms（1296倍增长），同时伴随大量状态码为14的连接超时错误，如'dial tcp ... i/o timeout'和'timed out waiting for server handshake'，总计275次。这表明`productcatalogservice`或其网络链路存在严重问题。",
+      "Step 2: 在Log数据中，`frontend`服务出现大量错误日志，核心内容为'rpc error'及'failed to get product'，进一步确认了`productcatalogservice`无法提供正常服务，并导致上游业务流程中断。",
+      "Step 3: 在Metric数据中，`productcatalogservice-1`的`client_error_ratio`从0.0飙升至52.17，`rrt`和`rrt_max`的p99值也出现极端飙升（例如rrt的p99从7476.96升至52349943.0）。同时，依赖它的`checkoutservice-2`的`rrt`和`rrt_max`也出现数量级增长（变化率接近2.0），确认了故障从`productcatalogservice`向`checkoutservice`的传播路径。综合三个维度的证据，推断根因是`productcatalogservice`因网络数据包损坏导致不可用。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "hipstershop.ProductCatalogService/GetProduct",
+        "expected_pattern": "Call latency experiences an extreme spike (e.g., over 1000x increase) and contains a high frequency of connection timeout status codes (e.g., 'dial tcp ... i/o timeout').",
+        "instruction": "分析调用链路，重点关注从`checkoutservice`到`productcatalogservice`的`GetProduct`调用，检查其平均耗时(`anomaly_avg_duration`)的增幅和异常状态码(`status_code=14`)的出现频率。"
+      },
+      {
+        "modality": "Log",
+        "target": "\"failed to get product\" OR \"context canceled\"",
+        "expected_pattern": "Frontend service logs contain repeated RPC errors mentioning failure to retrieve product information or context being canceled, with high occurrence counts.",
+        "instruction": "在Frontend服务的错误日志中，搜索包含'failed to get product'或'context canceled'关键词的条目，检查其出现次数(`occurrence_count`)和具体错误描述，以确认RPC调用失败的模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio, rrt_max",
+        "expected_pattern": "For `productcatalogservice`, `client_error_ratio` shows a sharp increase (e.g., from 0 to >50) and `rrt_max` P99 value exhibits an extreme surge (e.g., from tens of thousands to tens of millions). The same pattern propagates to upstream `checkoutservice` metrics.",
+        "instruction": "检查`productcatalogservice`（尤其是`productcatalogservice-1`）的`client_error_ratio`和`rrt_max`（P99值）在故障期间的变化幅度。同时，检查其直接上游服务`checkoutservice`（尤其是`checkoutservice-2`）的`rrt`和`rrt_max`指标是否出现类似的显著恶化。"
+      }
+    ]
+  }
+}

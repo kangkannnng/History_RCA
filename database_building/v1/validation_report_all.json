@@ -1,0 +1,81 @@
+{
+  "total": 5,
+  "valid": 4,
+  "invalid": 1,
+  "critical_issues": 1,
+  "high_issues": 0,
+  "results": {
+    "4fd42adb-327": {
+      "file": "4fd42adb-327_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3870,
+        "line_count": 31,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "68727566-367": {
+      "file": "68727566-367_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3054,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "6a9c8dc7-498": {
+      "file": "6a9c8dc7-498_policy.txt",
+      "valid": false,
+      "issues": [
+        "CRITICAL: Missing sections - [Trigger], [Focus Evidence], [Reasoning], [Conclusion], [Next Action]"
+      ],
+      "metrics": {
+        "length": 854,
+        "line_count": 3,
+        "has_all_sections": false,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "985de575-334": {
+      "file": "985de575-334_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3212,
+        "line_count": 30,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    },
+    "f99b1645-137": {
+      "file": "f99b1645-137_policy.txt",
+      "valid": true,
+      "issues": [],
+      "metrics": {
+        "length": 3887,
+        "line_count": 32,
+        "has_all_sections": true,
+        "has_gt_leakage": false,
+        "has_instruction_leakage": false,
+        "has_code_fences": false,
+        "has_repetition": false
+      }
+    }
+  }
+}

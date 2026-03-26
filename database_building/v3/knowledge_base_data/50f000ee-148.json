@@ -1,0 +1,33 @@
+{
+  "uuid": "50f000ee-148",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "high memory usage leading to memory exhaustion",
+  "expert_knowledge": {
+    "root_cause_desc": "paymentservice-0 所在的节点 aiops-k8s-08 内存可用性下降，pod_memory_working_set_bytes 指标异常导致内存压力",
+    "reasoning_chain": [
+      "Step 1: 观察到 node_memory_MemAvailable_bytes 指标在 paymentservice-0 所在的 aiops-k8s-08 节点上从中位数 11.25GB 下降至 8.95GB（变化率 22.7%），表明节点内存可用性显著减少，存在内存压力。",
+      "Step 2: 分析故障组件 paymentservice-0 的日志，发现 'ModuleNotFoundError' 等关键词，表明插件加载失败，这与内存压力可能引发的进程异常行为相符。",
+      "Step 3: 综合节点内存指标异常与相关服务日志中的错误信息，确认 paymentservice-0 因所在节点内存资源紧张而引发内存压力故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Significant decrease from baseline in the node where the target pod is located",
+        "instruction": "检查故障 pod (paymentservice-0) 所在节点 (aiops-k8s-08) 的 node_memory_MemAvailable_bytes 指标是否显著低于正常水平，以确认节点级内存压力。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Increase in count (e.g., from 1.0 to 2.0 at p99) may indicate pod restart due to memory pressure",
+        "instruction": "检查 paymentservice-0 的 pod_processes 指标在 p99 分位数上是否出现跳变（如从 1.0 变为 2.0），这可能是内存压力导致 Pod 重启的迹象。"
+      },
+      {
+        "modality": "Log",
+        "target": "could not load",
+        "expected_pattern": "Log entries containing keywords like 'could not load', 'ModuleNotFoundError', indicating resource or dependency issues during process initialization or runtime.",
+        "instruction": "在 paymentservice-0 的日志中搜索 'could', 'not', 'load', 'ModuleNotFoundError' 等关键词，查找因内存不足或压力导致的进程初始化或运行时加载失败的错误信息。"
+      }
+    ]
+  }
+}

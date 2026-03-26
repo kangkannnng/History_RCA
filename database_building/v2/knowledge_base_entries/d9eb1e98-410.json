@@ -1,0 +1,27 @@
+{
+  "uuid": "d9eb1e98-410",
+  "fault_type": "node_memory_exhaustion",
+  "symptom_vector": "High error ratio and latency spike on cartservice, cascading to downstream services like checkoutservice and paymentservice. Absence of application-level error logs.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-06 内存耗尽导致的服务性能下降",
+    "reasoning_chain": [
+      "Step 1: 通过检查Metric数据发现，多个服务出现性能异常，尤其`cartservice-1`的`error_ratio`从0.0激增至10.74，且`rrt_max`的P99值增长167.53%，表明存在严重性能问题。但直接的故障组件`aiops-k8s-06`在Metric数据中未被标记为存在`node_memory_usage_rate`或`node_memory_MemAvailable_bytes`的异常。",
+      "Step 2: 通过检查Log数据，在故障时间窗口内未检测到任何错误日志，说明此次故障可能由底层资源（如内存）耗尽引发，而非应用逻辑错误，这符合资源耗尽故障的特征。",
+      "Step 3: 综合Trace和Metric分析，主要性能瓶颈被追溯到`redis`操作延迟激增以及`cartservice`的连锁反应。然而，基于现有Metric和Log数据，无法直接证实`aiops-k8s-06`节点存在明确的内存指标异常。故障诊断需要依赖更直接的节点级内存监控指标，或通过Pod与节点的映射关系，结合Pod资源使用异常进行间接推断。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sudden increase or sustained high value (e.g., >90%)",
+        "instruction": "Check the memory usage rate metric for the suspected fault node 'aiops-k8s-06' during the incident window. A sharp increase or persistently high value indicates memory pressure."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Sudden drop or sustained low value",
+        "instruction": "Check the available memory metric for node 'aiops-k8s-06'. A significant decrease suggests memory exhaustion."
+      }
+    ]
+  }
+}

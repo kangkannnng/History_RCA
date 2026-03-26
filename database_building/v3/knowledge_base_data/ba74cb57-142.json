@@ -1,0 +1,33 @@
+{
+  "uuid": "ba74cb57-142",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "connection refused errors, failed to get product RPC calls, and increased service latency",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice-2 组件可能因内存压力导致 pod 进程重启 (pod_processes 从 1.0→2.0)，进而引发连接拒绝错误",
+    "reasoning_chain": [
+      "Step 1: 观察到关键 metric 指标 pod_processes 的 P99 值对于 productcatalogservice-2 从 1.0 上升到 2.0 (变化率 0.6667)，表明 Pod 发生了重启或进程数变化",
+      "Step 2: 分析日志数据，发现 frontend 服务在调用 productcatalogservice 时出现 'connection refused' 和 'failed to get product' 的 RPC 错误，时间与故障窗口吻合",
+      "Step 3: 确认追踪数据，发现 checkoutservice-2 调用 productcatalogservice 时出现 'connection error: desc = transport: Error while dialing dial tcp ... connect: connection refused' 错误，形成了从 pod 重启到服务调用失败的证据链"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "计数值（如P99）发生突变（例如从1.0增加到2.0），指示Pod内进程重启或变化",
+        "instruction": "检查故障时间范围内，故障组件 productcatalogservice-2 的 pod_processes 指标（尤其是P99等高百分位数）是否发生异常突变"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "持续高使用率或快速增长的曲线，可能接近或超过限制",
+        "instruction": "检查故障组件 productcatalogservice-2 的 pod_memory_working_set_bytes 指标，判断是否存在内存使用率过高、饱和或持续增长的趋势"
+      },
+      {
+        "modality": "Log",
+        "target": "connection refused | failed to get product",
+        "expected_pattern": "包含连接拒绝或获取产品失败等关键词的错误日志",
+        "instruction": "在 frontend、checkoutservice 等上游服务的日志中搜索 'connection refused' 或 'failed to get product' 等关键词，检查错误是否指向 productcatalogservice"
+      }
+    ]
+  }
+}

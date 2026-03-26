@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "91c4c773-252",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "A specific microservice pod experienced a sudden and sharp increase in CPU utilization, accompanied by a significant rise in response latency, leading to downstream service performance degradation.",
+    "expert_knowledge": {
+        "root_cause_desc": "Byteman压力测试工具注入导致adservice-0的JVM CPU过载，引发应用异常和性能下降。",
+        "reasoning_chain": [
+            "Step 1: 观察到 metrics 数据显示 `adservice-0` 的 `pod_cpu_usage` 从 0.0 急剧飙升到 0.6（变化率 200%），同时该服务的 `rrt_max` 也从 42790 增加到 94467（变化率 75.3%）。这表明该 Pod 存在严重的 CPU 资源消耗异常和随之而来的响应延迟。",
+            "Step 2: 分析同一组件 `adservice-0` 的 logs，发现大量与 `AdService--stress-1749773423` 相关的规则执行记录（出现298次）以及 `java.lang.reflect.InvocationTargetException` 等 Java 异常，同时伴有 `Agent failed to start!` 的 Byteman 代理启动失败信息。这直接将 CPU 飙升与应用层的压力测试注入和程序异常关联起来。",
+            "Step 3: 综合 Metric 显示的 CPU 过载现象和 Log 中明确的压力测试（stress）工具活动及异常堆栈，确认根因是 Byteman 注入的压力测试导致 `adservice-0` 的 JVM CPU 使用率饱和，进而引发应用性能故障，并通过服务依赖对下游产生影响。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Sudden and significant spike (e.g., from near-zero to a high value like 0.6, indicating 200% change)",
+                "instruction": "检查指定 Pod（尤其是微服务实例）的 `pod_cpu_usage` 指标在故障期间是否出现异常突增。结合其对应的服务响应时间指标（如 `rrt_max`）是否同步恶化。"
+            },
+            {
+                "modality": "Log",
+                "target": "AdService--stress, InvocationTargetException, Byteman agent",
+                "expected_pattern": "Contains keywords related to stress injection tools (e.g., 'stress-', 'Byteman'), Java exceptions (e.g., 'InvocationTargetException'), and agent failures. High frequency of such logs.",
+                "instruction": "在疑似 CPU 过载的 Pod 的日志中，搜索压力测试、代码注入工具（如 Byteman）相关的关键词，以及 Java 运行时异常，确认是否存在人为或自动的负载注入行为及其导致的错误。"
+            }
+        ]
+    }
+}
+```

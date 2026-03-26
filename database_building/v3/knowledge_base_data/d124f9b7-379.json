@@ -1,0 +1,45 @@
+{
+  "uuid": "d124f9b7-379",
+  "fault_type": "pod_cpu_usage spike under stress test",
+  "symptom_vector": "high CPU utilization and saturation leading to response time degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice-0 Pod 因进程数激增导致 pod_cpu_usage 异常飙升，引发级联延迟",
+    "reasoning_chain": [
+      "Step 1: 观察到 productcatalogservice-0 的 pod_processes 从 1.0 激增至 9.0，同时 pod_cpu_usage 从 0.01 飙升至 0.4，变化率极高，表明 Pod 内部发生进程泄漏或异常创建。",
+      "Step 2: 分析 productcatalogservice-0 的服务指标，其 rrt 从 1341.07ms 增加到 20944.37ms，rrt_max 从 15769ms 增加到 192622ms，响应时间显著恶化，与 CPU 过载的症状相符。",
+      "Step 3: 通过 Trace 分析确认，上游服务 checkoutservice 和 recommendationservice 对 productcatalogservice 的调用延迟增加了 9-13 倍，形成了以 productcatalogservice-0 为根因的级联延迟效应。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice|frontend|recommendationservice",
+        "expected_pattern": "调用 productcatalogservice 的链路延迟异常增加，延迟倍数大于 5 倍。",
+        "instruction": "检查上游服务（checkoutservice, frontend, recommendationservice）调用 productcatalogservice 的链路追踪数据，寻找显著的延迟增加模式。"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status|302",
+        "expected_pattern": "可能缺少显式错误日志，或包含与重定向相关的日志条目。",
+        "instruction": "在 productcatalogservice-0 的日志中搜索 error 或 http.resp.status 相关的关键词，确认是否存在显式错误或性能问题的日志线索。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "CPU 使用率从低基准值（如 <0.05）急剧飙升（如 >0.3）。",
+        "instruction": "检查 productcatalogservice-0 的 pod_cpu_usage 指标，确认是否存在突然且持续的使用率峰值。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "进程数量远超正常基线（如从 1 个增加到 8-10 个）。",
+        "instruction": "检查 productcatalogservice-0 的 pod_processes 指标，确认其进程数是否异常增加，这可能引发 CPU 争抢。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "最大响应时间（rrt_max）出现一个数量级以上的增加。",
+        "instruction": "检查 productcatalogservice 服务的 rrt_max 指标，确认其是否因处理能力下降而急剧恶化。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "uuid": "cebb47f5-165",
+  "fault_type": "pod_processes",
+  "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [paymentservice-1] experienced [pod_processes] fault, accompanied by [client_error, client_error_ratio, error, error_ratio, request, response] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [paymentservice-1] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [checkoutservice, emailservice, frontend, productcatalogservice, shippingservice] in Trace (From GT key_observations: request_proportion_anomalies)",
+      "Step 3: Check Observation - Found keyword [request, response] in Metric (From GT key_observations)",
+      "Step 4: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations)",
+      "Step 5: Derive Root Cause - Based on above features, determined cause is [pod_processes] termination (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, emailservice, frontend, productcatalogservice, shippingservice",
+        "expected_pattern": "These services appear in trace analysis as affected downstream services with request proportion anomalies",
+        "instruction": "Search for trace data showing request proportion anomalies involving services: checkoutservice, emailservice, frontend, productcatalogservice, shippingservice"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "Request and response metrics show anomalies during fault period",
+        "instruction": "Check metric data for anomalies in request and response metrics during 2025-06-09T07:10:38Z to 2025-06-09T07:10:39Z"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "pod_processes metric drops from 1.0 to 0.0 indicating pod termination",
+        "instruction": "Verify pod_processes metric for paymentservice-1 shows drop from normal value to 0.0 during fault window"
+      }
+    ]
+  }
+}

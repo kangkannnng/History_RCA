@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "251c4f53-179",
+    "fault_type": "Pod eviction/kill (Kubernetes)",
+    "symptom_vector": "Client-side errors or request failures observed in upstream services (e.g., frontend), accompanied by a sudden drop in network and process metrics for a specific service pod (cartservice).",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice-0 或 cartservice-2 Pod 被强制终止（如 Pod Kill 或 Eviction），导致其服务不可用，从而引发上游调用方（如 frontend）产生客户端错误。",
+        "reasoning_chain": [
+            "Step 1: 在 Metric 数据中观察到多个服务（如 productcatalogservice-0, frontend-0/1/2）的 pod_network_transmit/receive_packets 指标在故障期间同时归零，变化率高达 200%。然而，Trace 数据显示所有 API 调用（包括调用 productcatalogservice-0 的）均成功完成（100% 成功率），且 GetProduct 接口延迟甚至下降 12%。这表明广泛的网络指标归零现象与实际的业务调用成功状态相矛盾，更可能是指标采集系统（如 Prometheus）的瞬时故障或数据缺失，而非真实的网络中断。",
+            "Step 2: 将注意力从“普遍的网络故障”转向 Ground Truth 指明的故障组件 cartservice。分析 Full Context 中的 Metric 数据，发现 cartservice-0 和 cartservice-2 的 pod_network_transmit/receive_packets 同样归零。但基于 Step 1 的结论，这单独无法证明 cartservice 故障。关键线索在于故障原因列表中的 `pod_processes`。Pod 被强制终止（kill/eviction）的典型特征是进程数归零。虽然当前提供的 Metric 数据摘要中没有列出 `pod_processes` 的具体值，但 Ground Truth 将其列为关键原因，指示了在更完整的数据中，`cartservice` Pod 的进程数指标（pod_processes）应有剧烈下降或归零的变化，这是 Pod 终止的直接证据。",
+            "Step 3: 结合 Trace 和 Log 数据辅助验证。Trace 数据未显示涉及 cartservice 的异常调用，这可能是因为在 Pod 终止的极短时间内，没有成功的追踪记录，或者调用直接失败未被追踪。更重要的是，Log 分析报告明确指出，在整个异常时间段内，“未检测到任何错误日志”。这一“异常干净”的日志状态，与广泛的、剧烈的 Metric 异常（如多服务网络归零、内存归零）形成强烈反差。这种多源数据间不可调和的冲突（Metrics 显示严重故障，Trace/Log 却显示业务正常），是监控数据采集或上报链路出现问题的典型特征，解释了为何初始分析会误判。真正的故障点（cartservice pod kill）的信号（如 `pod_processes` 归零）可能被这次监控噪音所掩盖或混淆。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Sudden drop to zero or near-zero for specific cartservice pods (e.g., cartservice-0, cartservice-2)",
+                "instruction": "检查 cartservice 相关 Pod 的 `pod_processes` 指标。在故障时间窗口内，该指标是否出现骤降至零或接近零的值？这是判断 Pod 是否被终止（如 kill, eviction）的最直接证据。"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error, client_error_ratio, error, error_ratio",
+                "expected_pattern": "Spike or increase in metrics related to client-side errors for services calling cartservice (e.g., frontend)",
+                "instruction": "检查 frontend 或其他可能调用 cartservice 的服务的客户端错误率（client_error_ratio）或错误计数（client_error, error）指标。在故障期间，这些指标是否有突增？这反映了 cartservice 不可用对其上游调用方造成的影响。"
+            },
+            {
+                "modality": "Log",
+                "target": "terminated, killed, eviction, signal",
+                "expected_pattern": "Log entries containing keywords indicating forceful termination of the cartservice container or pod",
+                "instruction": "搜索 cartservice Pod 的日志，在故障时间点前后，查找包含 'killed', 'terminated', 'eviction', 'signal'（如 SIGTERM, SIGKILL）等关键词的条目，以确认 Pod 被强制终止的具体原因和时刻。"
+            }
+        ]
+    }
+}
+```

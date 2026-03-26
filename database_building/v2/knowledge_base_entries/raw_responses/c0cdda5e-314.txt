@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "c0cdda5e-314",
+    "fault_type": "node_filesystem_usage_rate",
+    "symptom_vector": "Node disk utilization sudden spike, Service latency increase",
+    "expert_knowledge": {
+        "root_cause_desc": "节点磁盘空间不足导致关键服务性能下降",
+        "reasoning_chain": [
+            "Step 1: 在异常时段（2025-06-16T19:10:06Z 到 2025-06-16T19:20:06Z）的监控指标中，观察到 `node_filesystem_usage_rate` 在节点 aiops-k8s-05 发生剧烈变化，中位数值从25.14%飙升至65.59%，变化率达89.16%，P99值更是从35.93%升至95.46%，表明该节点文件系统资源即将耗尽，面临磁盘压力。",
+            "Step 2: 通过节点-服务映射分析，确认故障节点 aiops-k8s-05 上运行着 `currencyservice-0`, `paymentservice-1`, `cartservice-1` 等关键服务。同时，Metric 数据也显示，运行于不同节点的 `currencyservice-2` 服务的最大响应时间 P99 值从 17.5秒 飙升至 99.2秒，变化率达 139.89%，表明服务性能受到严重影响。",
+            "Step 3: 虽然调用链数据未直接指向故障节点上的服务，但数据显示来自 `frontend-0` 对 `ProductCatalogService` 的调用出现显著延迟（从1956ms增至4832ms）。结合节点磁盘资源耗尽（根源）会影响该节点上所有服务 I/O 和网络性能这一原理，可以推断节点级的基础设施故障通过间接路径（如影响关联服务或节点间通信）引发了系统级的延迟异常。日志数据无错误记录的观察也符合此类“隐形”基础设施问题的特征。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_filesystem_usage_rate",
+                "expected_pattern": "Sudden spike with change rate > 50% and median value approaching or exceeding 70%",
+                "instruction": "优先扫描所有节点的 `node_filesystem_usage_rate` 指标，重点排查中位数值或 P99 值在短时间内（如10分钟）发生剧烈增长（变化率 > 50%）且绝对值较高（如 > 60%）的节点，这是磁盘空间告急的直接证据。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt, rrt_max",
+                "expected_pattern": "Significant latency increase (e.g., > 2x normal) in critical service calls, particularly for services hosted on or depending on the node with disk issues.",
+                "instruction": "分析调用链的响应时间（rrt, rrt_max），找出延迟显著异常（如延迟倍数 > 2.0）的关键服务调用。然后与节点-服务映射进行交叉比对，检查这些延迟服务是否位于磁盘异常的节点上，或其依赖的服务位于该节点。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_pod_mapping",
+                "expected_pattern": "Correlation between the faulty node and pods hosting critical services experiencing performance degradation.",
+                "instruction": "获取并分析节点与Pod的映射关系。一旦识别出磁盘异常的节点，立即列出运行在该节点上的所有Pod及服务。验证是否有这些服务的性能指标（如响应时间、错误率）也同时出现异常，以建立从基础设施故障到服务影响的确切链路。"
+            }
+        ]
+    }
+}
+```

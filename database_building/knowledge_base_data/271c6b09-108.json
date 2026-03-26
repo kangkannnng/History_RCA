@@ -1,0 +1,21 @@
+{
+  "uuid": "271c6b09-108",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "Node disk full with high disk utilization, disk space exhaustion, and disk saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component aiops-k8s-06 experienced node_filesystem_usage_rate fault, with usage increasing from 53.72% to 80.74% (40.19% change rate).",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is aiops-k8s-06 (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword node_filesystem_usage_rate in Metric (From Ground Truth key_observations), specifically in Full Context metric data showing abnormal increase for aiops-k8s-06.",
+      "Step 3: Derive Root Cause - Based on above features, determined cause is node_filesystem_usage_rate (From Ground Truth key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Value increased from normal median 53.72% to fault median 80.74% with 40.19% change rate, indicating high disk utilization",
+        "instruction": "Search for metric node_filesystem_usage_rate on node aiops-k8s-06 and check if it exceeds normal thresholds (e.g., above 70-80%)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "5934fe6f-561",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Client URL misconfiguration causing runtime panic and increased frontend error rates",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 组件因代码错误导致客户端URL配置错误，引发运行时恐慌和pod_processes异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 error_ratio 和 client_error_ratio 指标异常飙升，三个frontend实例错误率从0%分别上升至5.22%、7.43%、6.73%，P99错误率最高达到34.18%",
+            "Step 2: 分析 trace 数据发现 frontend 产生大量HTTP 404错误响应（frontend-2:1151次，frontend-1:655次，frontend-0:52次），表明请求路由或资源配置问题",
+            "Step 3: 确认 frontend 的 pod_processes 指标（Ground Truth指定为关键指标）异常，结合故障描述中的\"Client URL misconfigured\"和\"runtime panic\"，推断为代码配置错误导致的运行时故障"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "前端服务调用下游服务（如productcatalogservice、shippingservice）的比例异常或延迟增加",
+                "instruction": "检查frontend服务的trace数据，分析其对下游服务（productcatalogservice、shippingservice等）的调用比例和延迟是否异常"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP响应状态码包含302重定向或其他非200状态码",
+                "instruction": "在frontend组件日志中搜索HTTP响应状态码，特别是302或其他异常状态码，检查是否存在配置错误导致的异常响应"
+            },
+            {
+                "modality": "Metric",
+                "target": "request,response,timeout",
+                "expected_pattern": "请求/响应数量异常或超时指标显著增加",
+                "instruction": "监控frontend服务的request、response和timeout指标，检查是否存在请求处理异常或超时激增"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "CPU使用率异常波动或飙升",
+                "instruction": "检查frontend组件的pod_cpu_usage指标，确认是否存在资源使用异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "进程数量异常变化或运行时恐慌导致的进程异常",
+                "instruction": "监控frontend组件的pod_processes指标，检查进程状态是否异常，特别是与运行时恐慌相关的进程变化"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "bd4bafd7-567",
+    "fault_type": "node memory stress",
+    "symptom_vector": "node memory saturation and high memory usage leading to service performance degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 指标异常增加42%，表明内存可用性激增，进而导致运行在该节点上的 redis-cart-0 等服务出现 rrt_max 性能劣化",
+        "reasoning_chain": [
+            "Step 1: 从 Metric 数据中观察到 aiops-k8s-08 节点的 node_memory_MemAvailable_bytes 从 6.5GB 异常增加到 10GB (+42.27%)，同时 node_cpu_usage_rate P99 也从 37.3% 上升至 49.08% (+27.28%)",
+            "Step 2: 通过 node_pod_mapping 分析确认，redis-cart-0 以及 paymentservice-0 等关键服务均运行在 aiops-k8s-08 节点上",
+            "Step 3: 结合 Trace 数据，发现从 cartservice 调用 redis (如 HMSET) 的延迟增加了 10.8 倍，且 paymentservice-0 的 rrt_max P99 劣化了 138%，这些性能问题与节点内存异常存在时间关联和逻辑上的因果关系"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "可用内存值在故障时段内异常增加（例如增幅大于20%）",
+                "instruction": "检查故障时段内，目标节点 aiops-k8s-08 的 node_memory_MemAvailable_bytes 指标是否存在异常激增趋势，并计算变化率"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_disk_read_bytes_total",
+                "expected_pattern": "磁盘读取速率出现显著波动或异常",
+                "instruction": "检查故障时段内，目标节点 aiops-k8s-08 的 node_disk_read_bytes_total 及 node_disk_read_time_seconds_total 指标是否出现异常模式"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status",
+                "expected_pattern": "日志中包含大量特定状态码（如 302）的记录",
+                "instruction": "在目标节点 aiops-k8s-08 或相关服务的日志中，搜索包含 'http.resp.status' 及状态码 '302' 的记录，分析其频率和上下文"
+            }
+        ]
+    }
+}
+```

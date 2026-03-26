@@ -1,0 +1,27 @@
+{
+  "uuid": "6e8c4acb-219",
+  "fault_type": "latency_degradation",
+  "symptom_vector": "Severe latency spike in frontend services, increased error rates in downstream services (e.g., checkoutservice, shippingservice), high round-trip time (RTT) metrics",
+  "expert_knowledge": {
+    "root_cause_desc": "currencyservice 的响应时间激增（rrt 和 rrt_max 指标超过 99% 增长）导致系统级延迟升高",
+    "reasoning_chain": [
+      "Step 1: 从 Metric 数据观察到 currencyservice 的 rrt 和 rrt_max 指标在异常时间段内出现极端增长，例如 currencyservice-0 的 rrt 从 1163.6 上升到 889972.84（增长 99.48%），rrt_max 从 3810.5 上升到 2407203.5（增长 99.37%），表明该服务存在严重性能退化。",
+      "Step 2: 分析 Trace 数据发现，frontend 服务调用 CurrencyService 的 Convert 和 GetSupportedCurrencies 操作时延迟异常增加，例如 frontend-0 调用 Convert 的正常平均耗时为 2350.85ms，而异常平均耗时达到 1881553.00ms（约 800 倍增长），这直接印证了 Metric 中的延迟问题并显示了对上游服务的影响。",
+      "Step 3: 检查节点-容器映射，确认 currencyservice 实例分布在多个节点（如 aiops-k8s-04、aiops-k8s-05、aiops-k8s-07），排除了单节点故障，推断问题源于 currencyservice 自身性能瓶颈或内部处理延迟。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Sudden spike with over 99% increase in median values during anomaly period",
+        "instruction": "检查 currencyservice 服务的 rrt 和 rrt_max 指标，对比正常与异常时间段的 median 值，确认是否存在极端增长（如变化率超过 99%）。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->CurrencyService calls (e.g., Convert, GetSupportedCurrencies operations)",
+        "expected_pattern": "Latency increase up to 800 times normal average duration",
+        "instruction": "分析调用链数据，筛选 frontend 服务调用 CurrencyService 的操作，计算正常与异常平均耗时，确认延迟是否出现数百倍的异常增加。"
+      }
+    ]
+  }
+}

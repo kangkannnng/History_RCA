@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "cbd1f06b-565",
+    "fault_type": "error_ratio",
+    "symptom_vector": "Severe latency spike and high error rate observed in checkoutservice. Upstream frontend services also exhibit increased response times and minor error rates.",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice DNS解析失败，导致下游checkoutservice无法建立连接，进而引发调用链的级联故障。",
+        "reasoning_chain": [
+            "Step 1: 在日志分析中发现，所有frontend服务的错误日志都指向对`cartservice`的DNS查询失败，具体报错信息为：`transport: Error while dialing dial tcp: lookup cartservice on 10.233.33.139:53: server misbehaving`。这表明`cartservice`的域名解析存在根本性问题。",
+            "Step 2: 在指标分析中观察到，`checkoutservice-0`的错误率（`server_error_ratio`和`error_ratio`）从0%飙升至86.75%，响应时间（`rrt`和`rrt_max`）急剧增加。同时，依赖方`cartservice-2`的错误率`p99`也从0%上升至17.79%。这符合因无法连接依赖服务而导致自身服务异常和下游服务报错的传播模式。",
+            "Step 3: 在追踪分析中确认，`checkoutservice`调用`cartservice`的`GetCart`接口时，状态码为14，错误信息同样指向DNS解析问题。该调用的平均耗时从正常的8.45秒激增至1322.55秒，延迟增加了156倍，这强烈暗示调用因网络连接问题（DNS失败）而长时间阻塞或重试。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "transport: Error while dialing dial tcp: lookup cartservice",
+                "expected_pattern": "Contains error",
+                "instruction": "搜索所有服务日志中，是否出现包含 'lookup cartservice' 和 'server misbehaving' 关键字的错误信息，这直接表明cartservice的DNS解析失败。"
+            },
+            {
+                "modality": "Metric",
+                "target": "checkoutservice-0.error_ratio, checkoutservice-0.server_error_ratio",
+                "expected_pattern": "Sudden spike",
+                "instruction": "检查 `checkoutservice`（特别是 `checkoutservice-0`）的 `error_ratio` 和 `server_error_ratio` 指标，在异常时间段内是否出现了从接近0%到超过85%的急剧飙升。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.CartService/GetCart",
+                "expected_pattern": "High latency with specific error code",
+                "instruction": "分析追踪数据，筛选出 `operation_name` 为 `hipstershop.CartService/GetCart` 的调用。重点检查这些调用的 `status_code`、`status_message` 是否包含 `lookup cartservice` 错误，以及其 `anomaly_avg_duration` 是否出现数个数量级的增长。"
+            }
+        ]
+    }
+}
+```

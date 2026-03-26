@@ -1,0 +1,47 @@
+{
+    "uuid": "b78dafc3-312",
+    "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+    "symptom_vector": "Network corruption symptoms including packet corruption, data corruption, bit errors on network, and corrupted packets leading to service timeouts and errors.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [recommendationservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [recommendationservice] from Ground Truth instance list, as it appears in Full Context logs and traces.",
+            "Step 2: Check Observation - Found keyword [context canceled] in Log, evidenced by frontend logs showing 'failed to get product recommendations: rpc error: code = Canceled desc = context canceled'.",
+            "Step 3: Check Observation - Found keyword [rrt_max] in Metric and Trace, evidenced by trace data showing rrt_max increased from 3852.31μs to 499103975.85μs for recommendationservice.",
+            "Step 4: Check Observation - Found keyword [Connection timed out] in Log (matching 'timeout' from GT), evidenced by recommendationservice logs with 'Connection timed out' and grpc_status=14.",
+            "Step 5: Derive Root Cause - Based on keywords indicating network corruption and latency anomalies, determined cause is network-related metrics [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] as per Ground Truth key_metrics."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "Log entries containing 'context canceled' due to RPC timeouts, e.g., in frontend logs during fault window",
+                "instruction": "Search for keyword 'context canceled' in logs of services like frontend and recommendationservice"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Error logs with 'Connection timed out' and grpc_status=14, as seen in recommendationservice-2 logs",
+                "instruction": "Look for keyword 'Connection timed out' in recommendationservice logs"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "rrt_max metric value spiked significantly, e.g., from 3852.31μs to 499103975.85μs for recommendationservice in trace data",
+                "instruction": "Monitor rrt_max metric for recommendationservice and check for extreme increases"
+            },
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "Trace data showing abnormal latency for calls involving recommendationservice, such as high average duration in anomaly traces",
+                "instruction": "Analyze trace latency data for operations like hipstershop.RecommendationService/ListRecommendations"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Network metrics indicating potential corruption, though not explicitly anomalous in provided data, expected to show irregularities",
+                "instruction": "Check network metrics like pod_network_receive_bytes during fault period for signs of packet corruption"
+            }
+        ]
+    }
+}

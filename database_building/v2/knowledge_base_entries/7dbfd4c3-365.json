@@ -1,0 +1,33 @@
+{
+  "uuid": "7dbfd4c3-365",
+  "fault_type": "Storage/IO Performance Degradation",
+  "symptom_vector": "Significant latency spike in database-dependent services (e.g., productcatalogservice), anomalies in database storage metrics (region_pending, io_util), no explicit error logs.",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB存储层（TiKV）出现region堆积和IO利用率异常，导致数据库性能严重下降，进而引发依赖数据库的上游服务延迟激增。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据中观察到TiDB组件`tidb-tikv`的核心指标`region_pending`中位数从10657急剧下降至1061（变化率+163.78%），同时`io_util`的P99值从0.06%上升至0.28%（变化率+129.14%）。这表明存储层的Region处理能力和IO性能出现严重异常。",
+      "Step 2: 在Trace数据中，发现直接依赖TiDB的`productcatalogservice`服务延迟激增33倍（例如：frontend->productcatalogservice-2的`GetProduct`操作，平均耗时从10秒增至33万毫秒）。而其他不直接依赖TiDB的服务（如部分frontend内部调用）延迟变化相对较小。这种依赖拓扑上的延迟异常模式，指向了底层存储（TiDB）的性能问题。",
+      "Step 3: 综合检查Log数据，在故障窗口期内未发现任何错误日志（如OOM、权限拒绝、文件系统错误等），排除了由显性应用错误或系统错误日志直接触发的可能性，进一步将根因锁定为静默的底层存储性能退化。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "region_pending, io_util",
+        "expected_pattern": "Significant change in median or P99 values (e.g., region_pending sharp drop, io_util sharp rise) for tidb-tikv component.",
+        "instruction": "检查TiDB TiKV组件的`region_pending`和`io_util`指标。计算故障时段与基准时段的对比，重点关注中位数和P99值的变化率，寻找超过特定阈值（如100%）的剧烈变化。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice latency, specifically calls from frontend or other upstream services.",
+        "expected_pattern": "Dramatic increase in average duration (e.g., 10x or more) for operations in services known to depend on the suspect database (e.g., TiDB).",
+        "instruction": "分析调用链Trace数据，筛选出目标时间段内延迟增幅最大的服务间调用。特别关注那些依赖可疑底层组件（如数据库）的上游服务（如productcatalogservice），确认其延迟激增是否与Metric中观察到的底层异常存在时间关联和拓扑依赖关系。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error logs from system components (especially tidb-tikv) and dependent applications.",
+        "expected_pattern": "Absence of explicit error logs (e.g., OOM, permission denied, filesystem errors) during the anomaly window, indicating a 'silent' performance degradation.",
+        "instruction": "检索故障时间窗口内，与可疑组件（tidb-tikv）及相关应用服务相关的所有日志。确认是否存在任何明确的错误信息、警告或异常堆栈。若无，则记录为'无错误日志'，此现象本身是静默性能故障的特征之一。"
+      }
+    ]
+  }
+}

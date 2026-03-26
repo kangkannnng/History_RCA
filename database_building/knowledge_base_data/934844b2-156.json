@@ -1,0 +1,28 @@
+{
+  "uuid": "934844b2-156",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "High network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice, emailservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice, emailservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [rrt, rrt_max] in Metric data showing extreme increases (From GT key_observations)",
+      "Step 3: Check Observation - Found keyword [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] in Metric observations (From GT key_observations)",
+      "Step 4: Derive Root Cause - Based on network-related metric anomalies, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "rrt_max increased from 2918.0 to 2887647.0 (change ratio: 1.996) for emailservice-0; rrt_max increased from 185275.5 to 8661935.0 (change ratio: 1.9162) for checkoutservice-2",
+        "instruction": "Search for metric [rrt] and [rrt_max] values showing extreme increases (100x+) for checkoutservice and emailservice components"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Network-related metrics showing abnormal patterns during fault period",
+        "instruction": "Check if network metrics [pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] show anomalies for checkoutservice and emailservice pods"
+      }
+    ]
+  }
+}

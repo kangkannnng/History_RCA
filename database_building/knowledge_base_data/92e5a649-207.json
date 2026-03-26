@@ -1,0 +1,68 @@
+{
+  "uuid": "92e5a649-207",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "Network packet corruption leading to data corruption, bit errors on network, and corrupted packets causing service connection failures",
+  "expert_knowledge": {
+    "root_cause_desc": "Component paymentservice experienced anomalies in key metrics: rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is paymentservice (from Ground Truth instance list, chosen based on Full Context evidence where paymentservice is the destination of failed connections).",
+      "Step 2: Check Observation - Found keyword 'Error while dialing' in Log, as seen in log entries: 'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout'.",
+      "Step 3: Check Observation - Found keyword 'Rpc error code canceled desc context canceled' in Log, as seen in log entries: 'rpc error: code = Canceled desc = context canceled'.",
+      "Step 4: Check Observation - Found keyword 'timeout' in Log, as seen in log entries: 'i/o timeout' and 'timed out waiting for server handshake'.",
+      "Step 5: Check Observation - Found keyword 'unavailable' in Log, as seen in log entries: 'code = Unavailable'.",
+      "Step 6: Check Observation - Found keyword 'checkoutservice' and 'frontend' in Trace, as seen in trace data with service_name including 'checkoutservice' and 'frontend' in latency anomalies.",
+      "Step 7: Check Observation - Found keyword 'rrt' and 'rrt_max' in Metric, as seen in metric data with metric_name 'rrt' and 'rrt_max' showing anomalies for services like paymentservice and checkoutservice.",
+      "Step 8: Derive Root Cause - Based on network error logs (dialing timeouts, unavailability) and metric anomalies (rrt, rrt_max degradation), determined cause is network corruption affecting the key metrics listed."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error while dialing",
+        "expected_pattern": "Connection timeout error appeared in logs, e.g., 'transport: Error while dialing dial tcp 10.233.55.4:50051: i/o timeout'",
+        "instruction": "Search for keyword 'Error while dialing' in log entries within the time range 2025-06-11T02:10:29Z to 2025-06-11T02:33:29Z"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc error code canceled desc context canceled",
+        "expected_pattern": "RPC cancellation error appeared in logs, e.g., 'rpc error: code = Canceled desc = context canceled'",
+        "instruction": "Search for keyword 'context canceled' in log entries to identify RPC call cancellations"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Timeout errors appeared in logs, such as 'i/o timeout' or 'timed out waiting for server handshake'",
+        "instruction": "Search for keyword 'timeout' in log entries to detect connection or handshake timeouts"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Service unavailability errors appeared in logs, e.g., 'code = Unavailable'",
+        "instruction": "Search for keyword 'Unavailable' in log entries to confirm service downtime"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice",
+        "expected_pattern": "Trace data shows latency anomalies involving checkoutservice, e.g., in filtered_traces with service_name 'checkoutservice'",
+        "instruction": "Check trace data for entries where service_name is 'checkoutservice' and operation_name involves paymentservice calls"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend",
+        "expected_pattern": "Trace data shows latency anomalies involving frontend, e.g., in filtered_traces with service_name 'frontend'",
+        "instruction": "Check trace data for entries where service_name is 'frontend' and status_code indicates errors like HTTP 500"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Metric rrt showed significant increase, e.g., for checkoutservice-2 from 6446.39 to 539224.92",
+        "instruction": "Monitor metric 'rrt' for services like paymentservice and checkoutservice for abnormal spikes during the fault period"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Metric rrt_max showed extreme anomalies, e.g., for checkoutservice-2 from 165512.5 to 20067712.0",
+        "instruction": "Monitor metric 'rrt_max' for services to detect maximum response time degradation"
+      }
+    ]
+  }
+}

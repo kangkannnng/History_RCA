@@ -1,0 +1,37 @@
+```json
+{
+    "uuid": "de4a919c-126",
+    "fault_type": "pod_memory_working_set_bytes",
+    "symptom_vector": "High memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [paymentservice] experienced [pod_memory_working_set_bytes] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [paymentservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [could, not, load] in Log (From GT key_observations) - PluginLoader load plugin errors in paymentservice logs",
+            "Step 3: Check Observation - Found keyword [pod_processes] in Metric (From GT key_observations) - All paymentservice instances show pod_processes changes with p99_change_ratio 0.6667",
+            "Step 4: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric (From GT key_observations) - This is the key_metric indicating memory stress",
+            "Step 5: Derive Root Cause - Based on above features, determined cause is [pod_memory_working_set_bytes] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "could, not, load",
+                "expected_pattern": "PluginLoader#load: could not load plugin @opentelemetry/plugin-http of module http. Error: Cannot find module '@opentelemetry/plugin-http' appears in paymentservice logs",
+                "instruction": "Search for keyword 'could not load' in paymentservice logs to identify plugin loading failures"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "paymentservice-0/1/2 pod_processes p99_change_ratio = 0.6667 (from 1.0 to 2.0) indicating process count changes",
+                "instruction": "Check metric [pod_processes] for paymentservice instances to detect process count anomalies"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "High values or rapid increase in pod_memory_working_set_bytes for paymentservice instances",
+                "instruction": "Monitor metric [pod_memory_working_set_bytes] for paymentservice to detect memory stress conditions"
+            }
+        ]
+    }
+}
+```

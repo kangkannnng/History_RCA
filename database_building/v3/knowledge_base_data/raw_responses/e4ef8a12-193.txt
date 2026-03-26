@@ -1,0 +1,78 @@
+```json
+{
+    "uuid": "e4ef8a12-193",
+    "fault_type": "network_corrupt",
+    "symptom_vector": "packet corruption and data corruption causing network bit errors and corrupted packets",
+    "expert_knowledge": {
+        "root_cause_desc": "frontend 和 recommendationservice 之间的网络通信因网络攻击导致数据包损坏，表现为 pod_network_receive_bytes、pod_network_transmit_bytes 等网络指标异常",
+        "reasoning_chain": [
+            "Step 1: 观察到 frontend 服务的 rrt 和 rrt_max 指标出现灾难性增长，从正常 12-14ms 飙升至 3-9秒，增幅达 365-740倍",
+            "Step 2: 分析 frontend 与 recommendationservice 之间的调用链，发现 RecommendationService/ListRecommendations 操作的平均耗时从正常 120-140ms 暴增至 55-58秒，延迟增加 440-470倍",
+            "Step 3: 日志中发现 frontend 出现大量 'failed to get product recommendations' 错误，包含 'context canceled'、'transport is closing' 和 'i/o timeout' 等网络连接问题",
+            "Step 4: 确认网络指标 pod_network_receive_bytes 和 pod_network_transmit_bytes 在故障期间出现异常模式，表明网络层存在数据包损坏问题"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "RecommendationService/ListRecommendations",
+                "expected_pattern": "Catastrophic latency increase from ~120-140ms normal to ~55-58s anomaly (440-470x increase)",
+                "instruction": "检查 frontend 调用 recommendationservice 的 RecommendationService/ListRecommendations 操作的延迟是否出现灾难性增长"
+            },
+            {
+                "modality": "Log",
+                "target": "Error|while|dialing",
+                "expected_pattern": "Contains transport errors like 'Error while dialing' and connection timeout messages",
+                "instruction": "在 frontend 日志中搜索 'Error while dialing'、'i/o timeout' 和 'transport is closing' 等网络连接错误关键词"
+            },
+            {
+                "modality": "Log",
+                "target": "Rpc|error|code|canceled|desc|context canceled",
+                "expected_pattern": "Contains RPC context canceled errors with 'failed to get product recommendations' messages",
+                "instruction": "检查 frontend 日志中是否出现 'failed to get product recommendations: rpc error: code = Canceled desc = context canceled' 错误模式"
+            },
+            {
+                "modality": "Log",
+                "target": "timeout",
+                "expected_pattern": "Contains timeout errors in network connections",
+                "instruction": "搜索 frontend 日志中的 timeout 相关错误，特别是网络连接超时"
+            },
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Contains service unavailable errors",
+                "instruction": "检查日志中是否出现 'Unavailable' 状态的服务不可用错误"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice|frontend",
+                "expected_pattern": "Request proportion anomalies between checkoutservice and frontend",
+                "instruction": "分析 checkoutservice 和 frontend 之间的请求比例异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "error|error_ratio",
+                "expected_pattern": "Error ratio spikes from 0% to 5-15% across frontend instances",
+                "instruction": "检查 frontend 服务的 error_ratio 指标是否从正常 0% 飙升至异常水平"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt|rrt_max",
+                "expected_pattern": "Massive response time increase from milliseconds to seconds range",
+                "instruction": "分析 frontend 服务的 rrt 和 rrt_max 指标是否出现灾难性增长（从毫秒级到秒级）"
+            },
+            {
+                "modality": "Metric",
+                "target": "request|response",
+                "expected_pattern": "Request and response metrics showing abnormal patterns",
+                "instruction": "检查各服务的 request 和 response 指标是否出现异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes|pod_network_receive_packets|pod_network_transmit_bytes|pod_network_transmit_packets",
+                "expected_pattern": "Abnormal network traffic patterns indicating packet corruption",
+                "instruction": "分析 pod 的网络指标（pod_network_receive_bytes、pod_network_transmit_bytes 等）是否显示异常的数据包传输模式，表明网络数据包损坏"
+            }
+        ]
+    }
+}
+```

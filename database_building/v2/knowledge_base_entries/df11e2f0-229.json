@@ -1,0 +1,34 @@
+{
+  "uuid": "df11e2f0-229",
+  "fault_type": "metric",
+  "symptom_vector": "Increased service latency, degraded downstream service performance.",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-2 Pod 进程数异常激增导致 CPU 使用率饱和，进而影响其所在节点的 CPU 资源并导致同节点其他服务性能下降。",
+    "reasoning_chain": [
+      "Step 1: 观察到 Metric 数据中 `adservice-2` 的 `pod_cpu_usage` 从正常中位数 0.0 上升到故障中位数 0.6（变化率 2.0），同时 `pod_processes` 从 1.0 激增至 9.0（变化率 1.6），表明该 Pod 存在进程异常激增与 CPU 使用率飙升。",
+      "Step 2: 通过 `node_pod_mapping` 分析发现 `adservice-2` 运行在 `aiops-k8s-08` 节点上，该节点的 `node_cpu_usage_rate` 从 16.69% 上升至 22.46%（变化率 0.2948），确认了 Pod 异常对节点资源产生了直接影响。",
+      "Step 3: 结合 Trace 数据发现，`adservice-2` 自身的 `rrt_max` 从 43280.0 上升至 91169.0，`rrt` 从 6114.56 上升至 7107.96，且同节点上的 `redis` 操作延迟也出现 6.1 至 16.1 倍的飙升。这表明 CPU 资源争用导致了本节点上关键服务（如 Redis）以及问题 Pod 自身响应时间的恶化。",
+      "Step 4: 综合 Metric 与 Trace 证据，逻辑链条清晰：`adservice-2` 的进程异常导致其 CPU 需求暴增 -> 挤占所在节点 `aiops-k8s-08` 的 CPU 资源 -> 节点上运行的其他服务（如 `redis-cart-0`）因资源不足导致延迟升高 -> 最终引发下游服务（如 `cartservice`, `checkoutservice`）的连锁性能退化。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden spike from baseline (e.g., near 0) to high values (e.g., >0.5). The increase ratio should be significant.",
+        "instruction": "检查故障时间窗口内 `adservice-2` Pod 的 CPU 使用率指标，确认是否存在从低位基准值（如 0.0）突然跃升到高位值（如 0.6）的现象，并计算其变化比率。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormally high count or a sudden, significant increase from a stable baseline (e.g., from 1.0 to 9.0).",
+        "instruction": "检查故障时间窗口内 `adservice-2` Pod 的进程数指标，确认是否存在进程数远超正常水平或从稳定基线（如 1.0）异常激增（如到 9.0）的情况。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Increased response time latency for `adservice-2` itself, and for other critical services (e.g., Redis) running on the same node (`aiops-k8s-08`). Look for a latency increase of multiple times.",
+        "instruction": "分析故障时间窗口内，根因 Pod (`adservice-2`) 自身的响应时间（rrt, rrt_max）是否显著增加。同时，检查同节点（`aiops-k8s-08`）上其他关键服务（特别是 Redis）的调用延迟，确认是否存在因节点资源争用导致的延迟同步上升现象。"
+      }
+    ]
+  }
+}

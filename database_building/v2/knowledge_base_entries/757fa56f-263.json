@@ -1,0 +1,39 @@
+{
+  "uuid": "757fa56f-263",
+  "fault_type": "metric",
+  "symptom_vector": "Severe latency spike for frontend service, especially in calls to recommendationservice; high CPU utilization of pods.",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice Pod CPU过载，导致服务响应延迟飙升并向上游传播。",
+    "reasoning_chain": [
+      "Step 1: 在指标数据中观察到 `recommendationservice` 所有三个Pod的 `pod_cpu_usage` 在故障期间发生显著飙升（例如recommendationservice-2从0.03升至0.4，变化率1.7209），并且其 `pod_processes` 从1.0异常增加到12.0，表明Pod内部进程数激增，可能发生重启或进程泄漏，这与CPU负载升高的现象相符。",
+      "Step 2: 同时，指标数据显示 `recommendationservice` 服务的 `rrt_max` 和 `rrt` 激增24倍以上，且调用链数据证实，从 `frontend` 到 `recommendationservice` 的调用延迟从正常平均约3.8ms激增至异常平均约262ms，延迟增长68倍，表明该服务的性能严重恶化。",
+      "Step 3: 进一步分析调用链，发现 `frontend` 服务的自身延迟也因下游 `recommendationservice` 的延迟而恶化（例如从124ms增至583ms），形成了清晰的从根因服务向上游传播的影响路径，而节点资源指标未出现瓶颈，问题被定位在应用层的 `recommendationservice`。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden spike (e.g., change ratio > 1.7), values approaching or exceeding high thresholds (e.g., >0.4).",
+        "instruction": "检查 `recommendationservice` 相关Pod的CPU使用率指标，确认在故障时间窗口内是否存在急剧、大幅度的增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormally high count and sharp increase from baseline (e.g., from 1 to 12, change ratio > 1.6).",
+        "instruction": "检查 `recommendationservice` 相关Pod的进程数指标，确认是否存在异常激增，这常伴随Pod重启或进程异常。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme spike (e.g., change ratio > 1.9), indicating severely degraded service response.",
+        "instruction": "检查 `recommendationservice` 服务的 `rrt_max` 指标，确认其最大响应时间是否出现数量级级别的激增。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->recommendationservice call latency",
+        "expected_pattern": "Drastic increase in average latency (e.g., >60x increase from normal to fault period).",
+        "instruction": "分析调用链数据，聚焦于 `frontend` 调用 `recommendationservice` 的路径，确认其延迟是否出现极端恶化，这通常是下游服务故障的直接体现。"
+      }
+    ]
+  }
+}

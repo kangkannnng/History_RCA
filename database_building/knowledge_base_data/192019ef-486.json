@@ -1,0 +1,28 @@
+{
+  "uuid": "192019ef-486",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, overload, usage spike, and stress leading to performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [currencyservice-1] experienced [pod_cpu_usage] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [currencyservice-1] (From Ground Truth). Supported by presence in metric data under service currencyservice in Full Context.",
+      "Step 2: Check Observation - For log keyword [http.resp.status, 302], log analysis reported no error logs detected, indicating keyword not observed in provided logs (From log_analysis_findings in Full Context).",
+      "Step 3: Check Observation - For metric keyword [pod_cpu_usage], metric data does not include this metric name in available_metric_names, so direct observation not available (From raw_metric_result in Full Context).",
+      "Step 4: Derive Root Cause - Based on Ground Truth fault_description indicating CPU stress and key_metrics, determined cause is [pod_cpu_usage] despite lack of direct observations in provided data."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "Log entries containing HTTP response status 302, potentially indicating errors or redirections",
+        "instruction": "Search for keyword 'http.resp.status' and value '302' in the log files for pod currencyservice-1 during the time window 2025-06-23T23:10:09Z to 2025-06-23T23:26:09Z"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "High CPU usage percentage or spike for pod currencyservice-1, correlating with performance degradation",
+        "instruction": "Monitor and check metric pod_cpu_usage for pod currencyservice-1 during anomalous periods, specifically between 2025-06-23T23:10:09Z and 2025-06-23T23:26:09Z"
+      }
+    ]
+  }
+}

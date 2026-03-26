@@ -1,0 +1,21 @@
+{
+  "uuid": "eba76009-152",
+  "fault_type": "application_performance_anomaly",
+  "symptom_vector": "Frontend services report RPC failures and inability to retrieve ads, leading to degraded user experience.",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-0因Byteman Agent注入异常，导致getRandomAds方法故障，引发前端服务连锁失败。",
+    "reasoning_chain": [
+      "Step 1: 从日志数据中观察到adservice-0 pod内存在大量、高频的错误日志，核心内容包括'Exception in thread \"grpc-default-executor-6471\" java.lang.Error: Injected error'、'AdService-getRandomAds-exception-1749406206 execute()'以及'caught ThrowException'，出现次数高达1456次。这些日志明确指向Byteman Agent注入的运行时异常。",
+      "Step 2: 分析上层服务日志，发现所有frontend实例（frontend-0, frontend-1, frontend-2）均出现大量'failed to get ads: rpc error: code = Unknown desc = '错误，表明它们调用adservice的RPC请求全部失败，这与adservice-0的异常日志在时间上吻合，构成了清晰的故障传播链。",
+      "Step 3: 结合指标数据，确认adservice-0的pod_cpu_usage在P99分位数上有显著上升（从0.01到0.08，变化率157.36%），这符合JVM处理大量异常时的资源消耗特征。同时，检查其他候选根因（如节点内存压力），发现其异常程度和影响范围均不及adservice-0的直接证据充分，且相关服务错误率（error_ratio）并未显著升高，排除了其他可能性，最终确认根因为adservice-0的代码注入异常。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-0",
+        "expected_pattern": "Contains error",
+        "instruction": "在adservice-0的日志中搜索以下任意关键词组合，确认是否存在Byteman Agent注入异常的证据：1) 'Injected error'与'grpc-default-executor'；2) 'AdService-getRandomAds-exception'；3) 'caught ThrowException'。"
+      }
+    ]
+  }
+}

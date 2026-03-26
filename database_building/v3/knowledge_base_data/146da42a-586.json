@@ -1,0 +1,51 @@
+{
+  "uuid": "146da42a-586",
+  "fault_type": "region_pending & io_util spike",
+  "symptom_vector": "filesystem IO errors causing database performance degradation, with upstream service latency anomalies.",
+  "expert_knowledge": {
+    "root_cause_desc": "tidb-tikv-0/tidb-tikv 组件因 region_pending 队列严重积压（激增151.73%）及 io_util 异常，导致存储层IO性能瓶颈。",
+    "reasoning_chain": [
+      "Step 1: 从 Metric 数据中观察到 `tidb-tikv` 组件的 `region_pending` 指标中位数从正常值 7753.5 变化至 1064.0，变化率达 151.73%，同时 `io_util` 与 `cpu_usage` 出现异常波动。",
+      "Step 2: 分析 Trace 数据，发现严重依赖该存储组件的 `productcatalogservice` 服务调用延迟激增 152.2 倍，证明数据库性能问题是上游服务异常的直接源头。",
+      "Step 3: 尽管 Log 数据中未发现明确的错误日志，但这与存储层 IO 性能瓶颈（静默故障）的特征一致，结合 `region_pending` 的显著异常，可确认根因为 tidb-tikv 存储层性能问题。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice->tidb-tikv调用链",
+        "expected_pattern": "调用延迟显著增加（例如激增百倍以上）",
+        "instruction": "检查所有涉及 `productcatalogservice` 且其下游依赖 `tidb-tikv` 的调用链，分析其 `latency_anomalies`，特别是 `hipstershop.ProductCatalogService/GetProduct` 等操作。"
+      },
+      {
+        "modality": "Metric",
+        "target": "region_pending",
+        "expected_pattern": "指标值发生剧烈变化（例如变化率超过150%）",
+        "instruction": "检查 `tidb-tikv` 组件的 `region_pending` 指标，对比故障时段与正常时段的中位数及 P99 分位数变化。"
+      },
+      {
+        "modality": "Metric",
+        "target": "io_util",
+        "expected_pattern": "出现异常尖峰或持续高值",
+        "instruction": "检查 `tidb-tikv` 组件的 `io_util` 指标，观察是否存在超出基线的IO利用率异常。"
+      },
+      {
+        "modality": "Metric",
+        "target": "raft_apply_wait",
+        "expected_pattern": "延迟指标显著增加",
+        "instruction": "检查 `tidb-tikv` 组件的 `raft_apply_wait` 指标，确认存储层写入延迟是否同步恶化。"
+      },
+      {
+        "modality": "Metric",
+        "target": "grpc_qps 或 qps",
+        "expected_pattern": "出现下降或异常波动",
+        "instruction": "检查与 `tidb-tikv` 相关的 `grpc_qps` 或 `qps` 指标，观察数据库查询吞吐量是否受到影响。"
+      },
+      {
+        "modality": "Metric",
+        "target": "cpu_usage",
+        "expected_pattern": "使用率异常升高或波动",
+        "instruction": "检查 `tidb-tikv` 组件的 `cpu_usage` 指标，分析其 CPU 使用率是否因 IO 等待或处理积压而出现异常。"
+      }
+    ]
+  }
+}

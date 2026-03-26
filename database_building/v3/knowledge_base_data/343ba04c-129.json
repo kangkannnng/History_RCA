@@ -1,0 +1,63 @@
+{
+  "uuid": "343ba04c-129",
+  "fault_type": "adservice-getrandomads-exception",
+  "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice 组件因 Byteman agent 错误注入触发 AdService-getRandomAds-exception 规则，导致 java.lang.Error 异常",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的 client_error_ratio 和 error_ratio 在故障期间 P99 分位分别从 1.71 增加到 2.78，变化率 47.36%",
+      "Step 2: 分析 adservice 组件的日志发现明确的 Byteman agent 错误注入证据：Rule.execute called for AdService-getRandomAds-exception-1749323409_10:0, java.lang.Error: Injected error",
+      "Step 3: 确认 frontend 服务因 adservice 异常出现大量 rpc error: failed to get ads: rpc error: code = Unknown desc ="
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "adservice-getrandomads-exception",
+        "expected_pattern": "Contains Byteman agent rule execution for AdService-getRandomAds-exception",
+        "instruction": "在 adservice 组件的日志中搜索 AdService-getRandomAds-exception 关键词，检查是否有 Byteman agent 规则执行记录"
+      },
+      {
+        "modality": "Log",
+        "target": "Caught|throwexception",
+        "expected_pattern": "Contains exception handling or throw statements",
+        "instruction": "检查 adservice 日志中是否包含异常捕获或抛出记录"
+      },
+      {
+        "modality": "Log",
+        "target": "grpc-default-executor",
+        "expected_pattern": "Exception in grpc-default-executor threads",
+        "instruction": "搜索 grpc-default-executor 线程相关的异常信息"
+      },
+      {
+        "modality": "Log",
+        "target": "injected|error",
+        "expected_pattern": "Contains injected error messages",
+        "instruction": "查找包含 injected error 关键词的日志条目"
+      },
+      {
+        "modality": "Log",
+        "target": "invocationtargetexception",
+        "expected_pattern": "Java InvocationTargetException occurrences",
+        "instruction": "检查是否有 java.lang.reflect.InvocationTargetException 异常"
+      },
+      {
+        "modality": "Log",
+        "target": "transformlistener",
+        "expected_pattern": "Byteman transformer related messages",
+        "instruction": "搜索 transformlistener 相关的 Byteman agent 日志"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error|client_error_ratio|error|error_ratio",
+        "expected_pattern": "Significant increase in error rates during fault window",
+        "instruction": "检查 adservice 组件的 client_error_ratio 和 error_ratio 指标在故障时间段是否有显著上升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Abnormal CPU usage patterns",
+        "instruction": "监控 adservice pod 的 CPU 使用率是否出现异常波动"
+      }
+    ]
+  }
+}

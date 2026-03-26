@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "cc62b887-583",
+    "fault_type": "qps/grpc_qps/region_pending/io_util",
+    "symptom_vector": "High API latency spike, increased error rates (500 errors), and specific database region unavailable errors reported across microservices.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB存储层(TiKV)区域(Region)不可用，导致数据库查询操作失败并引发上游服务连锁故障。",
+        "reasoning_chain": [
+            "Step 1: 观察到多个微服务（frontend, productcatalogservice, checkoutservice）的日志中密集出现相同的核心错误信息：'Error 9005 (HY000): Region is unavailable'。这表明故障源是底层数据库的区域不可用问题。",
+            "Step 2: 分析指标数据，发现数据库层组件异常显著：tidb-tidb服务的P99查询延迟(duration_99th)从0.01ms剧增至64.88ms；同时tidb-pd组件出现存储节点不健康计数(store_unhealth_count)。这从性能维度证实了数据库底层存在健康与性能问题。",
+            "Step 3: 通过追踪链路分析，确认了故障的调用路径：前端服务(frontend)调用产品目录服务(productcatalogservice)的GetProduct操作，后者再调用TiDB。productcatalogservice->TiDB这条关键链路的平均响应时间(rrt_max)从正常时段的9.9秒激增至3858万毫秒，且伴随大量9005状态码。这表明TiDB存储层(TiKV)的不可用是导致整个调用栈延迟飙升和失败的根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "service_name: productcatalogservice, operation_name: hipstershop.ProductCatalogService/GetProduct, status_code: 2",
+                "expected_pattern": "Sudden and extreme spike in average duration (rrt_max) from baseline to over 30,000,000 ms, indicating downstream failure.",
+                "instruction": "分析productcatalogservice调用下游TiDB的GetProduct追踪数据。检查异常时间段内该操作的平均耗时(rrt_max)是否出现几个数量级的增长，并确认状态码是否为指示数据库错误的特定代码（如9005）。"
+            },
+            {
+                "modality": "Log",
+                "target": "Error 9005 (HY000): Region is unavailable",
+                "expected_pattern": "Recurring log entries containing the exact phrase across multiple services (e.g., productcatalogservice, frontend).",
+                "instruction": "在故障时间范围内，搜索所有服务（特别是数据库客户端服务如productcatalogservice）的日志，查找包含'Error 9005 (HY000): Region is unavailable'关键词的错误条目。评估其出现频率和影响的服务范围。"
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb-tidb: duration_99th, failed_query_ops",
+                "expected_pattern": "Sudden increase in P99 query latency (duration_99th) from millisecond level to tens of milliseconds or more, along with a rise in failed_query_ops count.",
+                "instruction": "检查TiDB数据库组件(tidb-tidb)在故障时段内的关键性能指标。重点关注P99查询延迟(duration_99th)是否发生数量级的突增，以及失败查询操作数(failed_query_ops)是否从零或低值显著上升。"
+            },
+            {
+                "modality": "Metric",
+                "target": "tidb-pd: store_unhealth_count",
+                "expected_pattern": "Increase from 0 to a positive value (e.g., 1.0), indicating at least one storage node is unhealthy.",
+                "instruction": "检查TiDB集群的Placement Driver组件(tidb-pd)的存储健康状态指标(store_unhealth_count)。确认其在故障时间段是否从健康状态（值为0）变为非零值，这表明底层TiKV存储节点出现了问题。"
+            }
+        ]
+    }
+}
+```

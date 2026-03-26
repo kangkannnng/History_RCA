@@ -1,0 +1,31 @@
+[Trigger]
+- Log anomaly pattern: Service logs from the frontend component show repeated failures when attempting to retrieve data from a downstream service, with error messages indicating that calls are timing out before completion.
+- Metric anomaly pattern: Error rate metrics for specific instances of a downstream service exhibit a sharp increase, with p99 values rising significantly from baseline, pointing to a surge in client-side failures.
+- Trace anomaly pattern: Distributed traces reveal that calls to a particular downstream service frequently end with timeout statuses, while other service interactions show increased but secondary latency effects.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Frontend logs consistently report timeouts during attempts to communicate with a downstream service for data retrieval. This matters because it directly captures failures in request handling at the service boundary, indicating that the downstream component is not responding as expected.
+- Evidence 2: Metric data shows that error rates for two instances of the downstream service jumped dramatically during the incident, with p99 change rates indicating near-total failure periods. This supports the logs by quantifying the severity and localization of the issue to specific service instances.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Trace data indicates elevated latency in calls to other services, such as storage components, with delay multipliers observed. This is a consequence not cause because these effects are inconsistent and appear in components with separate dependency chains, suggesting they may be ripple effects from the primary issue.
+- Evidence 4: Node-level resource usage metrics show variations in memory and CPU, but these changes do not correlate tightly with the service error patterns and are present on nodes not hosting the affected service instances. This can be deprioritized as it lacks direct causal linkage to the core failures.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the consistent timeout errors in frontend logs when calling a downstream service and the concurrent spike in error metrics for that service's instances, we suspect that those specific service instances are failing to process requests within required timeframes."
+
+Step 2: Verification or elimination
+"If this were caused by systemic resource exhaustion or network issues, we would expect uniform latency increases and error rates across multiple services and nodes; however, actual observation shows that errors are highly concentrated on two instances of one downstream service, and topology analysis indicates they have independent dependencies. This rules out broad infrastructure problems as the primary driver."
+"Additionally, if the issue originated in other high-latency components like storage services, we would see error patterns aligned with those dependencies; but the error logs and metrics directly point to timeout failures independent of those chains, further isolating the cause."
+
+Step 3: Convergence to conclusion
+"The combination of direct timeout reports from upstream logs and the quantified error rate surges in downstream service metrics indicates that the root cause is the inability of those service instances to respond to requests promptly, leading to propagated timeouts and client errors upstream."
+
+[Conclusion]
+"The root cause is the failure of specific instances within a downstream service to handle incoming requests in a timely manner, resulting in cascading timeout errors for dependent upstream components."
+
+[Next Action]
+- Verify whether internal logs from the affected downstream service instances reveal processing delays or internal errors during the incident window.
+- Check for patterns in the dependency metrics of the downstream service, such as database query times or internal resource usage, to identify any underlying contributors to the response degradation.

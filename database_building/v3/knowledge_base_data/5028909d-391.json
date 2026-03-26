@@ -1,0 +1,63 @@
+{
+  "uuid": "5028909d-391",
+  "fault_type": "server_error_ratio",
+  "symptom_vector": "DNS lookup failure causing server_error_ratio spike and connection errors in checkoutservice",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 组件因 DNS 解析失败导致 server_error_ratio 和 error_ratio 指标异常飙升，无法连接到 emailservice",
+    "reasoning_chain": [
+      "Step 1: 观察到 checkoutservice-1 的 server_error_ratio 指标从 0% 飙升至 30.54%，error_ratio 同样从 0% 升至 30.54%",
+      "Step 2: 分析 checkoutservice 日志发现 DNS 解析错误：'transport: Error while dialing dial tcp: lookup emailservice on 10.233.33.139:53: server misbehaving'",
+      "Step 3: 确认 checkoutservice 调用链中 emailservice 操作出现连接错误（状态码14），平均耗时从 24,511ms 增加到 2,703,051ms"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "响应时间异常增加，特别是 checkoutservice 到 emailservice 的调用链",
+        "instruction": "检查 trace 数据中 checkoutservice 组件的调用链，重点关注 hipstershop.EmailService/SendOrderConfirmation 操作的延迟异常"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status",
+        "expected_pattern": "HTTP 响应状态码异常",
+        "instruction": "在 checkoutservice 日志中搜索 http.resp.status 相关的错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc error",
+        "expected_pattern": "RPC 调用错误信息",
+        "instruction": "在 checkoutservice 日志中搜索包含 'rpc' 和 'error' 关键词的错误记录"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "超时错误信息",
+        "instruction": "在 checkoutservice 日志中搜索 timeout 相关的错误"
+      },
+      {
+        "modality": "Log",
+        "target": "transport Error while dialing",
+        "expected_pattern": "传输层连接错误，特别是 DNS 解析问题",
+        "instruction": "在 checkoutservice 日志中搜索 'transport: Error while dialing' 和 DNS 相关的错误信息"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "服务不可用错误",
+        "instruction": "在 checkoutservice 日志中搜索 unavailable 相关的错误信息"
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio",
+        "expected_pattern": "从正常值突然飙升至异常水平",
+        "instruction": "检查 checkoutservice 组件的 server_error_ratio 指标是否异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio",
+        "expected_pattern": "错误率显著增加",
+        "instruction": "检查 checkoutservice 组件的 error_ratio 指标是否异常增加"
+      }
+    ]
+  }
+}

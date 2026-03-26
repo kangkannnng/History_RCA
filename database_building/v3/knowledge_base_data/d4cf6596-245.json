@@ -1,0 +1,39 @@
+{
+  "uuid": "d4cf6596-245",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory exhaustion, node memory saturation, node high memory usage, node memory leak, node memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06 节点因 node_memory_usage_rate 异常升高导致内存压力，引发节点级故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-06 节点的 node_memory_usage_rate 指标从 21.02% 上升到 33.77%（上升 46.56%），p99 值从 27.21% 飙升至 81.91%",
+      "Step 2: 分析 aiops-k8s-06 节点的 node_memory_MemAvailable_bytes 指标显示可用内存减少，确认内存资源紧张",
+      "Step 3: 确认故障期间 aiops-k8s-06 节点上运行的关键服务（productcatalogservice-0, emailservice-2, checkoutservice-2）出现性能问题，包括 checkoutservice-2 的 error_ratio 和 client_error_ratio 从 0% 飙升到 5.77%"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Significant increase from baseline (46.56% median increase, 1.0024x p99 increase)",
+        "instruction": "检查 aiops-k8s-06 节点的 node_memory_usage_rate 指标是否异常升高，特别是 p99 值是否接近或超过 80%"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "Available memory significantly reduced",
+        "instruction": "检查 aiops-k8s-06 节点的 node_memory_MemAvailable_bytes 指标是否显示可用内存大幅减少"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_bytes_total",
+        "expected_pattern": "Increased disk read activity",
+        "instruction": "检查 aiops-k8s-06 节点的 node_disk_read_bytes_total 指标是否显示磁盘读取活动增加（可能因内存压力导致swap）"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_disk_read_time_seconds_total",
+        "expected_pattern": "Increased disk read time",
+        "instruction": "检查 aiops-k8s-06 节点的 node_disk_read_time_seconds_total 指标是否显示磁盘读取时间增加"
+      }
+    ]
+  }
+}

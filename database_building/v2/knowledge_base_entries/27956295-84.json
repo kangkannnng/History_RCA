@@ -1,0 +1,33 @@
+{
+  "uuid": "27956295-84",
+  "fault_type": "latency_anomaly",
+  "symptom_vector": "Extreme rrt_max latency spike (>1900x increase) on critical RPC endpoint, accompanied by upstream connection timeout errors (i/o timeout, timed out waiting for server handshake), leading to cascading failures and HTTP 500 errors in upstream services.",
+  "expert_knowledge": {
+    "root_cause_desc": "支付服务(paymentservice)发生极端延迟，导致下游连接超时和级联故障。",
+    "reasoning_chain": [
+      "Step 1: 通过调用链(Trace)分析，识别出异常延迟集中发生在调用链最下游的`PaymentService/Charge`操作。其`rrt_max`从正常的12.8ms激增至24,427ms，激增1904倍，是延迟最严重的节点。同时，该调用链状态码包含大量`i/o timeout`和`timed out waiting for server handshake`错误。",
+      "Step 2: 通过日志(Log)分析，发现所有错误均来自上游的`frontend`服务，且错误信息核心是连接到`paymentservice`(IP: 10.233.55.4:50051)失败，具体错误为'failed to charge card: could not charge the card: rpc error: code = Unavailable desc = timed out waiting for server handshake'或'Error while dialing dial tcp 10.233.55.4:50051: i/o timeout'。这证实了故障源于`paymentservice`连接问题。",
+      "Step 3: 通过指标(Metric)分析，确认了`paymentservice-0`的响应时间指标出现灾难性恶化。其`rrt`指标的P99值从2127.52激增至2,472,178.23，`rrt_max`的P99值从3260.76激增至2,543,459.37，变化率接近2000%，与Trace观察到的延迟倍数吻合，确立了`paymentservice`的性能异常为根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "PaymentService/Charge",
+        "expected_pattern": "`anomaly_avg_duration` is 1000x+ larger than `normal_avg_duration`. Status codes indicate connection timeouts (e.g., i/o timeout, timed out waiting for server handshake).",
+        "instruction": "扫描调用链数据，找出`anomaly_avg_duration`与`normal_avg_duration`比值极高的RPC调用，并检查其对应的`status_message`。优先关注最下游服务（如paymentservice）的严重延迟节点。"
+      },
+      {
+        "modality": "Log",
+        "target": "dial tcp 10.233.55.4:50051: i/o timeout, timed out waiting for server handshake",
+        "expected_pattern": "Log messages from upstream services (如frontend) containing RPC connection timeout errors pointing to a specific downstream service (IP:Port).",
+        "instruction": "在所有服务日志中搜索关键词‘i/o timeout’和‘timed out waiting for server handshake’。定位并聚合错误日志，找出被频繁连接失败的特定服务端点。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "For the suspected root cause service (e.g., paymentservice), the p99 values for `rrt` and `rrt_max` show a sudden and extreme increase (e.g., >1000% change).",
+        "instruction": "加载被怀疑为故障根源的服务的`rrt`和`rrt_max`指标，特别关注其P99（或`fault_p99`）值在故障时间窗口内的变化率。确认是否存在灾难性的性能退化。"
+      }
+    ]
+  }
+}

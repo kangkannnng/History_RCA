@@ -1,0 +1,56 @@
+```json
+{
+    "uuid": "d99a98a0-233",
+    "fault_type": "pod_processes",
+    "symptom_vector": "Pod killed, forceful pod termination, container killed, pod eviction",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [paymentservice-0] experienced [pod_processes] fault, accompanied by [client_error, client_error_ratio, error, error_ratio, request, response] anomalies.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [paymentservice-0] (From Ground Truth instance field)",
+            "Step 2: Check Observation - Found keyword [request] and [response] in Metric data (From GT key_observations metric keyword)",
+            "Step 3: Check Observation - Found keyword [pod_memory_working_set_bytes] in Metric data (From GT key_observations metric keyword)",
+            "Step 4: Check Observation - Found keyword [pod_processes] in Metric data (From GT key_observations metric keyword)",
+            "Step 5: Check Observation - Found keyword [frontend] and [shippingservice] in Trace data with request_proportion_anomalies (From GT key_observations trace keyword)",
+            "Step 6: Derive Root Cause - Based on above features, determined cause is [pod_processes] (From Ground Truth key_metrics)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "Value drops from normal to 0.0 indicating process termination",
+                "instruction": "Check if metric [pod_processes] for paymentservice-0 shows value dropping to 0.0 during fault window"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Memory usage pattern changes during fault",
+                "instruction": "Search for metric [pod_memory_working_set_bytes] for paymentservice-0 to detect memory anomalies"
+            },
+            {
+                "modality": "Metric",
+                "target": "request",
+                "expected_pattern": "Request rate anomalies during fault period",
+                "instruction": "Check [request] metric for paymentservice-0 to identify request pattern changes"
+            },
+            {
+                "modality": "Metric",
+                "target": "response",
+                "expected_pattern": "Response pattern anomalies during fault period",
+                "instruction": "Check [response] metric for paymentservice-0 to identify response pattern changes"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Request proportion anomalies involving frontend service",
+                "instruction": "Search for trace anomalies with keyword [frontend] in request_proportion_anomalies"
+            },
+            {
+                "modality": "Trace",
+                "target": "shippingservice",
+                "expected_pattern": "Request proportion anomalies involving shippingservice",
+                "instruction": "Search for trace anomalies with keyword [shippingservice] in request_proportion_anomalies"
+            }
+        ]
+    }
+}
+```

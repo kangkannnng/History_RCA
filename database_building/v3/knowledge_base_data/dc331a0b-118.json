@@ -1,0 +1,33 @@
+{
+  "uuid": "dc331a0b-118",
+  "fault_type": "rrt/rrt_max surge",
+  "symptom_vector": "high network latency with increased RTT and network delay spike",
+  "expert_knowledge": {
+    "root_cause_desc": "frontend 和 recommendationservice 组件之间的网络延迟异常，表现为 rrt 和 rrt_max 指标显著飙升",
+    "reasoning_chain": [
+      "Step 1: 观察到 recommendationservice-2 的 rrt_max 指标从 12932.5ms 飙升至 804041ms（变化率193.67%），rrt 指标从 4014.78ms 飙升至 225851.24ms（变化率193.01%）",
+      "Step 2: 分析 recommendationservice-0 同样出现 rrt_max 和 rrt 指标异常飙升，变化率均超过1900%，表明 recommendationservice 组件整体响应延迟异常",
+      "Step 3: 追踪数据显示 frontend->recommendationservice 调用链延迟从正常约120-140ms激增至730-735ms（5-6倍增长），出现34次异常，确认网络延迟问题"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "frontend->recommendationservice",
+        "expected_pattern": "Latency spike from normal 120-140ms to 730-735ms (5-6x increase)",
+        "instruction": "检查 frontend 调用 recommendationservice 的追踪数据，确认是否存在显著的延迟增加"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Significant increase from baseline (e.g., 1900% change)",
+        "instruction": "检查 recommendationservice 组件的 rrt 指标是否出现异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Extreme surge from normal values (e.g., 1900% change)",
+        "instruction": "检查 recommendationservice 组件的 rrt_max 指标是否出现极端峰值"
+      }
+    ]
+  }
+}

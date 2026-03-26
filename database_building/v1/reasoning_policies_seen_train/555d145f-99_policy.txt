@@ -1,0 +1,30 @@
+[Trigger]
+- Metric anomaly pattern: Multiple services show increased response time percentiles, with one storage service showing a 7.7x increase in operation latency from its baseline.
+- Trace anomaly pattern: Direct calls from an application service to a storage service show the most severe latency degradation, while calls between other application services show lesser increases.
+- Log anomaly pattern: No error logs were detected for the key services during the fault window, indicating the issue manifested as performance degradation rather than explicit errors.
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Trace data shows a specific storage operation latency increased from approximately 1.5 seconds to over 12 seconds - this direct measurement indicates a severe performance issue at the storage layer.
+- Evidence 2: The application service directly calling this storage operation shows a corresponding 4.8x latency increase - this demonstrates a clear dependency relationship where storage performance directly impacts the caller.
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Metric data suggests another application service had extreme latency percentiles, but trace measurements for that service show only moderate increases - this discrepancy suggests the metric may reflect aggregated effects rather than the primary issue.
+- Evidence 4: Node-level resource metrics show memory usage increases on some nodes, but these don't correlate strongly with the most severe service latency patterns - these may be contributing factors rather than the core issue.
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the 7.7x latency increase observed in storage operations and the corresponding impact on the directly dependent application service, we suspect a performance degradation at the storage layer is propagating upward through service dependencies."
+
+Step 2: Verification or elimination
+"If this were caused primarily by application-level issues in the reportedly high-latency service, we would expect to see corresponding severe latency in trace measurements for that service's operations; however, actual trace observations show only moderate increases for that service's operations. This rules out that service as the primary root cause and suggests its metric anomalies may be downstream effects."
+
+Step 3: Convergence to conclusion
+"The combination of direct trace measurements showing severe storage operation degradation and the dependency pattern where this storage is exclusively used by affected application services indicates a storage layer performance issue that cascades to dependent services."
+
+[Conclusion]
+"The root cause is a severe performance degradation in a storage component that serves as an exclusive dependency for application services, causing cascading latency increases through the dependency chain while not generating error logs."
+
+[Next Action]
+- Verify whether storage-level resource metrics or internal storage logs show corresponding anomalies
+- Check for patterns of concurrent access or workload changes that might explain the storage performance degradation

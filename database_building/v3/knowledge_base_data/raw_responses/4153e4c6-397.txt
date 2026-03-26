@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "4153e4c6-397",
+    "fault_type": "rrt_max",
+    "symptom_vector": "extreme latency spike and high request error rate observed between frontend and cartservice, correlating with network packet corruption symptoms",
+    "expert_knowledge": {
+        "root_cause_desc": "cartservice 组件的响应时间指标 rrt_max 出现极端飙升，导致下游 frontend 服务产生大量超时和连接中断错误。",
+        "reasoning_chain": [
+            "Step 1: 观察到 cartservice-1 的 rrt_max 指标 p99 值从正常基准 86262ms 异常飙升至 174835917ms，表明服务响应性能严重恶化。",
+            "Step 2: 分析 Trace 数据，发现 cartservice 调用 redis 的 HGET 操作平均响应时间从 1553ms 上升至 49590ms (31.9倍)，同时 frontend 调用 cartservice 的 GetCart 操作延迟从 25581ms 飙升至 59026874ms (2307倍)。",
+            "Step 3: 确认 frontend 日志中出现大量 'rpc error: code = Canceled desc = context canceled' 和 'rpc error: code = Unavailable desc = transport is closing' 错误，总计超过 338 次，直接印证了下游 cartservice 响应超时导致的连锁故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "frontend->cartservice",
+                "expected_pattern": "平均耗时出现数千倍至数万倍的增长，且伴随 context canceled 和 transport is closing 状态码",
+                "instruction": "检查 frontend 服务调用 cartservice 服务（特别是 GetCart/AddItem 操作）的链路追踪数据，确认是否存在极端的延迟飙升和特定的错误状态码。"
+            },
+            {
+                "modality": "Trace",
+                "target": "cartservice->redis",
+                "expected_pattern": "HGET 操作平均耗时出现数十倍的异常增长",
+                "instruction": "检查 cartservice 服务调用底层 redis 存储的链路追踪数据，确认底层依赖的性能是否出现恶化。"
+            },
+            {
+                "modality": "Log",
+                "target": "context canceled",
+                "expected_pattern": "大量包含 'context canceled' 关键词的 RPC 错误日志",
+                "instruction": "在 frontend 服务的日志中，搜索 'context canceled' 关键词，统计其出现频次，确认是否与故障时间窗口重合。"
+            },
+            {
+                "modality": "Log",
+                "target": "transport is closing | timed out waiting for server handshake",
+                "expected_pattern": "包含连接超时或传输中断的 RPC 错误日志",
+                "instruction": "在 frontend 服务的日志中，搜索 'transport is closing' 或 'timed out' 等关键词，识别因下游服务无响应导致的连接级错误。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "p99 或 P99 分位值出现数个数量级的异常飙升",
+                "instruction": "获取 cartservice 各实例在故障时间窗口内的 rrt_max 指标，重点关注其 p99 或更高分位数的变化趋势，确认是否存在极端延迟。"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio | server_error_ratio",
+                "expected_pattern": "从接近 0% 的基础值显著上升至超过 20%",
+                "instruction": "检查 frontend 服务的错误率指标（error_ratio 或 server_error_ratio），确认其是否在故障时段内急剧升高，并与延迟指标的变化相关联。"
+            }
+        ]
+    }
+}
+```

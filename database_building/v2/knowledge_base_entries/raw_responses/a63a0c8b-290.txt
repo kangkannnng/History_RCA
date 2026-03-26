@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "a63a0c8b-290",
+    "fault_type": "metric",
+    "symptom_vector": "service latency degradation and abnormal response times (both increase and fast-fail patterns).",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-05 节点因 CPU 使用率从27.64%飙升至89.8%而资源耗尽，导致运行于其上的服务（如 cartservice-1、paymentservice-1）性能下降。",
+        "reasoning_chain": [
+            "Step 1: 在 Metric 数据中观察到 `aiops-k8s-05` 节点的 `node_cpu_usage_rate` 中位数从正常时段的 27.64% 激增至故障时段的 89.8%，变化率高达 1.0585，表明该节点存在严重的 CPU 资源瓶颈。",
+            "Step 2: 通过 `node_pod_mapping` 数据确认，`aiops-k8s-05` 节点上运行着 `paymentservice-1`、`cartservice-1` 等关键服务。这些服务的相关指标（如 `cartservice-1` 的 `rrt` 与 `paymentservice-1` 的 `rrt_max`）在故障时段也出现显著变化，表明服务可能受到节点资源争用的影响。",
+            "Step 3: 分析 Trace 数据，虽然未直接显示节点级异常，但发现了从 `frontend` 到 `cartservice` 等下游服务的延迟异常模式。结合节点-服务映射关系，`cartservice-1` 正好运行在问题节点上，其性能问题可以逻辑上归因于底层节点的 CPU 资源耗尽。至此，最显著的底层资源异常与上层服务性能异常形成了因果关系链。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Sudden Spike",
+                "instruction": "检查所有节点的 `node_cpu_usage_rate` 指标，特别是中位数和 p99 值在故障时段相较于基准时段的增长率。重点排查变化率最高的节点。"
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend->cartservice",
+                "expected_pattern": "Latency Anomaly",
+                "instruction": "检查 `frontend` 调用 `cartservice` 的调用链延迟（如 `rrt`），确认是否存在异常。同时，利用 `node_pod_mapping` 数据定位出现异常的 `cartservice` Pod 实例运行在哪个节点上，以关联节点问题与服务问题。"
+            }
+        ]
+    }
+}
+```

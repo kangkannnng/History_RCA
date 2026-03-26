@@ -1,0 +1,35 @@
+{
+  "uuid": "046aefa7-170",
+  "fault_type": "pod_cpu_usage",
+  "symptom_vector": "High CPU utilization, CPU saturation, CPU overload, CPU usage spike.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [shippingservice] experienced [pod_cpu_usage] fault. The metric `pod_cpu_usage` for the component increased from 0.0 to 0.4 (200% change rate).",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [shippingservice] (From Ground Truth `instance` field).",
+      "Step 2: Check Observation - Found keyword [pod_cpu_usage] in Metric data. Its value for `shippingservice-0` changed from 0.0 to 0.4 (From GT `key_observations` and Full Context `raw_metric_result`).",
+      "Step 3: Check Observation - Found keyword [pod_processes] in Metric data. Its value for `shippingservice-0` changed from 1.0 to 12.0 (From GT `key_observations` and Full Context `metric_analysis_findings`).",
+      "Step 4: Check Observation - Found keyword [rrt_max] in Metric data. Its value for `shippingservice-0` changed from 3920.0 to 95670.0 (From GT `key_observations` and Full Context `metric_analysis_findings`).",
+      "Step 5: Derive Root Cause - Based on the concurrent observation of `pod_cpu_usage` spike, `pod_processes` surge, and `rrt_max` degradation, determined the core cause is [pod_cpu_usage] fault (From Ground Truth `key_metrics`)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "The metric value for the component `shippingservice` shows a significant increase (e.g., from 0.0 to 0.4).",
+        "instruction": "Search for the keyword 'pod_cpu_usage' in metric data and confirm its value for component 'shippingservice' has abnormally increased from 0.0 to 0.4."
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "The metric value for the component `shippingservice` shows a significant increase (e.g., from 1.0 to 12.0).",
+        "instruction": "Search for the keyword 'pod_processes' in metric data and confirm its value for component 'shippingservice' has abnormally increased from 1.0 to 12.0."
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "The metric value for the service `shippingservice` shows a significant degradation/increase (e.g., from 3920.0 to 95670.0).",
+        "instruction": "Search for the keyword 'rrt_max' in metric data and confirm its value for service 'shippingservice' has abnormally increased."
+      }
+    ]
+  }
+}

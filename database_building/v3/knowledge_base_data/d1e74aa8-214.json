@@ -1,0 +1,27 @@
+{
+  "uuid": "d1e74aa8-214",
+  "fault_type": "node_memory_usage_rate",
+  "symptom_vector": "node memory stress, node memory exhaustion, node high memory usage",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06 节点内存使用率异常升高，导致节点内存压力故障",
+    "reasoning_chain": [
+      "Step 1: 观察到 aiops-k8s-06 节点的 node_memory_usage_rate 指标在故障期间 P99 值从 26.52% 上升至 35.85%，升幅达 29.91%",
+      "Step 2: 分析节点级指标，发现 aiops-k8s-06 节点的内存使用率出现显著异常，符合节点内存压力的特征",
+      "Step 3: 确认节点内存压力可能影响该节点上运行的服务（如 emailservice-2、productcatalogservice-0、checkoutservice-2）的性能表现"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "指标值异常升高，P99变化率超过20%",
+        "instruction": "检查 aiops-k8s-06 节点的 node_memory_usage_rate 指标在故障时间段内是否有显著上升趋势"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "可用内存持续下降，变化率超过10%",
+        "instruction": "检查 aiops-k8s-06 节点的 node_memory_MemAvailable_bytes 指标是否有明显减少趋势，评估内存资源紧张程度"
+      }
+    ]
+  }
+}

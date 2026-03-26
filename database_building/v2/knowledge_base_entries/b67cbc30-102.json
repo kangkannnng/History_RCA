@@ -1,0 +1,33 @@
+{
+  "uuid": "b67cbc30-102",
+  "fault_type": "metric",
+  "symptom_vector": "High latency (rrt, rrt_max spike) and error ratio elevation in multiple services (frontend, productcatalogservice, shippingservice).",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-01节点CPU使用率耗尽，导致运行于该节点上的关键服务性能劣化。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据的扫描中发现最显著的异常是节点`aiops-k8s-01`的`node_cpu_usage_rate`从正常中位数16.28%飙升至故障中位数92.95%，变化率高达140.38%。",
+      "Step 2: 通过分析节点-Pod映射关系（`node_pod_mapping`），确认`aiops-k8s-01`节点上运行着`checkoutservice-1`、`emailservice-1`、`shippingservice-1`、`recommendationservice-1`等关键服务Pod。",
+      "Step 3: 结合Trace数据分析，观察到从`checkoutservice`到`emailservice`以及从`checkoutservice`到`shippingservice`的`rrt_max`异常，而这两个被调服务(`emailservice-1`, `shippingservice-1`)恰好运行在CPU资源紧张的`aiops-k8s-01`节点上。同时，Log分析未发现错误日志，排除了应用代码级错误的可能性，进一步将问题指向底层资源瓶颈。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Sudden spike in median value (e.g., from <20% to >90%) and high change rate (e.g., >100%).",
+        "instruction": "扫描所有节点的CPU使用率指标，识别在故障时间窗口内是否存在单个或多个节点的CPU使用率出现突发性、大幅度的飙升。"
+      },
+      {
+        "modality": "Trace",
+        "target": "rrt_max for calls to services (e.g., checkoutservice->emailservice, checkoutservice->shippingservice)",
+        "expected_pattern": "Significant increase in maximum response time (rrt_max) for inter-service calls, particularly those involving services located on the problematic node.",
+        "instruction": "分析调用链数据，当发现特定节点CPU异常时，重点检查调用链路中，源头服务对运行在该异常节点上目标服务的请求，其最大响应时间(rrt_max)是否出现显著劣化。"
+      },
+      {
+        "modality": "Log",
+        "target": "error, exception, panic, fail, fatal (or equivalent keywords in the application log schema)",
+        "expected_pattern": "Clean logs (no error records) during the anomaly window, which supports the hypothesis of underlying resource constraints rather than application logic errors.",
+        "instruction": "在故障时间窗口内，检查相关服务的应用日志。如果未发现明确的错误、异常或失败日志，这可以作为辅助证据，表明问题可能源于基础设施（如CPU、内存）而非代码缺陷。"
+      }
+    ]
+  }
+}

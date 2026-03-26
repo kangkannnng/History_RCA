@@ -1,0 +1,29 @@
+```json
+{
+    "uuid": "a0d5329b-489",
+    "fault_type": "dns, http.resp.status, 302",
+    "symptom_vector": "DNS lookup failure, DNS resolution timeout, incorrect DNS response, DNS server unreachable, or truncated DNS packet affecting the checkoutservice.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [checkoutservice] experienced [dns] fault, accompanied by [http.resp.status] and [302] anomalies.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [checkoutservice] (From Ground Truth).",
+            "Step 2: Check Observation - According to Ground Truth, the fault is characterized by the keyword [http.resp.status] and [302] in Log data.",
+            "Step 3: Derive Root Cause - Based on the declared fault features, the determined cause is [dns, http.resp.status, 302] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status, 302",
+                "expected_pattern": "Log entries containing the keyword 'http.resp.status' with a value of '302' should be present, indicating HTTP redirects potentially caused by DNS failures.",
+                "instruction": "Search for keyword 'http.resp.status' and value '302' in the logs for the service 'checkoutservice' and related services matching pattern 'shippingservice.*'."
+            },
+            {
+                "modality": "Metric",
+                "target": "dns",
+                "expected_pattern": "DNS-related metrics (e.g., resolution time, error rate) should show anomalies for the 'checkoutservice' instance.",
+                "instruction": "Check if any metric with the name containing 'dns' is available and shows abnormal values for the component 'checkoutservice'."
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "3d284cf0-333",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload with service response time degradation",
+    "expert_knowledge": {
+        "root_cause_desc": "节点 aiops-k8s-06 由于 node_cpu_usage_rate 异常飙升（39.56%→94.08%）导致运行于其上的服务性能下降",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-06 节点的 node_cpu_usage_rate 指标从故障前中位数39.56%异常飙升至故障期中位数94.08%，变化率高达81.6%",
+            "Step 2: 分析 trace 数据，发现 productcatalogservice 的 GetProduct 接口响应时间（rrt_max）在多个 Pod 上普遍增加，其中 productcatalogservice-1 的响应时间从约26.3ms增至42.4ms",
+            "Step 3: 通过节点与Pod的映射关系确认，productcatalogservice-1 运行在 aiops-k8s-06 节点上，验证了节点资源瓶颈与服务性能下降的因果关系"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "Median usage increased significantly (>50% change rate) from baseline",
+                "instruction": "检查名为 'aiops-k8s-06' 的节点的 node_cpu_usage_rate 指标在故障窗口期的中位数是否相比基线期出现飙升。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Services running on the affected node show increased response times",
+                "instruction": "分析运行在 'aiops-k8s-06' 节点上的所有服务（如 productcatalogservice-1）的 rrt_max 指标，确认其响应时间是否同步增长。"
+            },
+            {
+                "modality": "Log",
+                "target": "error|slow|timeout",
+                "expected_pattern": "Log entries indicating performance degradation or errors from services on the affected node",
+                "instruction": "在故障时间窗口内，搜索运行在 'aiops-k8s-06' 节点上的 Pod（如 productcatalogservice-1）的日志，查找包含 'error'、'slow' 或 'timeout' 等关键词的条目。"
+            }
+        ]
+    }
+}
+```

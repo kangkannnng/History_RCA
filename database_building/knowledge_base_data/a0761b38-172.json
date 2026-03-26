@@ -1,0 +1,33 @@
+{
+  "uuid": "a0761b38-172",
+  "fault_type": "adservice-getRandomAds-latency, rrt, rrt_max",
+  "symptom_vector": "High JVM latency with elevated request latency and slow JVM response times",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [adservice] experienced [adservice-getRandomAds-latency] fault, accompanied by [rrt] and [rrt_max] anomalies.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth instance field)",
+      "Step 2: Check Metric Evidence - Found adservice-0 pod showing client_error_ratio and error_ratio anomalies with p99 values increasing from 1.55 to 2.46 (change rate 0.45) in Full Context metric data",
+      "Step 3: Derive Root Cause - Based on component identification and latency/error metric patterns, determined cause is [adservice-getRandomAds-latency, rrt, rrt_max] (From Ground Truth key_metrics)"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Latency metric showing abnormal increase during fault period",
+        "instruction": "Check if metric [adservice-getRandomAds-latency] shows elevated values between 2025-06-09T14:11:10Z and 2025-06-09T14:24:10Z"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Round-trip time metrics showing significant increase for adservice components",
+        "instruction": "Search for rrt metric anomalies specifically for adservice pods (adservice-0, adservice-1, adservice-2)"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Maximum round-trip time showing peak latency values",
+        "instruction": "Check rrt_max metrics for adservice pods to identify worst-case latency scenarios"
+      }
+    ]
+  }
+}

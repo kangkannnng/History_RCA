@@ -1,0 +1,33 @@
+{
+  "uuid": "ed40c5a3-324",
+  "fault_type": "response_time_degradation",
+  "symptom_vector": "Latency spike on frontend and recommendation service, increased round-trip time, silent performance degradation",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice-2发生静默性能退化，导致服务响应时间严重劣化，并引发上游frontend服务连锁延迟。",
+    "reasoning_chain": [
+      "Step 1: 在故障时间段内，通过Metric数据观察到rrt（响应时间）指标存在最显著异常：服务`recommendationservice-2`的rrt中位数从4293.51ms飙升至185404.99ms（变化率+190.95%），rrt_max中位数从17896.5ms飙升至625145ms（变化率+188.87%），其异常幅度远超其他所有服务。",
+      "Step 2: 进一步分析Trace数据，发现所有`frontend`实例（frontend-0, -1, -2）对`RecommendationService/ListRecommendations`的调用均出现4.0至4.8倍的显著延迟，且该异常组合出现次数高达22次，是频率最高的异常模式，确认了调用链下游的延迟源头。",
+      "Step 3: 检查Log数据，发现在整个故障窗口期内未发现任何错误日志，这排除了由显性错误（如异常抛出）导致故障的可能性，与Metric和Trace数据所揭示的“静默性能退化”模式相符。综合三模态证据，将根因定位至性能严重劣化的`recommendationservice-2`。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Sudden spike in median values (>150% increase)",
+        "instruction": "检查`recommendationservice`各pod的rrt（响应时间）和rrt_max（最大响应时间）指标。重点关注中位数和P99值在故障窗口相较于正常基线期的变化率。若单个pod的指标变化率异常突出（远超其他服务，例如>150%），则该pod为疑似根因。"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->recommendationservice",
+        "expected_pattern": "High-frequency (e.g., >20 occurrences) and high-magnitude (e.g., >4x) latency increase",
+        "instruction": "分析调用链数据，筛选出由`frontend`实例发往`recommendationservice`的操作（如ListRecommendations）。检查其异常出现次数和平均延迟增长倍数。若该调用模式在所有上游实例中普遍出现、异常频次高、且延迟增长显著，则证实了性能问题的传播路径，指向下游服务为根因。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error logs for recommendationservice-2",
+        "expected_pattern": "Absence of error logs during anomaly window",
+        "instruction": "在故障时间段内，对疑似根因pod（如recommendationservice-2）进行日志搜索。如果未发现任何ERROR级别的日志或明确的故障报错信息，则支持“静默性能故障”的假设，即问题表现为性能指标恶化而非程序逻辑错误。"
+      }
+    ]
+  }
+}

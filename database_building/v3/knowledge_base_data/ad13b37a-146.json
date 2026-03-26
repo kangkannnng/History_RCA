@@ -1,0 +1,33 @@
+{
+  "uuid": "ad13b37a-146",
+  "fault_type": "pod_memory_working_set_bytes",
+  "symptom_vector": "high memory usage, memory saturation, memory exhaustion, memory leak, memory stress",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice 组件因内存压力导致 Pod 重启，表现为 pod_memory_working_set_bytes 内存使用异常",
+    "reasoning_chain": [
+      "Step 1: 观察到多个节点（aiops-k8s-03、aiops-k8s-08、aiops-k8s-04）的 node_memory_MemAvailable_bytes 指标显著下降，其中 aiops-k8s-03 下降 37.75%，表明集群存在内存压力",
+      "Step 2: 分析 recommendationservice 所有副本（recommendationservice-0、recommendationservice-1、recommendationservice-2）的 pod_processes 指标从 1.0 增加到 1.5，确认发生了 Pod 重启",
+      "Step 3: 在 Trace 数据中发现 recommendationservice 出现 connection refused 错误（5次），导致 frontend 产生 HTTP 500 错误，验证了服务不可用状态"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "数值从 1.0 增加到 1.5，表明 Pod 重启或进程异常",
+        "instruction": "检查 recommendationservice 所有副本的 pod_processes 指标是否出现异常变化，确认 Pod 重启事件"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_memory_MemAvailable_bytes",
+        "expected_pattern": "可用内存显著下降，变化率超过 10%",
+        "instruction": "检查所有节点的 node_memory_MemAvailable_bytes 指标，识别内存压力大的节点"
+      },
+      {
+        "modality": "Trace",
+        "target": "connection refused",
+        "expected_pattern": "包含 'connect: connection refused' 错误信息",
+        "instruction": "在 Trace 数据中搜索 connection refused 错误，确认 recommendationservice 服务不可用"
+      }
+    ]
+  }
+}

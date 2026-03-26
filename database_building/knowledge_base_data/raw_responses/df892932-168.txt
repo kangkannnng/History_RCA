@@ -1,0 +1,64 @@
+```json
+{
+    "uuid": "df892932-168",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "JVM CPU usage spike and overload, leading to service latency increase.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice] experienced [pod_cpu_usage] fault, accompanied by [adservice--stress] anomaly.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth).",
+            "Step 2: Check Observation - Found keyword [adservice--stress] in Log (From GT key_observations).",
+            "Step 3: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations).",
+            "Step 4: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations).",
+            "Step 5: Check Observation - Found keyword [frontend] in Trace (subtype: latency_anomalies) (From GT key_observations).",
+            "Step 6: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations).",
+            "Step 7: Check Observation - Found keyword [rrt] and [rrt_max] in Metric (From GT key_observations).",
+            "Step 8: Derive Root Cause - Based on the combined features (stress injection logs and correlated CPU/metric anomalies), determined cause is [pod_cpu_usage] (From Ground Truth)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice--stress",
+                "expected_pattern": "Log entries containing 'AdService--stress-1749463845' appear frequently (e.g., 'Rule.execute called for AdService--stress-1749463845_20:0' appears 156 times).",
+                "instruction": "Search for keyword 'AdService--stress' in Log data to confirm stress test injection activity."
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Error log 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' appears multiple times for adservice pods.",
+                "instruction": "Search for keyword 'InvocationTargetException' in Log data to confirm JVM agent attachment errors."
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Log entries about trigger injection, e.g., 'RuleTriggerMethodAdapter.injectTriggerPoint : inserting trigger into org.chaos_mesh.chaos_agent.TriggerThread.triggerFunc() void for rule AdService--stress-1749463845'.",
+                "instruction": "Search for keyword 'injectTriggerPoint' or related terms in Log data to confirm bytecode transformation activity."
+            },
+            {
+                "modality": "Trace",
+                "target": "frontend",
+                "expected_pattern": "Trace latency anomalies for operations like 'hipstershop.AdService/GetAds' from frontend instances (e.g., duration increased from ~5.4s to ~45s, 8.3x growth).",
+                "instruction": "Analyze Trace data for latency anomalies on call paths involving 'frontend' as the caller and 'adservice' as the callee."
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "Metric 'pod_cpu_usage' for all adservice pods (adservice-0, adservice-1, adservice-2) spiked from near 0.0 to 0.6 (194%-200% increase) during the fault window.",
+                "instruction": "Check Metric data for 'pod_cpu_usage' associated with the 'adservice' component and confirm a significant increase during the anomaly period."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "Metric 'rrt' for adservice-0 increased from 2974.4 to 17480.06 (142% increase).",
+                "instruction": "Check Metric data for 'rrt' (Round-trip Response Time) associated with the 'adservice' component."
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "Metric 'rrt_max' for adservice-0 increased from 44277 to 189074 (124% increase).",
+                "instruction": "Check Metric data for 'rrt_max' (Maximum Round-trip Response Time) associated with the 'adservice' component."
+            }
+        ]
+    }
+}
+```

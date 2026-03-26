@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "b1affa2a-424",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Significant latency spike in downstream Redis operations (5-10x HGET latency), cascading to CartService and upstream CheckoutService.",
+    "expert_knowledge": {
+        "root_cause_desc": "节点aiops-k8s-08内存使用率异常下降与可用内存骤增，表明节点可能存在内存压力后容器重启或内存释放，并直接影响了运行于该节点上的Redis实例性能。",
+        "reasoning_chain": [
+            "Step 1: 在Metric数据中，观察到`aiops-k8s-08`节点的`node_memory_usage_rate`从正常中位数73.51%显著下降到故障期间的64.65%，同时`node_memory_MemAvailable_bytes`从约7.9GB骤增至约10.9GB，变化率31.78%。这组反向指标异常是全局最显著的节点资源变化。",
+            "Step 2: 通过Trace数据交叉验证，发现性能瓶颈最严重的Redis操作（`cartservice-0->cartservice-0 HGET`延迟增长5.3倍，`cartservice-1->cartservice-1 HGET`延迟增长9.9倍）与`CartService`的高延迟调用，其下游服务`redis-cart-0`Pod恰好运行在出现内存异常的`aiops-k8s-08`节点上（由`node_pod_mapping`关联）。",
+            "Step 3: Log分析未发现错误日志，但Metric和Trace的数据关联性已足够强。关键路径为：`aiops-k8s-08`节点内存异常 -> 该节点上的`redis-cart-0`Pod可能受资源抖动影响 -> Redis HGET操作性能急剧劣化（5-10倍延迟） -> 依赖Redis的`CartService`调用延迟随之暴涨（4-10倍） -> 连锁影响至上游`CheckoutService`。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Significant decrease from baseline, especially when combined with inverse change in available memory.",
+                "instruction": "优先检查所有节点（node_name维度）的`node_memory_usage_rate`指标，寻找异常下降的节点。同时关联检查同节点的`node_memory_MemAvailable_bytes`，确认是否存在可用内存反向异常激增的模式。"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_memory_MemAvailable_bytes",
+                "expected_pattern": "Sudden and significant increase, indicating potential memory pressure release or Pod restart.",
+                "instruction": "当发现某个节点内存使用率异常下降时，必须检查其可用内存指标。如果可用内存在故障时段内急剧增加（变化率>20%），则该节点存在内存相关事件的可能性极高。"
+            },
+            {
+                "modality": "Trace",
+                "target": "HGET (Redis Operation)",
+                "expected_pattern": "Dramatic latency increase (e.g., 5x-10x) in downstream Redis operations, particularly from services like cartservice.",
+                "instruction": "在Trace数据中，筛选`operation_name`包含`HGET`的记录。重点关注延迟（`anomaly_avg_duration`相对于`normal_avg_duration`）暴涨数倍的条目。此类条目通常是下游资源型故障的直接表现。"
+            }
+        ]
+    }
+}
+```

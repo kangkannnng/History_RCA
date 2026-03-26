@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "2878f9f0-376",
+    "fault_type": "Storage_IO_Bottleneck",
+    "symptom_vector": "Severe latency spike in downstream services (e.g., productcatalogservice), high pending regions in TiKV, and elevated IO utilization.",
+    "expert_knowledge": {
+        "root_cause_desc": "TiDB存储层（TiKV）出现严重的IO性能瓶颈，导致Region处理堆积，进而引发依赖它的上游应用服务出现高延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察到Metric数据中`tidb-tikv`组件的关键指标出现剧烈异常：`region_pending`中位数变化率高达+175.06%，其P99值从121908降至948；同时`io_util`的P99值变化率+164.65%，从0.02激增至0.21；`cpu_usage`的P99值也异常增长+123.07%。这表明TiKV存储层存在严重的IO与计算瓶颈。",
+            "Step 2: 分析Trace数据，发现多个关键路径（如frontend->productcatalogservice, checkoutservice->productcatalogservice）均因`productcatalogservice`的`GetProduct`操作延迟激增而阻塞，其中一条路径延迟从正常的9.6ms增至3033.4ms，增长超315倍。`productcatalogservice`是TiDB的下游依赖方，其延迟激增与TiKV的性能瓶颈在时间上吻合，且是调用链中最下游的异常点。",
+            "Step 3: 检查Log数据，在故障时段内未发现应用层面的错误日志。这符合\"静默性能下降\"模式，即底层基础设施（存储层）的性能瓶颈尚未触发应用层的功能错误（如超时报错），但已导致严重的性能劣化。综合三方证据，判断根因为TiKV存储层的IO性能瓶颈。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "region_pending, io_util, cpu_usage",
+                "expected_pattern": "Sudden spike in change rate (e.g., >100% increase) for `region_pending` and `io_util` P99 values, concurrent increase in `cpu_usage`.",
+                "instruction": "立即检查所有TiKV实例的`region_pending`指标。如果发现其变化率（如中位数或P99）异常激增（例如超过100%），同时伴随`io_util`和`cpu_usage`的显著上涨，则强烈指向存储层IO瓶颈。"
+            },
+            {
+                "modality": "Trace",
+                "target": "productcatalogservice latency (e.g., rrt_max for GetProduct operation)",
+                "expected_pattern": "Severe latency degradation (e.g., 10x to 300x increase) in calls to `productcatalogservice`, especially from services like `frontend` and `checkoutservice`.",
+                "instruction": "追踪调用链，定位延迟最高的末端服务。如果发现`productcatalogservice`（或其他依赖数据库的服务）的延迟异常激增，且该服务下游无其他依赖，则应向上溯源其依赖的存储组件（如TiKV）的状态。"
+            },
+            {
+                "modality": "Log",
+                "target": "error, timeout, permission denied, filesystem",
+                "expected_pattern": "Absence of explicit error logs from application services during the performance degradation period.",
+                "instruction": "搜索故障时间段内，来自`productcatalogservice`、`frontend`、`checkoutservice`等服务的错误日志（如超时、连接失败、权限错误）。如果未发现相关错误日志，而Metric和Trace显示严重性能问题，则暗示问题可能出在底层基础设施（如存储、网络）的性能瓶颈，而非应用逻辑错误。"
+            }
+        ]
+    }
+}
+```

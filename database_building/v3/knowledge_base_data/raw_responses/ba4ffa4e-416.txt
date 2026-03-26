@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "ba4ffa4e-416",
+    "fault_type": "region_pending_pod_failure",
+    "symptom_vector": "pod crash and termination with database region unavailability errors, leading to cascading service failures and latency spikes",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0/tidb-tikv 组件因 region_pending 指标异常导致 Region 不可用，引发 pod 故障，表现为 Error 9005 (HY000) 和 qps/grpc_qps 指标下降。",
+        "reasoning_chain": [
+            "Step 1: 观察到大量日志报错 'Error 9005 (HY000): Region is unavailable'（出现237次），主要来自 productcatalogservice，表明底层 TiDB 数据库 Region 不可用。",
+            "Step 2: 分析 tidb-tikv 组件的关键指标 region_pending（Ground Truth 标识），其异常（推断自 store_unhealth_count 和日志中的 Region unavailable）导致了数据库查询失败（failed_query_ops 44）和性能严重下降（duration_99th 从 0.01ms 飙升至 64.87ms）。",
+            "Step 3: 确认故障传播至 productcatalogservice，其响应时间 rrt 从约 7ms 激增至 16-19 秒，错误率上升，进而导致依赖它的 frontend 等服务出现级联故障和高错误率。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies, request_proportion_anomalies",
+                "expected_pattern": "响应时间（rrt）激增，productcatalogservice 的 GetProduct 操作延迟增加数千倍，且错误状态集中出现。",
+                "instruction": "检查调用链中 productcatalogservice 的响应时间（rrt）是否出现异常飙升，特别是 GetProduct 操作，并分析 error ratio 和失败状态码（如 Error 9005）的比例是否显著升高。"
+            },
+            {
+                "modality": "Log",
+                "target": "failure, unavailable",
+                "expected_pattern": "包含 'Error 9005 (HY000): Region is unavailable', 'failed to query product', 'failed to get product' 等关键词的错误日志集中出现。",
+                "instruction": "在 tidb-tikv 及相关服务（如 productcatalogservice）的日志中搜索 'unavailable', 'failure', 'Error 9005' 等关键词，确认数据库区域不可用的错误信息。"
+            },
+            {
+                "modality": "Metric",
+                "target": "region_pending, qps, grpc_qps, io_util, store_size, cpu_usage, memory_usage",
+                "expected_pattern": "region_pending 或 store_unhealth_count 出现非零值或异常上升；qps/grpc_qps 下降；cpu_usage, memory_usage 可能因 pod 故障出现异常波动。",
+                "instruction": "检查 tidb-tikv 组件的 region_pending, store_size, io_util 指标是否异常。同时检查 tidb-tidb 组件的 qps, grpc_qps, duration_99th, failed_query_ops 以及相关 pod 的 cpu_usage, memory_usage 指标，以确认数据库性能瓶颈及可能的资源问题。"
+            }
+        ]
+    }
+}
+```

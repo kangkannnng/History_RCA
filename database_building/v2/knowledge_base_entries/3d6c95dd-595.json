@@ -1,0 +1,33 @@
+{
+  "uuid": "3d6c95dd-595",
+  "fault_type": "metric",
+  "symptom_vector": "Frontend services returning HTTP 500 errors, spiking error ratio metrics on shippingservice, failed upstream calls with 'connection refused'.",
+  "expert_knowledge": {
+    "root_cause_desc": "shippingservice端口配置错误，导致其无法被其他服务访问，连接被拒绝。",
+    "reasoning_chain": [
+      "Step 1: 观察到所有 Frontend 服务的错误日志中包含大量关于 `shippingservice` 的连接拒绝错误，具体信息为 `transport: Error while dialing dial tcp 10.233.27.213:50051: connect: connection refused`。这表明 `frontend` 无法连接到 `shippingservice` 的 50051 端口。",
+      "Step 2: 分析 Metric 数据，发现 `shippingservice` 的所有实例（pod 0， 1， 2）的 `client_error_ratio` 和 `error_ratio` 从正常值 0.0 分别激增至 38.0, 27.81, 30.0，这证实了服务端存在大量处理失败。",
+      "Step 3: 检查 Trace 数据，确认从 `frontend` 和 `checkoutservice` 到 `shippingservice` 的调用链大面积失败，错误状态码为 14 (Unavailable)，错误消息同样为连接被拒绝。综合日志、指标和调用链证据，可推导出根本原因是 `shippingservice` 的端口配置错误。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "connection refused, transport: Error while dialing",
+        "expected_pattern": "Contains error",
+        "instruction": "搜索所有服务的错误日志，查找是否出现指向特定服务（如shippingservice）的连接拒绝错误，错误消息应包含 'connection refused' 或 'Error while dialing' 以及具体的IP和端口信息。"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error_ratio, error_ratio",
+        "expected_pattern": "Sudden spike",
+        "instruction": "检查被怀疑服务的 `client_error_ratio` 和 `error_ratio` 指标，如果在故障期间出现从0或低位急剧上升（例如飙升到20%以上），表明该服务端自身或网络层存在严重问题，导致调用方失败。"
+      },
+      {
+        "modality": "Trace",
+        "target": "service_name=shippingservice",
+        "expected_pattern": "Status code 14 (UNAVAILABLE) with connection refused detail",
+        "instruction": "分析调用链状态，聚焦于对怀疑服务（如shippingservice）的调用。若发现大量失败调用，状态码为14，且详细错误信息为 'connection refused' 或 'Error while dialing'，这印证了服务不可达的推断，并帮助定位故障点。"
+      }
+    ]
+  }
+}

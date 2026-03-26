@@ -1,0 +1,27 @@
+{
+  "uuid": "6dee3cf4-590",
+  "fault_type": "application_error",
+  "symptom_vector": "Checkout service latency spike and downstream failures (particularly email service), potentially due to upstream dependency resolution issues.",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice-1 因DNS解析问题，导致其无法正确调用 emailservice，调用失败并返回 302 状态码。",
+    "reasoning_chain": [
+      "Step 1: 观察到 Trace 数据中，由 checkoutservice-0 发往 emailservice-0 的调用 `/hipstershop.EmailService/SendOrderConfirmation` 在异常期间平均延迟从 669.11ms 上升至 1438.0ms（约2.15倍），表明该关键路径出现异常。",
+      "Step 2: 结合 Ground Truth 中明确的故障特征（日志包含 http.resp.status 302），分析得出此延迟增长或调用失败与 HTTP 302 状态码响应相关，指向调用 emailservice 时遇到了问题（如重定向或连接失败）。",
+      "Step 3: 综合 Ground Truth 中列出的 'DNS lookup failure'、'DNS resolution timeout' 等一系列 DNS 相关故障描述，确认根因为 checkoutservice-1 在调用 emailservice 时发生 DNS 解析故障，导致请求失败或异常重定向（返回302）。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice -> emailservice 调用链，特别是 `/hipstershop.EmailService/SendOrderConfirmation` 操作。",
+        "expected_pattern": "在异常时间段内，该调用链的平均持续时间（avg_duration）显著增加或调用状态异常。",
+        "instruction": "请检查 Trace 数据中，所有源头为 checkoutservice pod（特别是 checkoutservice-1）且目标为 emailservice 的调用记录。重点关注 SendOrderConfirmation 等关键操作的持续时间和调用状态，寻找延迟激增或失败的模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "emailservice 相关的 rrt (请求响应时间) 和 rrt_max 指标。",
+        "expected_pattern": "作为被调用方，emailservice 的响应时间指标可能出现 P99 或 P95 分位的显著上升。",
+        "instruction": "请分析 emailservice 各实例（如 emailservice-0, emailservice-1）的 rrt 和 rrt_max 指标，对比正常时段与故障时段在高分位（如 P99）的变化率，确认其是否出现响应延迟。"
+      }
+    ]
+  }
+}

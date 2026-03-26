@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "1c4a277a-491",
+    "fault_type": "pod_network_receive_bytes",
+    "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time, elevated round-trip duration",
+    "expert_knowledge": {
+        "root_cause_desc": "recommendationservice 和 productcatalogservice 之间的网络攻击导致 pod_network_receive_bytes 等网络指标异常，引发网络延迟",
+        "reasoning_chain": [
+            "Step 1: 观察到 recommendationservice 和 productcatalogservice 之间的网络延迟显著增加，rrt_max 指标显示异常",
+            "Step 2: 分析 recommendationservice-0 到 productcatalogservice-1 的调用链，发现平均耗时从正常 70.23ms 增加到 86.48ms，延迟增加 23.1%",
+            "Step 3: 确认网络攻击特征，检查 pod_network_receive_bytes、pod_network_receive_packets、pod_network_transmit_bytes、pod_network_transmit_packets 等关键网络指标异常"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP 302 状态码频繁出现",
+                "instruction": "在 recommendationservice 和 productcatalogservice 的日志中搜索 http.resp.status 为 302 的记录"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "内存使用量异常波动",
+                "instruction": "检查 recommendationservice 和 productcatalogservice 的 pod_memory_working_set_bytes 指标是否存在异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "网络接收字节数异常增加",
+                "instruction": "检查 recommendationservice 和 productcatalogservice 的 pod_network_receive_bytes 指标是否显著高于正常基线"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_packets",
+                "expected_pattern": "网络接收包数异常增加",
+                "instruction": "检查 recommendationservice 和 productcatalogservice 的 pod_network_receive_packets 指标是否异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "网络发送字节数异常增加",
+                "instruction": "检查 recommendationservice 和 productcatalogservice 的 pod_network_transmit_bytes 指标是否显著变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_packets",
+                "expected_pattern": "网络发送包数异常增加",
+                "instruction": "检查 recommendationservice 和 productcatalogservice 的 pod_network_transmit_packets 指标是否异常波动"
+            }
+        ]
+    }
+}
+```

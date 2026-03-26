@@ -1,0 +1,30 @@
+[Trigger]
+- Metric anomaly pattern: A database storage component shows region_pending dropping from 11018 to 1085 (164% change rate) and CPU usage p99 increasing from 0.11 to 0.35 (104% change rate)
+- Metric anomaly pattern: Multiple application services exhibit increased response times, with product catalog service GetProduct interface latency increasing from 10-11 seconds to 16.8-34.3 seconds
+- Trace anomaly pattern: Call chains show frontend-to-productcatalogservice latency is severely increased, but no direct traces from productcatalogservice to the underlying database are captured
+
+[Focus Evidence]
+Primary evidence (core causal indicators):
+- Evidence 1: Database storage component shows extreme region_pending reduction (164% change) - This indicates the component responsible for managing data regions experienced a significant disruption in its pending operations
+- Evidence 2: Database storage component CPU usage p99 increased dramatically (104% change) - This suggests the component is working harder to process operations, possibly due to underlying resource contention
+
+Secondary evidence (downstream effects or noise):
+- Evidence 3: Product catalog service shows severe latency increases in GetProduct operations - This is likely a downstream effect as this service depends on the affected database component
+- Evidence 4: Various other services show moderate response time increases - These are secondary propagation effects through the dependency chain
+
+[Reasoning]
+Step 1: Initial hypothesis based on primary evidence
+"Given the extreme changes in region_pending and CPU usage in the database storage component, we suspect this component is experiencing a fundamental performance degradation that is disrupting its normal operation"
+
+Step 2: Verification or elimination
+"If this were caused by application layer issues in the product catalog service, we would expect to see error logs or increased resource usage in that service; However, actual observation shows no error logs and the product catalog service's own response time metrics show only minor changes; This rules out the product catalog service as the primary cause"
+
+Step 3: Convergence to conclusion
+"The combination of severe database component metric anomalies and the pattern of downstream service latency increases indicates the database storage component's performance degradation is propagating upward through dependent services"
+
+[Conclusion]
+"The root cause is a database storage component experiencing severe performance degradation, characterized by disrupted region management operations and excessive CPU utilization, which subsequently affected all services depending on it for data access"
+
+[Next Action]
+- Verify whether detailed storage operation logs exist for the affected database component
+- Check for patterns of file system or disk operation errors in system-level monitoring

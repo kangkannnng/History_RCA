@@ -1,0 +1,39 @@
+{
+  "uuid": "9a257bd5-150",
+  "fault_type": "latency",
+  "symptom_vector": "High RPC latency and frequent DeadlineExceeded errors propagating from adservice to frontend services.",
+  "expert_knowledge": {
+    "root_cause_desc": "Byteman代理规则注入导致adservice的getRandomAds方法产生人为延迟，进而引发服务超时和上游错误。",
+    "reasoning_chain": [
+      "Step 1: 观察到adservice日志中大量出现\"Rule.execute called for AdService-getRandomAds-latency-1749399002\"和\"AdService-getRandomAds-latency-1749399002 execute()\"条目，表明一个名为'AdService-getRandomAds-latency'的Byteman规则正在该服务中执行。同时，多个adservice实例（adservice-0, adservice-1, adservice-2）日志显示Agent启动失败和重复加载的异常（\"Agent failed to start!\", \"attempting to load Byteman agent more than once\"）。",
+      "Step 2: 分析frontend服务（frontend-1）日志，发现大量\"failed to get ads: rpc error: code = DeadlineExceeded desc = context deadline exceeded\"错误。结合Step 1，这强烈暗示对adservice的RPC调用因adservice内部延迟而超时。",
+      "Step 3: 检查指标数据确认影响：adservice-0的pod_cpu_usage在P99分位数上从0.01增加到0.17（p99_change_ratio 1.7819），这与处理延迟增加导致的CPU消耗上升相符。同时，作为调用方的frontend服务（如frontend-0）的rrt（响应时间）中位数从11652.14飙升到34225.64（median_change_ratio 0.9841），rrt_max也从231479.5增加到601520.0，证实了端到端的延迟恶化。综合日志中Byteman规则名明确包含\"latency\"关键词，可以推导出该代理注入是导致adservice延迟、进而引发系统级RPC超时的根本原因。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "\"AdService-getRandomAds-latency-\"",
+        "expected_pattern": "Contains keywords related to Byteman rule execution (e.g., \"Rule.execute\", \"execute()\") with high occurrence count.",
+        "instruction": "在adservice的日志中，搜索包含'AdService-getRandomAds-latency'和'Rule.execute'或'execute()'关键词的条目，确认是否存在高频率的规则执行记录。"
+      },
+      {
+        "modality": "Log",
+        "target": "\"DeadlineExceeded\" AND \"failed to get ads\"",
+        "expected_pattern": "Contains RPC deadline exceeded errors from services calling adservice (e.g., frontend).",
+        "instruction": "在调用链上游服务（特别是frontend）的日志中，搜索包含'DeadlineExceeded'和'failed to get ads'的错误信息，确认超时错误是否广泛存在。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase (high p99_change_ratio) for adservice pods, correlating with the fault time window.",
+        "instruction": "检查adservice各实例（尤其是adservice-0）在故障时间窗口内的pod_cpu_usage指标，关注其P99分位数的变化率是否出现显著增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt / rrt_max",
+        "expected_pattern": "Significant increase (high median_change_ratio) for services that depend on adservice (e.g., frontend).",
+        "instruction": "检查直接或间接调用adservice的服务（如frontend）的rrt和rrt_max指标，确认响应时间中位数和最大值是否在故障期间大幅上升。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{    "uuid": "448bc5e0-559",
+    "fault_type": "node_memory_usage_rate",
+    "symptom_vector": "Node memory exhaustion, saturation, high usage, leak, or stress as described in fault_description.",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [aiops-k8s-05] experienced [node_memory_usage_rate] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-05] (From Ground Truth instance field).",
+            "Step 2: Check Observation - Found keyword [node_memory_usage_rate] in Metric data for aiops-k8s-05, showing abnormal values with normal_median 32.25, fault_median 29.35, normal_p99 53.06, fault_p99 29.72, and p99 change ratio 0.5638 (From Full Context metric analysis findings).",
+            "Step 3: Derive Root Cause - Based on the observation of [node_memory_usage_rate] anomaly, determined cause is [node_memory_usage_rate] (From Ground Truth key_metrics)."
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "node_memory_usage_rate",
+                "expected_pattern": "Metric node_memory_usage_rate for node aiops-k8s-05 showed abnormal values with median change from 32.25 to 29.35 and p99 change ratio of 0.5638, indicating memory usage pattern deviation.",
+                "instruction": "Search for metric [node_memory_usage_rate] on node aiops-k8s-05 during the fault period (2025-06-27T00:10:17Z to 2025-06-27T00:24:17Z) and check for anomalies in median and p99 values."
+            }
+        ]
+    }
+}

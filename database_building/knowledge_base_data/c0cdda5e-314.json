@@ -1,0 +1,28 @@
+{
+  "uuid": "c0cdda5e-314",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "Node disk full leading to high disk utilization, disk space exhaustion, and service performance degradation.",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [aiops-k8s-05] experienced [node_filesystem_usage_rate] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [aiops-k8s-05] (From Ground Truth instance field).",
+      "Step 2: Check Observation - Found keyword [checkoutservice] in Trace, indicating latency anomalies as per trace analysis where Checkout service is involved in the call chain (From GT key_observations trace keyword).",
+      "Step 3: Check Observation - Found keyword [node_filesystem_usage_rate] in Metric, showing abnormal spike from 25.14% to 65.59% with 89.16% change rate (From GT key_observations metric keyword and Full Context metric data).",
+      "Step 4: Derive Root Cause - Based on trace latency anomalies and metric disk usage spike, determined root cause is [node_filesystem_usage_rate] on component [aiops-k8s-05] (From GT key_metrics)."
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice",
+        "expected_pattern": "Checkoutservice is mentioned in trace analysis as part of latency anomalies, with system topology showing 'Checkout → [Cart, ProductCatalog, Shipping, Payment, Email, Currency]' and frontend to ProductCatalogService delay potentially affecting checkout flow (From Full Context trace_analysis_findings).",
+        "instruction": "Search for keyword 'checkoutservice' in trace data or analysis reports for latency anomalies during the fault period."
+      },
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Metric value for node 'aiops-k8s-05' spiked from 25.14% to 65.59% with a 89.16% change rate during the fault period, indicating disk space exhaustion (From Full Context metric data: 'node,N/A,N/A,aiops-k8s-05,node_filesystem_usage_rate,25.14,65.59,...').",
+        "instruction": "Check metric 'node_filesystem_usage_rate' for node 'aiops-k8s-05' and verify if it shows abnormal increases above normal thresholds."
+      }
+    ]
+  }
+}

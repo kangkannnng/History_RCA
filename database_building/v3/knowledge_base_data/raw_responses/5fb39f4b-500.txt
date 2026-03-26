@@ -1,0 +1,71 @@
+```json
+{
+    "uuid": "5fb39f4b-500",
+    "fault_type": "connection_count",
+    "symptom_vector": "pod failure with connection refused errors and latency anomalies",
+    "expert_knowledge": {
+        "root_cause_desc": "productcatalogservice-2 组件因端口配置错误导致 connection refused，引发连接计数异常和下游服务连锁故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 productcatalogservice-2 的 rrt_max 指标从 44952.0 激增至 31957151.0，变化率高达 1.9944，表明严重延迟异常",
+            "Step 2: 分析 productcatalogservice 组件的日志中发现大量 'dial tcp 223.193.36.56:32187: connect: connection refused' 错误，表明端口配置问题",
+            "Step 3: 确认 trace 数据中 frontend->productcatalogservice 调用链出现大量 connection refused 和 timeout 错误，导致下游 frontend 服务返回 HTTP 500 错误"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "GetProduct操作延迟从正常10秒激增至21-30秒，延迟倍数高达20-30倍",
+                "instruction": "检查 frontend->productcatalogservice 调用链的延迟是否异常飙升，特别是 GetProduct 操作"
+            },
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "大量调用失败，错误状态码集中出现",
+                "instruction": "分析 trace 状态组合，检查 productcatalogservice 调用的失败比例和错误类型分布"
+            },
+            {
+                "modality": "Log",
+                "target": "failure",
+                "expected_pattern": "Contains 'connection refused' or 'dial tcp' error messages",
+                "instruction": "在 productcatalogservice 和 frontend 日志中搜索 connection refused 和 dial tcp 关键词"
+            },
+            {
+                "modality": "Metric",
+                "target": "connection_count",
+                "expected_pattern": "Connection attempts failing with high error rate",
+                "instruction": "检查 productcatalogservice 的连接相关指标，特别是连接失败率和拒绝计数"
+            },
+            {
+                "modality": "Metric",
+                "target": "failed_query_ops",
+                "expected_pattern": "Query failure rate spike",
+                "instruction": "监控 productcatalogservice 的查询失败操作计数是否异常增加"
+            },
+            {
+                "modality": "Metric",
+                "target": "qps",
+                "expected_pattern": "Query per second significant drop",
+                "instruction": "检查 productcatalogservice 的 QPS 是否因连接问题而大幅下降"
+            },
+            {
+                "modality": "Metric",
+                "target": "uptime",
+                "expected_pattern": "Service availability degradation",
+                "instruction": "验证 productcatalogservice 的运行时间和服务可用性指标"
+            },
+            {
+                "modality": "Metric",
+                "target": "cpu_usage",
+                "expected_pattern": "CPU usage abnormal pattern",
+                "instruction": "检查 productcatalogservice-2 的 CPU 使用率是否出现异常模式"
+            },
+            {
+                "modality": "Metric",
+                "target": "memory_usage",
+                "expected_pattern": "Memory usage abnormal pattern",
+                "instruction": "检查 productcatalogservice-2 的内存使用率是否出现异常模式"
+            }
+        ]
+    }
+}
+```

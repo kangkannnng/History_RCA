@@ -1,0 +1,51 @@
+{
+  "uuid": "c3f4fde9-330",
+  "fault_type": "network_delay_rrt_spike",
+  "symptom_vector": "high network latency, increased RTT, network delay spike, elevated transmission delay, increased round-trip time",
+  "expert_knowledge": {
+    "root_cause_desc": "checkoutservice 到 emailservice 之间的网络延迟故障，表现为 emailservice 组件的 rrt_max 和 rrt 指标异常激增。",
+    "reasoning_chain": [
+      "Step 1: 从 Metric 数据观察到 emailservice 所有实例的 rrt_max 和 rrt 指标出现极端恶化，中位数增长率超过193%。例如 emailservice-1 的 rrt_max 从 5167ms 激增至 678022ms。",
+      "Step 2: 结合 Trace 数据，定位到 checkoutservice 调用 emailservice 的 SendOrderConfirmation 操作，其延迟从正常的 24.5ms 暴增至 1878ms，增长超过76倍，是整个调用链中最严重的延迟点。",
+      "Step 3: 分析下游影响，发现 checkoutservice 和 frontend 服务的 rrt_max 指标也出现显著增长（162%-169%），但恶化幅度小于 emailservice，符合故障从上游关键服务（emailservice）向下游传播的模式。Log 数据未显示相关服务的直接错误，排除了应用层逻辑错误的干扰。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, emailservice, latency_anomalies",
+        "expected_pattern": "SendOrderConfirmation 操作延迟从毫秒级暴增至秒级，增长倍数极高",
+        "instruction": "分析 checkoutservice 到 emailservice 的调用链，特别是 SendOrderConfirmation 操作，检查其平均延迟是否出现数十倍以上的异常增长。"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status, 302",
+        "expected_pattern": "日志中出现特定的 HTTP 响应状态码",
+        "instruction": "在 checkoutservice 和 emailservice 的日志中搜索 'http.resp.status' 和 '302' 关键词，检查是否存在非正常的重定向或错误响应模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "指标值相比基线中位数或 P99 值出现超过100%的暴涨",
+        "instruction": "检查 emailservice 服务所有实例的 rrt 和 rrt_max 指标，确认其是否在故障时间窗口内出现一个数量级以上的激增。"
+      },
+      {
+        "modality": "Metric",
+        "target": "request, response",
+        "expected_pattern": "请求与响应相关指标出现异常波动",
+        "instruction": "检查 checkoutservice 和 emailservice 相关的 request 与 response 指标，查看是否与延迟激增相关联。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "网络接收/发送字节数或包数出现异常波动",
+        "instruction": "检查故障涉及的 checkoutservice 和 emailservice Pod 的网络流量指标，确认是否存在突增、突降或丢包等异常模式。"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_memory_working_set_bytes",
+        "expected_pattern": "内存使用量异常变化",
+        "instruction": "检查 checkoutservice 和 emailservice 相关 Pod 的内存使用量指标，以排除内存压力导致的间接性能影响。"
+      }
+    ]
+  }
+}

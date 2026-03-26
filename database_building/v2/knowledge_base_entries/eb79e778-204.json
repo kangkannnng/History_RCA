@@ -1,0 +1,27 @@
+{
+  "uuid": "eb79e778-204",
+  "fault_type": "node_filesystem_usage_rate",
+  "symptom_vector": "High disk utilization, service latency spike, increased response time",
+  "expert_knowledge": {
+    "root_cause_desc": "aiops-k8s-06节点磁盘使用率激增导致磁盘I/O瓶颈，进而影响节点上运行服务的性能",
+    "reasoning_chain": [
+      "Step 1: 观察到Metric数据中node_filesystem_usage_rate指标在aiops-k8s-06节点上从正常中位数56.36%上升到故障中位数80.66%，变化率35.46%，且P99值从70.81%上升到91.0%，表明磁盘使用率显著升高",
+      "Step 2: 通过节点-Pod映射关系分析，发现checkoutservice-2运行在aiops-k8s-06节点上，该节点磁盘压力可能影响其性能",
+      "Step 3: 在Trace数据中确认checkoutservice-2的EmptyCart操作响应时间从正常平均15802.07ms激增至故障平均84802.67ms，与节点磁盘使用率升高时间窗口一致，证实资源瓶颈导致服务性能下降"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_filesystem_usage_rate",
+        "expected_pattern": "Sudden spike with significant change rate (>30%)",
+        "instruction": "检查所有节点的node_filesystem_usage_rate指标，重点关注变化率超过30%且达到高水位（>80%）的节点，这可能是磁盘空间不足的直接证据"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice rrt_max on EmptyCart operations",
+        "expected_pattern": "Dramatic latency increase (5x or more) on specific operations",
+        "instruction": "分析运行在磁盘使用率异常节点上的服务（如checkoutservice-2），检查其关键操作（如EmptyCart）的响应时间是否出现数量级增长，这可能是磁盘I/O瓶颈的间接证据"
+      }
+    ]
+  }
+}

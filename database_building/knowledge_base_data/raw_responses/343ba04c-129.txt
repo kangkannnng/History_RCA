@@ -1,0 +1,79 @@
+```json
+{
+    "uuid": "343ba04c-129",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice] experienced [adservice-getrandomads-exception] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [Caught] and [throwexception] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [grpc-default-executor] in Log (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [injected] and [error] in Log (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations)",
+            "Step 8: Check Observation - Found keyword [client_error] and [client_error_ratio] in Metric (From GT key_observations)",
+            "Step 9: Check Observation - Found keyword [error] and [error_ratio] in Metric (From GT key_observations)",
+            "Step 10: Check Observation - Found keyword [pod_cpu_usage] in Metric (From GT key_observations)",
+            "Step 11: Derive Root Cause - Based on above features, determined cause is [adservice-getrandomads-exception] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getrandomads-exception",
+                "expected_pattern": "Log entries showing 'Rule.execute called for AdService-getRandomAds-exception-1749323409_10:0' and 'AdService-getRandomAds-exception-1749323409 execute()'",
+                "instruction": "Search for keyword 'AdService-getRandomAds-exception' in adservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "Caught, throwexception",
+                "expected_pattern": "Log entries showing 'caught ThrowException' in adservice logs",
+                "instruction": "Search for keywords 'caught' and 'ThrowException' in adservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "grpc-default-executor",
+                "expected_pattern": "Log entries showing 'Exception in thread \"grpc-default-executor-1084\" java.lang.Error: Injected error'",
+                "instruction": "Search for keyword 'grpc-default-executor' in adservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "injected, error",
+                "expected_pattern": "Log entries showing 'java.lang.Error: Injected error'",
+                "instruction": "Search for keywords 'injected' and 'error' in adservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Log entries showing 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException'",
+                "instruction": "Search for keyword 'InvocationTargetException' in adservice logs"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Log entries showing 'org.jboss.byteman.agent.Transformer' related messages",
+                "instruction": "Search for keyword 'Transformer' in adservice logs"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error, client_error_ratio",
+                "expected_pattern": "adservice-0 client_error_ratio increased from 1.71 to 2.78 (47.36% change) during fault window",
+                "instruction": "Check if metric [client_error_ratio] for adservice shows abnormal increase"
+            },
+            {
+                "modality": "Metric",
+                "target": "error, error_ratio",
+                "expected_pattern": "adservice-0 error_ratio increased from 1.71 to 2.78 (47.36% change) during fault window",
+                "instruction": "Check if metric [error_ratio] for adservice shows abnormal increase"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "redis-cart-0 pod_cpu_usage P99 increased from 0.02% to 0.08% (122.99% change)",
+                "instruction": "Check if metric [pod_cpu_usage] shows abnormal patterns during fault window"
+            }
+        ]
+    }
+}
+```

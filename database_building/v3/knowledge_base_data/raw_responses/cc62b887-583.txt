@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "cc62b887-583",
+    "fault_type": "region_unavailable_induced_qps_drop",
+    "symptom_vector": "productcatalogservice query failures, elevated error ratio, latency spikes, and database region unavailability errors",
+    "expert_knowledge": {
+        "root_cause_desc": "tidb-tikv-0/tidb-tikv 组件因region_pending等关键指标异常，导致其负责的数据区域(Region)不可用，进而引发上游服务连锁故障",
+        "reasoning_chain": [
+            "Step 1: 观察到日志中出现大量'Error 9005 (HY000): Region is unavailable'错误，其中productcatalogservice-0日志中该错误出现171次，表明数据库区域不可用是直接影响。",
+            "Step 2: 分析 tidb-tikv 相关组件的监控指标，发现 tidb-pd 的 store_unhealth_count P99值从0.0上升到1.0，且 tidb-tidb 的 duration_99th 从0.01ms飙升至64.88ms，failed_query_ops P99值从0.0上升到14.67，这些关键指标（region_pending, qps, grpc_qps的衍生物）共同指向TiKV存储节点出现健康与性能问题。",
+            "Step 3: 确认追踪数据中，productcatalogservice->TiDB的调用（hipstershop.ProductCatalogService/GetProduct）rrt_max从9.9秒异常飙升至3858万秒，且状态码为'Error 9005 (HY000): Region is unavailable'的出现次数高达120次，这锁定了故障是由tidb-tikv服务不可用引发的，并导致了上游服务的qps下降和错误率上升。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "unavailable",
+                "expected_pattern": "Contains 'Region is unavailable' error message, especially 'Error 9005 (HY000)'",
+                "instruction": "在 productcatalogservice 和前端服务日志中搜索 'unavailable' 关键词，确认数据库区域不可用错误的来源和频率。"
+            },
+            {
+                "modality": "Metric",
+                "target": "store_unhealth_count",
+                "expected_pattern": "Value increases from 0 to 1 or higher",
+                "instruction": "检查 TiDB PD 组件的 store_unhealth_count 指标，确认是否有存储节点健康状态变为不健康。"
+            },
+            {
+                "modality": "Metric",
+                "target": "duration_99th",
+                "expected_pattern": "Significant spike from a low baseline (e.g., sub-millisecond to tens of milliseconds)",
+                "instruction": "检查 tidb-tidb 组件的 duration_99th 指标，确认数据库查询延迟是否出现急剧上升。"
+            },
+            {
+                "modality": "Trace",
+                "target": "rrt_max",
+                "expected_pattern": "Extreme latency increase (e.g., orders of magnitude higher) for calls to database services",
+                "instruction": "分析指向 TiDB 数据库服务的调用链，特别是来自 productcatalogservice 的请求，观察其最大响应时间是否出现灾难性增长。"
+            },
+            {
+                "modality": "Trace",
+                "target": "status_code",
+                "expected_pattern": "Status code 2 (gRPC error) with message containing 'Error 9005' or 'Region is unavailable'",
+                "instruction": "检查追踪数据中的状态码详情，筛选出 gRPC 错误（状态码 2），并查看错误信息是否与数据库区域不可用相关。"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,65 @@
+```json
+{
+    "uuid": "47fe21f6-167",
+    "fault_type": "adservice-getrandomads-exception",
+    "symptom_vector": "JVM exception thrown, application exception, runtime error, exception stack trace",
+    "expert_knowledge": {
+        "root_cause_desc": "Component [adservice] experienced [adservice-getrandomads-exception] fault.",
+        "reasoning_chain": [
+            "Step 1: Check Metadata - Confirm faulty component is [adservice] (From Ground Truth)",
+            "Step 2: Check Observation - Found keyword [adservice-getrandomads-exception] in Log (From GT key_observations)",
+            "Step 3: Check Observation - Found keyword [Caught] and [throwexception] in Log (From GT key_observations)",
+            "Step 4: Check Observation - Found keyword [grpc-default-executor] in Log (From GT key_observations)",
+            "Step 5: Check Observation - Found keyword [injected] and [error] in Log (From GT key_observations)",
+            "Step 6: Check Observation - Found keyword [invocationtargetexception] in Log (From GT key_observations)",
+            "Step 7: Check Observation - Found keyword [transformlistener] in Log (From GT key_observations)",
+            "Step 8: Check Observation - Found keyword [client_error] and [error] in Metric (From GT key_observations)",
+            "Step 9: Derive Root Cause - Based on above features, determined cause is [adservice-getrandomads-exception] (From Ground Truth)"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "adservice-getrandomads-exception",
+                "expected_pattern": "Log entries containing 'AdService-getRandomAds-exception-1749460243' appear 3888 times in adservice-0 pod",
+                "instruction": "Search for keyword 'AdService-getRandomAds-exception' in logs from adservice pods"
+            },
+            {
+                "modality": "Log",
+                "target": "Caught, throwexception",
+                "expected_pattern": "Log entries 'caught ThrowException' appear 3888 times in adservice-0 pod",
+                "instruction": "Search for keywords 'caught' AND 'ThrowException' in logs from adservice pods"
+            },
+            {
+                "modality": "Log",
+                "target": "grpc-default-executor",
+                "expected_pattern": "Log entries 'Exception in thread \"grpc-default-executor-8140\" java.lang.Error: Injected error' appear 3888 times in adservice-0 pod",
+                "instruction": "Search for keyword 'grpc-default-executor' in logs from adservice pods"
+            },
+            {
+                "modality": "Log",
+                "target": "injected, error",
+                "expected_pattern": "Log entries 'java.lang.Error: Injected error' appear 3888 times in adservice-0 pod",
+                "instruction": "Search for keywords 'injected' AND 'error' in logs from adservice pods"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "Log entries 'Exception in thread \"Attach Listener\" java.lang.reflect.InvocationTargetException' appear in adservice-0, adservice-1, adservice-2 pods",
+                "instruction": "Search for keyword 'InvocationTargetException' in logs from adservice pods"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "Log entries containing 'org.jboss.byteman.agent.Transformer' and 'transform' operations in adservice pods",
+                "instruction": "Search for keyword 'transform' in logs from adservice pods"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error, error",
+                "expected_pattern": "Metric 'client_error_ratio' p99 increased from 0.22 to 0.53 (80.35% change) for adservice-0",
+                "instruction": "Check if metric 'client_error_ratio' shows abnormal increase for adservice pods"
+            }
+        ]
+    }
+}
+```

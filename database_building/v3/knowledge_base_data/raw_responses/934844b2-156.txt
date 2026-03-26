@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "934844b2-156",
+    "fault_type": "rrt",
+    "symptom_vector": "Severe network latency (high RTT) and elevated transmission delay observed in service calls.",
+    "expert_knowledge": {
+        "root_cause_desc": "checkoutservice 调用 emailservice 的 SendOrderConfirmation 操作因 rrt_max 指标异常飙升，导致严重网络延迟。",
+        "reasoning_chain": [
+            "Step 1: 观察到 Metric 数据显示多个服务的 rrt 和 rrt_max 指标显著异常，其中 emailservice 三个实例的 rrt_max 从约3ms 飙升至约2.9秒（增长近1000倍），变化率约为 1.996。",
+            "Step 2: 分析 Trace 数据，发现 checkoutservice（特别是 checkoutservice-2）内部发起对 emailservice 的 SendOrderConfirmation 操作延迟极为严重，从正常平均 20.2ms 飙升至 8.27秒，延迟倍数达到 409 倍。",
+            "Step 3: 结合 Log 分析未发现错误日志，排除了应用逻辑错误的可能，确认延迟是静默发生的网络或通信层问题，根源在于 checkoutservice 到 emailservice 的调用链路出现严重延迟。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "指标的 P99 或中位数值在故障时段相比正常时段出现数个数量级（如数百倍）的异常增长。",
+                "instruction": "检查所有服务的 rrt_max 指标，特别是 checkoutservice 和 emailservice，筛选出变化率（如 p99_change_ratio）远大于 1.5 的异常项。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "指标的 P99 或中位数值在故障时段相比正常时段显著增加。",
+                "instruction": "检查 rrt 指标的异常增长情况，确认其与 rrt_max 的异常趋势是否一致。"
+            },
+            {
+                "modality": "Trace",
+                "target": "hipstershop.EmailService/SendOrderConfirmation",
+                "expected_pattern": "调用链中此操作的平均耗时异常飙升（如从毫秒级到秒级），且调用方为 checkoutservice。",
+                "instruction": "在 Trace 数据中，查找并分析操作名为 'hipstershop.EmailService/SendOrderConfirmation' 的调用记录，对比其在正常与故障时段的平均耗时差异。"
+            }
+        ]
+    }
+}
+```

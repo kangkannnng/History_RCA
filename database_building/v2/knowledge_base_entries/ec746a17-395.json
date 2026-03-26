@@ -1,0 +1,39 @@
+{
+  "uuid": "ec746a17-395",
+  "fault_type": "latency_anomalies",
+  "symptom_vector": "Database query latency spike, increased query failure rate, and cascading service errors (HTTP 500).",
+  "expert_knowledge": {
+    "root_cause_desc": "TiDB TiKV 存储节点异常导致数据库 region 不可用，进而引发应用层服务级联故障。",
+    "reasoning_chain": [
+      "Step 1: 观察到核心数据库服务 TiDB 的性能指标严重恶化。在故障时段，`tidb-tidb` 组件的 `failed_query_ops` 从 0.0 飙升至 45.33，`duration_99th` 从 0.01 激增至 64.88。同时，负责集群调度的 `tidb-pd` 组件 `store_unhealth_count` 从 0.0 增加到 1.0，表明至少有一个存储节点（TiKV）处于不健康状态。",
+      "Step 2: 分析日志数据，发现直接依赖 TiDB 的 `productcatalogservice` 服务产生了 866 条数据库错误日志，内容为 `\"Error 9005 (HY000): Region is unavailable\"`。这一错误码是 TiDB 特有的，直接指向特定数据分片（Region）不可用，与观察到的存储节点不健康状态一致。",
+      "Step 3: 追踪调用链数据，确认故障传播路径。所有调用 `productcatalogservice` 的服务（如 `frontend`、`checkoutservice`）其链路延迟（`rrt`）从毫秒级（~15ms）激增至秒级（39-40s），并出现大量错误码为 2（对应上述 Region unavailable 错误）或 HTTP 500 的响应。证据链显示，问题根源是底层数据库 TiKV 节点的异常，导致了数据访问失败和极端延迟，进而向上游服务引发级联故障。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "failed_query_ops",
+        "expected_pattern": "从接近于 0 的值（如 0.0）产生显著跃升（例如增长数十倍）",
+        "instruction": "检查 `tidb-tidb` 服务的 `failed_query_ops` 指标，确认是否在故障时间段内出现突发性增长，这是数据库查询失败的明确信号。"
+      },
+      {
+        "modality": "Metric",
+        "target": "store_unhealth_count",
+        "expected_pattern": "从 0 增加到大于 0 的值（如 1.0）",
+        "instruction": "检查 `tidb-pd` 服务的 `store_unhealth_count` 指标，确认是否有存储节点被标记为不健康状态。该指标通常与 TiKV 节点故障强相关。"
+      },
+      {
+        "modality": "Log",
+        "target": "Error 9005 (HY000): Region is unavailable",
+        "expected_pattern": "日志消息中出现此特定错误关键词，且数量在故障时段内剧增。",
+        "instruction": "在应用服务的日志（尤其是直接调用数据库的服务，如 `productcatalogservice`）中，搜索 `\"Error 9005 (HY000): Region is unavailable\"` 这条特定错误信息。这是 TiDB region 不可用的直接证据。"
+      },
+      {
+        "modality": "Trace",
+        "target": "productcatalogservice",
+        "expected_pattern": "所有调用 `productcatalogservice` 的链路（如 `frontend->productcatalogservice`）其响应时间（rrt）出现数个数量级的增长，且错误码（status_code）为 2 或 13（HTTP 500）。",
+        "instruction": "分析追踪数据，聚焦于以 `productcatalogservice` 为下游的调用链路，确认其延迟是否激增并伴随高错误率（具体错误码为 2）。这将定位性能瓶颈和异常传播的起点。"
+      }
+    ]
+  }
+}

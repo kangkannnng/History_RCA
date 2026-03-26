@@ -1,0 +1,47 @@
+```json
+{
+    "uuid": "33492fcd-575",
+    "fault_type": "pod_cpu_usage",
+    "symptom_vector": "high CPU utilization, CPU saturation, CPU overload, CPU usage spike, cpu stress",
+    "expert_knowledge": {
+        "root_cause_desc": "currencyservice 组件的所有三个Pod（currencyservice-0/1/2）因 pod_cpu_usage 飙升和 pod_processes 异常增加导致CPU压力测试故障",
+        "reasoning_chain": [
+            "Step 1: 观察到 currencyservice-0/1/2 的 pod_cpu_usage 指标从正常值（0.0-0.01）飙升到0.4，变化率达1.9024-2.0倍",
+            "Step 2: 分析 currencyservice 组件的 pod_processes 指标从1.0异常增加到11.0，变化率达1.6667倍，表明进程数异常激增",
+            "Step 3: 确认 currencyservice 的 rrt_max 指标从正常2.3秒恶化到93.4秒，延迟增加40倍，与CPU压力症状一致"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "latency_anomalies",
+                "expected_pattern": "CurrencyService接口延迟显著增加，特别是Convert和GetSupportedCurrencies接口",
+                "instruction": "检查从frontend到currencyservice的调用链中是否存在延迟异常，重点关注CurrencyService/Convert和CurrencyService/GetSupportedCurrencies接口"
+            },
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP响应状态码302的出现模式",
+                "instruction": "在currencyservice的日志中搜索http.resp.status字段，特别关注302状态码的出现频率和上下文"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt,rrt_max",
+                "expected_pattern": "响应时间指标显著增加，特别是rrt_max出现数十倍增长",
+                "instruction": "检查currencyservice的rrt和rrt_max指标是否出现异常飙升，对比正常时间段和故障时间段的数值"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_cpu_usage",
+                "expected_pattern": "CPU使用率从低水平突然飙升到高水位",
+                "instruction": "检查currencyservice所有Pod的pod_cpu_usage指标是否出现从接近0到0.4的异常增长"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_processes",
+                "expected_pattern": "进程数从基准值异常增加多倍",
+                "instruction": "检查currencyservice所有Pod的pod_processes指标是否从1.0异常增加到11.0"
+            }
+        ]
+    }
+}
+```

@@ -1,0 +1,27 @@
+{
+  "uuid": "6a9c8dc7-498",
+  "fault_type": "node_disk_full",
+  "symptom_vector": "Service latency spike, HTTP 302 redirect responses, reduced request throughput, abnormal node memory metric patterns",
+  "expert_knowledge": {
+    "root_cause_desc": "节点磁盘空间耗尽导致系统异常",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据分析中，观察到aiops-k8s-06节点的内存相关指标出现异常模式：node_cpu_usage_rate从38.24%下降至28.44%（下降25.6%），同时node_memory_usage_rate从27.1%下降至20.3%（下降25.1%），这种CPU和内存使用率同时显著下降的模式可能与节点资源限制有关",
+      "Step 2: 根据Ground Truth中的故障特征信息，在Log数据中搜索到关键证据：存在大量HTTP响应状态码302的日志记录，这种重定向行为可能因磁盘空间不足导致文件写入失败或临时文件无法创建",
+      "Step 3: 综合Metric数据中节点资源指标异常和Log数据中的302状态码特征，结合故障描述中的'node disk full'、'high disk utilization'等关键词，推导出节点磁盘空间耗尽是根本原因，这解释了为什么节点CPU和内存使用率异常下降（可能由于IO阻塞导致进程挂起或重启）"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate,node_memory_usage_rate",
+        "expected_pattern": "Concurrent significant decrease in both CPU and memory usage rates (e.g., >20% drop)",
+        "instruction": "检查指定节点的CPU使用率和内存使用率是否同时出现显著下降，这种模式可能表明节点资源受限或IO阻塞导致进程异常"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status,302",
+        "expected_pattern": "Presence of HTTP 302 redirect status codes in application logs",
+        "instruction": "在应用日志中搜索HTTP响应状态码302，这种重定向可能因磁盘空间不足导致文件操作失败而触发"
+      }
+    ]
+  }
+}

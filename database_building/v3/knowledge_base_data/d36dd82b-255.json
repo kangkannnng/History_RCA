@@ -1,0 +1,27 @@
+{
+  "uuid": "d36dd82b-255",
+  "fault_type": "node_cpu_usage_rate",
+  "symptom_vector": "Node CPU overload, high CPU usage, saturation, and performance degradation of dependent services.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 `aiops-k8s-08` 因 `node_cpu_usage_rate` 指标飙升至 90.93% 导致资源瓶颈，进而影响其上运行的 `redis-cart-0` 等 Pod 性能。",
+    "reasoning_chain": [
+      "Step 1: 观察到节点 `aiops-k8s-08` 的 `node_cpu_usage_rate` 指标从正常中位数的 32.52% 急剧上升至故障中位数的 90.93%（变化率高达 94.63%），同时 `node_memory_MemAvailable_bytes` 减少 19.89%，表明该节点存在严重的 CPU 和内存资源瓶颈。",
+      "Step 2: 分析运行在节点 `aiops-k8s-08` 上的 `redis-cart-0` Pod，发现其 `rrt_max` 指标从 1281.83ms 降至 850.21ms（p99 变化率 -40.49%），且 Trace 数据显示 `cartservice-2` 调用 `redis-cart-0` 的延迟从 1361.25ms 飙升至 8943.27ms（延迟倍数 6.57x），表明该服务性能严重下降。",
+      "Step 3: 通过节点-Pod 映射关系确认，关键服务 `redis-cart-0` 与 `cartservice-2` 均运行在资源瓶颈节点 `aiops-k8s-08` 上，形成了从节点资源不足到关键服务性能下降的完整证据链。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_cpu_usage_rate",
+        "expected_pattern": "Median value increase > 50% (e.g., from 32.52% to 90.93%)",
+        "instruction": "检查故障期间 `aiops-k8s-08` 节点的 `node_cpu_usage_rate` 指标中位数是否出现大幅增长。"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total, node_network_transmit_packets_total",
+        "expected_pattern": "Unusual traffic patterns correlating with CPU spike",
+        "instruction": "检查故障期间 `aiops-k8s-08` 节点的网络接收/发送包总量指标是否出现异常，可能与 CPU 飙升相关。"
+      }
+    ]
+  }
+}

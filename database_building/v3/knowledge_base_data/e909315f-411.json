@@ -1,0 +1,27 @@
+{
+  "uuid": "e909315f-411",
+  "fault_type": "node cpu stress",
+  "symptom_vector": "node CPU overload with high CPU usage and CPU saturation",
+  "expert_knowledge": {
+    "root_cause_desc": "节点 aiops-k8s-03 发生 CPU 过载，导致该节点上运行的服务出现性能下降",
+    "reasoning_chain": [
+      "Step 1: 观察到故障时间段内，节点 aiops-k8s-03 上的服务出现响应时间异常，如 recommendationservice-1 的 rrt_max 指标出现 13.43% 的变化率",
+      "Step 2: 分析节点级指标数据，发现 aiops-k8s-03 节点上运行的关键服务（如 recommendationservice、adservice、shippingservice）都出现性能问题",
+      "Step 3: 确认故障根因为节点级资源问题，符合 node cpu stress 的故障模式，影响范围覆盖该节点上的所有服务"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_network_receive_packets_total",
+        "expected_pattern": "Abnormal increase or decrease in network packet reception rate",
+        "instruction": "检查 aiops-k8s-03 节点的 node_network_receive_packets_total 指标是否出现异常变化"
+      },
+      {
+        "modality": "Metric",
+        "target": "node_network_transmit_packets_total",
+        "expected_pattern": "Abnormal increase or decrease in network packet transmission rate",
+        "instruction": "检查 aiops-k8s-03 节点的 node_network_transmit_packets_total 指标是否出现异常变化"
+      }
+    ]
+  }
+}

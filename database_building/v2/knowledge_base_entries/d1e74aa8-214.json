@@ -1,0 +1,21 @@
+{
+  "uuid": "d1e74aa8-214",
+  "fault_type": "metric",
+  "symptom_vector": "Elevated memory usage on a specific node, potentially causing localized performance degradation or pod evictions.",
+  "expert_knowledge": {
+    "root_cause_desc": "节点aiops-k8s-06内存使用率（node_memory_usage_rate）在故障时段P99值显著升高，表明该节点存在内存压力或泄漏，是本次故障的根因。",
+    "reasoning_chain": [
+      "Step 1: 在Metric数据的全面扫描结果中，观察到`node_memory_usage_rate`指标的异常条目。具体数据显示，节点`aiops-k8s-06`的`node_memory_usage_rate`的p99值从正常的26.52%上升至故障期间的35.85%，相对变化率为29.91%。",
+      "Step 2: 分析此异常指标，p99值（代表最差情况）的显著升高，表明该节点在故障期间经历了间歇性的内存使用率峰值，符合内存压力或潜在泄漏的特征，而非持续的均匀高负载。这与标准答案中描述的`node high memory usage`、`node memory stress`等特征直接对应。",
+      "Step 3: 结合其他数据分析以确认根因。虽然历史分析和Trace数据指出了服务层（如shippingservice-0）的延迟问题，但服务层异常更可能是下游影响。关键证据链显示，出现rrt_max显著异常的`shippingservice-0`、`emailservice-2`等服务并非部署在`aiops-k8s-06`节点上。因此，从故障传播的拓扑结构看，`aiops-k8s-06`节点的内存问题是一个独立的、位于基础设施层的根本原因点，而非服务层问题的直接后果。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "node_memory_usage_rate",
+        "expected_pattern": "Sudden spike or sustained elevation in P99 value during the fault period, compared to the normal baseline.",
+        "instruction": "查询指定故障时间段内，针对`aiops-k8s-06`节点的`node_memory_usage_rate`指标。重点关注其P99（或其他高百分位）数值，并与故障前正常时段的基线进行对比，确认是否存在显著的增长。"
+      }
+    ]
+  }
+}

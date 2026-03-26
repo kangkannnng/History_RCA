@@ -1,0 +1,81 @@
+{
+  "uuid": "45c7bf97-487",
+  "fault_type": "pod_processes",
+  "symptom_vector": "method error, code error, runtime panic causing severe latency spike and context canceled errors",
+  "expert_knowledge": {
+    "root_cause_desc": "productcatalogservice 组件因代码错误导致 pod_processes 异常，引发严重延迟飙升和上下游服务超时",
+    "reasoning_chain": [
+      "Step 1: 观察到 productcatalogservice 的 GetProduct 接口延迟从正常约11秒飙升至55-57秒，延迟倍数高达5000倍以上",
+      "Step 2: 分析 productcatalogservice-1 的 pod_cpu_usage 从0.0升至0.4，同时 client_error_ratio 和 error_ratio 均飙升至53.05",
+      "Step 3: 日志中发现大量 'context canceled' 错误，表明 frontend、checkoutservice、recommendationservice 等依赖服务因 productcatalogservice 响应超时而主动取消请求"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "latency_anomalies",
+        "expected_pattern": "Severe latency spike in productcatalogservice GetProduct interface (11s to 55-57s)",
+        "instruction": "检查 productcatalogservice 的 GetProduct 接口延迟是否出现异常飙升，重点关注 frontend、checkoutservice、recommendationservice 调用该接口的延迟变化"
+      },
+      {
+        "modality": "Trace",
+        "target": "request_proportion_anomalies",
+        "expected_pattern": "Abnormal proportion of failed requests to productcatalogservice",
+        "instruction": "分析调用 productcatalogservice 的请求中失败请求的比例，特别是 context canceled 和 transport is closing 状态码的出现频率"
+      },
+      {
+        "modality": "Log",
+        "target": "context|canceled",
+        "expected_pattern": "Multiple services reporting 'rpc error: code = Canceled desc = context canceled'",
+        "instruction": "在 frontend、checkoutservice、recommendationservice 日志中搜索 'context canceled' 关键词，确认是否因上游服务超时导致请求取消"
+      },
+      {
+        "modality": "Log",
+        "target": "http.resp.status|302",
+        "expected_pattern": "HTTP 302 status codes in logs",
+        "instruction": "检查日志中是否出现 HTTP 302 状态码，这可能与重定向或异常响应相关"
+      },
+      {
+        "modality": "Log",
+        "target": "request error",
+        "expected_pattern": "'request error' messages in frontend logs",
+        "instruction": "在 frontend 日志中搜索 'request error' 关键词，分析错误的具体原因和关联服务"
+      },
+      {
+        "modality": "Log",
+        "target": "rpc|error",
+        "expected_pattern": "RPC error messages involving productcatalogservice",
+        "instruction": "查找包含 'rpc' 和 'error' 的日志条目，特别是与 productcatalogservice 相关的调用失败"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Timeout-related error messages",
+        "instruction": "搜索日志中的 'timeout' 关键词，确认是否存在请求超时情况"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Service unavailable errors",
+        "instruction": "检查日志中是否出现 'unavailable' 关键词，特别是与 productcatalogservice 连接相关的错误"
+      },
+      {
+        "modality": "Metric",
+        "target": "request|response|timeout",
+        "expected_pattern": "Abnormal request/response timeout metrics",
+        "instruction": "分析 productcatalogservice 的请求响应超时指标，确认是否存在异常超时情况"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_cpu_usage",
+        "expected_pattern": "Sudden increase in pod_cpu_usage for productcatalogservice pods",
+        "instruction": "检查 productcatalogservice 各实例的 pod_cpu_usage 指标是否出现异常升高"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_processes",
+        "expected_pattern": "Abnormal pod_processes metrics indicating process issues",
+        "instruction": "监控 productcatalogservice 的 pod_processes 指标，确认是否存在进程异常或死循环"
+      }
+    ]
+  }
+}

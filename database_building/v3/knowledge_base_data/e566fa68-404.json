@@ -1,0 +1,33 @@
+{
+  "uuid": "e566fa68-404",
+  "fault_type": "server_error_ratio_due_to_dns_failure",
+  "symptom_vector": "Frontend requests failing with 500 errors due to downstream checkoutservice error_ratio spike and latency increase caused by DNS resolution failure",
+  "expert_knowledge": {
+    "root_cause_desc": "由于DNS服务（10.233.33.139:53）解析失败，导致checkoutservice无法连接shippingservice，引发server_error_ratio和error_ratio飙升。",
+    "reasoning_chain": [
+      "Step 1: 观察到 frontend 的日志中出现关键错误信息：'transport: Error while dialing dial tcp: lookup shippingservice on 10.233.33.139:53: server misbehaving'，这明确指示了DNS解析失败。",
+      "Step 2: 分析故障影响范围，发现 checkoutservice 的 server_error_ratio 和 error_ratio 指标从0%急剧上升到~49%，同时 rrt 和 rrt_max 响应时间指标也激增，表明该服务因依赖的下游服务不可用而出现大量超时错误。",
+      "Step 3: 通过 trace 分析确认，所有从 checkoutservice 到 shippingservice 的调用链均失败，状态码为 Unavailable，错误原因与日志中的DNS错误一致，形成了完整的因果链条。"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Trace",
+        "target": "checkoutservice->shippingservice",
+        "expected_pattern": "调用失败，状态码为 Unavailable (13/14)，且错误信息包含 'lookup shippingservice' 或 'server misbehaving' 等DNS相关关键词。",
+        "instruction": "检查从 checkoutservice 到 shippingservice 的调用链状态，确认是否存在大量失败请求，并分析失败原因是否与DNS解析相关。"
+      },
+      {
+        "modality": "Log",
+        "target": "server misbehaving",
+        "expected_pattern": "日志消息中包含 'lookup shippingservice on [IP]:53: server misbehaving' 短语。",
+        "instruction": "在 frontend 或 checkoutservice 服务的错误日志中，搜索 'server misbehaving' 关键词，以确认DNS服务器返回的错误。"
+      },
+      {
+        "modality": "Metric",
+        "target": "server_error_ratio",
+        "expected_pattern": "该指标值从接近0%的基线水平突然飙升至高位（例如超过40%）。",
+        "instruction": "检查 checkoutservice 的 server_error_ratio 指标，确认在故障时间段内是否存在急剧的异常上升。"
+      }
+    ]
+  }
+}

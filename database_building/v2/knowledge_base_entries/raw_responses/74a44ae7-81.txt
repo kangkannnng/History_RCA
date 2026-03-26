@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "74a44ae7-81",
+    "fault_type": "network_packet_corruption",
+    "symptom_vector": "RPC timeout errors, latency spike from downstream service, increased error_ratio on affected services.",
+    "expert_knowledge": {
+        "root_cause_desc": "网络数据包损坏导致shippingservice出现连接与握手超时，进而引起上游调用链的级联故障。",
+        "reasoning_chain": [
+            "Step 1: 在Log数据中发现大量来自frontend服务的错误消息，核心错误关键词为'transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout' 和 'timed out waiting for server handshake'，表明对shippingservice的网络连接建立失败。",
+            "Step 2: 在Trace数据中观察到关键异常路径：checkoutservice调用shippingservice的GetQuote操作时，平均响应时间从正常的9.3秒激增至2385万秒（2550倍），并伴随大量状态码为14（超时/不可用）和1（已取消）的调用，这证实了Log中发现的超时错误对业务调用造成了灾难性的延迟。",
+            "Step 3: 在Metric数据中发现shippingservice的error_ratio和client_error_ratio从0%急剧上升至50-63%，同时其rrt_max指标也出现峰值，这量化了连接失败导致的错误率与延迟影响。结合Step 1与Step 2的证据，可定位故障根源在于shippingservice的网络层。基于故障模式（连接超时、握手超时）及故障描述（packet corruption），推断根本原因是底层网络数据包损坏。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Error while dialing, i/o timeout, timed out waiting for server handshake",
+                "expected_pattern": "Contains the specified timeout error messages, indicating connection establishment failures to a specific downstream service IP:Port.",
+                "instruction": "搜索日志中是否包含如'transport: Error while dialing dial tcp', 'i/o timeout', 'timed out waiting for server handshake'等关键词，并定位相关的目标服务IP和端口。"
+            },
+            {
+                "modality": "Trace",
+                "target": "checkoutservice -> shippingservice (hipstershop.ShippingService/GetQuote)",
+                "expected_pattern": "Extreme latency increase (orders of magnitude) for calls from checkoutservice to shippingservice, accompanied by timeout status codes (e.g., 14).",
+                "instruction": "分析调用链数据，重点检查checkoutservice对shippingservice的GetQuote或ShipOrder调用。查看其anomaly_avg_duration相对于normal_avg_duration的增幅倍数，并检查关联的status_code和status_message是否为超时错误。"
+            },
+            {
+                "modality": "Metric",
+                "target": "shippingservice.error_ratio, shippingservice.client_error_ratio, shippingservice.rrt_max",
+                "expected_pattern": "Sharp increase from near 0% to high values (e.g., >50%) for error ratios, and significant spike for rrt_max.",
+                "instruction": "加载并对比shippingservice服务在正常时段与故障时段的metric数据，重点关注error_ratio, client_error_ratio, rrt_max等指标，观察是否存在突增。"
+            }
+        ]
+    }
+}
+```

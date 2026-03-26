@@ -1,0 +1,59 @@
+```json
+{
+    "uuid": "6a9a1c00-210",
+    "fault_type": "adservice-getRandomAds-latency",
+    "symptom_vector": "high JVM latency, elevated request latency, JVM response delay",
+    "expert_knowledge": {
+        "root_cause_desc": "adservice 组件因 JVM 延迟注入规则 (adservice-getRandomAds-latency) 执行异常，导致 rrt_max 指标飙升和大量 context deadline exceeded 错误，服务完全不可用。",
+        "reasoning_chain": [
+            "Step 1: 观察到调用链追踪 (Trace) 数据显示 AdService 的调用延迟 (rrt_max) 从正常的约5.5秒飙升至约500秒，增长超过90倍，同时出现总计2359次 'context deadline exceeded' 超时错误，表明服务完全无响应。",
+            "Step 2: 分析 adservice 的日志 (Log)，发现大量与 JVM 字节码操作工具 Byteman 相关的错误，包括 'Agent failed to start!'、'attempting to load Byteman agent more than once' 和 'InvocationTargetException'。同时，日志中频繁出现规则执行记录 'AdService-getRandomAds-latency-1749618636 execute()' 和 'Rule.execute called'，明确指向名为 'AdService-getRandomAds-latency' 的规则正在被执行。",
+            "Step 3: 确认指标 (Metric) 数据显示所有上游 frontend 实例的 rrt_max 和 rrt 指标均因 adservice 的不可用而出现异常飙升。专家会诊一致认为 AdService 的极端延迟和大量超时错误是根本原因。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "hipstershop.AdService/GetAds",
+                "expected_pattern": "调用延迟 (平均或P99) 异常飙升 (例如增长10倍以上) 并伴随大量超时状态码 (如 'context deadline exceeded')。",
+                "instruction": "检查所有调用 AdService/GetAds 的调用链，重点关注延迟 (rrt_max, rrt) 和错误状态码，寻找延迟异常飙升和超时错误的模式。"
+            },
+            {
+                "modality": "Log",
+                "target": "deadlineexceeded",
+                "expected_pattern": "日志中包含大量 'context deadline exceeded' 或类似超时错误信息，特别是当调用者为 frontend 且被调用者为 adservice 时。",
+                "instruction": "在 frontend 和 adservice 的日志中搜索 'deadlineexceeded'、'context deadline exceeded' 等关键词，识别错误来源和目标服务。"
+            },
+            {
+                "modality": "Log",
+                "target": "invocationtargetexception",
+                "expected_pattern": "日志中出现 'java.lang.reflect.InvocationTargetException' 等 Java 反射调用异常。",
+                "instruction": "在 adservice 的日志中搜索 'InvocationTargetException'，识别 JVM 层面的运行时异常。"
+            },
+            {
+                "modality": "Log",
+                "target": "transformlistener",
+                "expected_pattern": "日志中出现与 'Agent failed to start!'、'Byteman'、'Transformer' 或 'transformlistener' 相关的字节码操作代理启动或初始化错误。",
+                "instruction": "在 adservice 的日志中搜索 'Agent failed'、'Byteman'、'Transformer' 等关键词，检查 JVM 代理是否启动失败。"
+            },
+            {
+                "modality": "Log",
+                "target": "adservice-getRandomAds-latency",
+                "expected_pattern": "日志中频繁出现包含特定规则名称 (如 'AdService-getRandomAds-latency') 的执行记录，例如 'execute()' 或 'Rule.execute called'。",
+                "instruction": "在 adservice 的日志中搜索 'getRandomAds-latency' 或特定规则 ID 字符串，确认是否有延迟注入规则正在活跃执行。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt",
+                "expected_pattern": "上游服务 (特别是 frontend) 的 rrt (响应时间) 指标出现显著上升。",
+                "instruction": "检查所有 frontend 实例的 rrt 指标，与基线对比，确认是否存在因下游依赖不可用导致的延迟增长。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max",
+                "expected_pattern": "上游服务 (特别是 frontend) 的 rrt_max (最大响应时间) 指标出现极端飙升。",
+                "instruction": "检查所有 frontend 实例的 rrt_max 指标，重点关注其 P99 值或最大值，确认是否出现数量级级别的增长。"
+            }
+        ]
+    }
+}
+```

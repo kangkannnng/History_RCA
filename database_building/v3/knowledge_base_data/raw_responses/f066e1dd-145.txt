@@ -1,0 +1,53 @@
+```json
+{
+    "uuid": "f066e1dd-145",
+    "fault_type": "client_error_ratio",
+    "symptom_vector": "pod killed with client error ratio spike and network packet drop",
+    "expert_knowledge": {
+        "root_cause_desc": "shippingservice-2 组件因 pod kill 导致 client_error_ratio 异常，同时 pod_network_receive_bytes 等网络指标归零",
+        "reasoning_chain": [
+            "Step 1: 观察到 shippingservice-1 的 pod_network_receive_packets 指标从正常中位数 10.93 降至 0.0，变化率 2.0，表明网络活动停止",
+            "Step 2: 分析 shippingservice-2 作为故障目标，其网络指标 pod_network_receive_bytes 和 pod_network_transmit_bytes 应同时归零，符合 pod kill 特征",
+            "Step 3: 确认 client_error 和 client_error_ratio 指标应出现异常峰值，反映因 pod 终止导致的客户端请求失败"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Trace",
+                "target": "request_proportion_anomalies",
+                "expected_pattern": "Frontend service shows abnormal request distribution",
+                "instruction": "检查 trace 数据中 frontend 服务的请求分布是否出现异常，特别是到 shippingservice 的调用比例变化"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio",
+                "expected_pattern": "Sudden increase from baseline to high value",
+                "instruction": "检查 shippingservice 的 client_error_ratio 指标是否在故障时间窗口内异常飙升"
+            },
+            {
+                "modality": "Metric",
+                "target": "error_ratio",
+                "expected_pattern": "Error ratio spike coinciding with pod termination",
+                "instruction": "检查 shippingservice 的 error_ratio 指标是否与故障时间点同步异常"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_memory_working_set_bytes",
+                "expected_pattern": "Memory usage drops to zero",
+                "instruction": "检查 shippingservice-2 的 pod_memory_working_set_bytes 指标是否在故障时间点归零"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_receive_bytes",
+                "expected_pattern": "Network receive bytes drop to zero",
+                "instruction": "检查 shippingservice-2 的 pod_network_receive_bytes 指标是否在故障时间点归零"
+            },
+            {
+                "modality": "Metric",
+                "target": "pod_network_transmit_bytes",
+                "expected_pattern": "Network transmit bytes drop to zero",
+                "instruction": "检查 shippingservice-2 的 pod_network_transmit_bytes 指标是否在故障时间点归零"
+            }
+        ]
+    }
+}
+```

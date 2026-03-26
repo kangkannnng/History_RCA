@@ -1,0 +1,39 @@
+{
+  "uuid": "aa53ee7c-259",
+  "fault_type": "adservice-getRandomAds-latency",
+  "symptom_vector": "high JVM latency with elevated request latency and JVM slow response",
+  "expert_knowledge": {
+    "root_cause_desc": "adservice-0 组件因 Byteman 延迟注入导致 adservice-getRandomAds-latency 指标异常，rrt_max 从 5.19ms 飙升至 39.01ms",
+    "reasoning_chain": [
+      "Step 1: 观察到 adservice-0 的 rrt_max 指标从正常中位数 5.19ms 飙升至故障中位数 39.01ms，变化率高达 153.05%，是所有服务中最显著的延迟异常",
+      "Step 2: 分析 adservice-0 的日志发现 Byteman 字节码注入工具在 getRandomAds 方法中注入了延迟规则 AdService-getRandomAds-latency-1749798653，与故障时间完全吻合",
+      "Step 3: 确认 adservice-0 的 rrt 指标也从 1.87ms 上升至 4.85ms（变化率 88.95%），同时 adservice-1 的错误率指标 error_ratio 和 client_error_ratio 的 P99 值从 0.24 上升至 0.51，表明故障影响了整个 adservice 服务"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "adservice-getRandomAds-latency",
+        "expected_pattern": "Significant increase in latency metrics (rrt_max, rrt)",
+        "instruction": "检查 adservice-0 的 rrt_max 和 rrt 指标是否出现异常飙升，重点关注变化率超过 100% 的异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt",
+        "expected_pattern": "Elevated response time compared to baseline",
+        "instruction": "分析 adservice-0 的 rrt 指标是否显著高于正常水平，确认延迟问题的持续性"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt_max",
+        "expected_pattern": "Peak latency spike indicating worst-case performance degradation",
+        "instruction": "检查 adservice-0 的 rrt_max 指标是否出现极端峰值，确认最大延迟异常"
+      },
+      {
+        "modality": "Log",
+        "target": "Byteman|AdService-getRandomAds-latency|Transformer|RuleTriggerMethodAdapter",
+        "expected_pattern": "Contains Byteman injection logs with latency rule keywords",
+        "instruction": "在 adservice-0 的日志中搜索 Byteman、AdService-getRandomAds-latency、Transformer、RuleTriggerMethodAdapter 等关键词，确认延迟注入记录"
+      }
+    ]
+  }
+}

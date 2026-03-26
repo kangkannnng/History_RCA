@@ -1,0 +1,41 @@
+```json
+{
+    "uuid": "d3691ad9-492",
+    "fault_type": "node_cpu_usage_rate",
+    "symptom_vector": "node CPU overload, high CPU usage, CPU saturation, CPU spike, node cpu stress",
+    "expert_knowledge": {
+        "root_cause_desc": "aiops-k8s-04 节点因 node_cpu_usage_rate 异常导致 CPU 过载和性能压力",
+        "reasoning_chain": [
+            "Step 1: 观察到 aiops-k8s-04 节点上运行的多个服务出现显著延迟增加，特别是 cartservice-0 的 Redis 操作延迟飙升（HMSET 从 1.6s 到 25.5s，HGET 从 1.8s 到 20.0s）",
+            "Step 2: 分析 aiops-k8s-04 节点的 node_cpu_usage_rate 指标，发现该节点在故障期间存在 CPU 使用率异常",
+            "Step 3: 确认 aiops-k8s-04 节点上运行的关键服务（frontend-0、cartservice-0、paymentservice-2 等）的性能下降与节点 CPU 压力存在时间相关性"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "http.resp.status,302",
+                "expected_pattern": "HTTP 响应状态码为 302 的日志记录",
+                "instruction": "在故障时间范围内搜索包含 'http.resp.status' 和 '302' 关键词的日志记录"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_receive_packets_total",
+                "expected_pattern": "网络接收包数量的异常变化",
+                "instruction": "检查 aiops-k8s-04 节点的 node_network_receive_packets_total 指标在故障期间是否有异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_network_transmit_packets_total",
+                "expected_pattern": "网络发送包数量的异常变化",
+                "instruction": "检查 aiops-k8s-04 节点的 node_network_transmit_packets_total 指标在故障期间是否有异常波动"
+            },
+            {
+                "modality": "Metric",
+                "target": "node_cpu_usage_rate",
+                "expected_pattern": "CPU 使用率异常升高或达到饱和水平",
+                "instruction": "检查 aiops-k8s-04 节点的 node_cpu_usage_rate 指标是否在故障期间出现异常飙升或持续高值"
+            }
+        ]
+    }
+}
+```

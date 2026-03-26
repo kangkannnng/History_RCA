@@ -114,12 +114,31 @@ class KnowledgeBaseDB:
                 expert_knowledge = entry['expert_knowledge']
 
                 # Build document text for embedding
-                # Combine symptom, root cause, and reasoning chain
                 doc_parts = [
                     f"Symptom: {entry['symptom_vector']}",
                     f"Root Cause: {expert_knowledge['root_cause_desc']}",
                     "Reasoning: " + " ".join(expert_knowledge['reasoning_chain'])
                 ]
+
+                # Format Critical Checks if available
+                if 'critical_checks' in expert_knowledge and expert_knowledge['critical_checks']:
+                    checks_str = ["Critical Checks:"]
+                    for check in expert_knowledge['critical_checks']:
+                        # Skip if check format is invalid
+                        if not isinstance(check, dict): continue
+                        
+                        modality = check.get('modality', 'Unknown')
+                        target = check.get('target', 'N/A')
+                        instruction = check.get('instruction', '')
+                        expected = check.get('expected_pattern', '')
+                        
+                        check_line = f"- [{modality}] Check '{target}': {instruction}"
+                        if expected:
+                            check_line += f" (Expected: {expected})"
+                        checks_str.append(check_line)
+                    
+                    doc_parts.append("\n".join(checks_str))
+
                 document = "\n".join(doc_parts)
 
                 # Build metadata

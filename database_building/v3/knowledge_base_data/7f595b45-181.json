@@ -1,0 +1,58 @@
+{
+  "uuid": "7f595b45-181",
+  "fault_type": "rrt_spike_with_network_packet_anomalies",
+  "symptom_vector": "service-to-service gRPC connection failures and extreme latency spikes, indicating potential network packet corruption or bit errors leading to data corruption",
+  "expert_knowledge": {
+    "root_cause_desc": "recommendationservice 与 productcatalogservice 之间的网络存在包损坏（packet corruption）或比特错误（bit errors），导致 rrt 和 rrt_max 等指标极端飙升，gRPC 连接超时并返回 StatusCode.UNAVAILABLE 错误",
+    "reasoning_chain": [
+      "Step 1: 观察到 recommendationservice-1 的 rrt_max 指标从 12,499.0 飙升至 39,660,312.36，rrt 从 3,902.74 升至 6,725,340.28，表明出现极端网络延迟",
+      "Step 2: 分析 recommendationservice-1 的日志，发现大量‘failed to connect to all addresses’、‘Connection timed out’ 和 ‘StatusCode.UNAVAILABLE’ 错误，证明网络连接层面存在严重问题",
+      "Step 3: 通过追踪数据确认，frontend->recommendationservice 的调用延迟从 124ms 暴增至 58,666ms，且大量请求状态为 context canceled；同时，recommendationservice->productcatalogservice 的调用延迟从 2.9ms 暴增至 519,148ms，并伴有状态码 14 (UNAVAILABLE) 错误，这表明故障影响 recommendationservice 与 productcatalogservice 两个组件之间的通信",
+      "Step 4: 综合极端延迟、连接超时和特定服务对间的通信失败模式，推断根本原因源于 recommendationservice 与 productcatalogservice 之间的网络层，存在包损坏或数据位错误"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Sudden and extreme increase in values (e.g., orders of magnitude higher than baseline)",
+        "instruction": "检查 recommendationservice 和 productcatalogservice 的 rrt (请求响应时间) 和 rrt_max (最大请求响应时间) 指标是否在故障期间出现数量级的异常飙升"
+      },
+      {
+        "modality": "Metric",
+        "target": "pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+        "expected_pattern": "Abnormal changes in network traffic volume, packet counts, or potential retransmission patterns",
+        "instruction": "检查涉及到的服务 Pod (特别是 recommendationservice 和 productcatalogservice) 的网络接收/发送字节数及包数量指标，是否存在异常模式，这可能指示包损坏导致的重传或流量异常"
+      },
+      {
+        "modality": "Metric",
+        "target": "error_ratio, client_error_ratio",
+        "expected_pattern": "Significant spike in error rates",
+        "instruction": "检查 frontend、recommendationservice 等服务的 error_ratio (错误率) 和 client_error_ratio (客户端错误率) 指标是否在故障期间显著上升"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc, error, code, canceled, desc, context canceled",
+        "expected_pattern": "Log entries containing gRPC RPC errors with ‘context canceled’ descriptions",
+        "instruction": "在 frontend、recommendationservice 等服务的日志中搜索包含‘Rpc error’、‘code = Canceled’、‘desc = context canceled’等关键词的错误条目"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Log entries indicating connection or request timeouts",
+        "instruction": "在相关服务（尤其是 recommendationservice）的日志中搜索包含‘timeout’关键词的连接或请求超时错误"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "Log entries containing ‘StatusCode.UNAVAILABLE’ or similar service unavailability errors",
+        "instruction": "在相关服务（尤其是 recommendationservice）的日志中搜索包含‘unavailable’或‘StatusCode.UNAVAILABLE’关键词的错误"
+      },
+      {
+        "modality": "Trace",
+        "target": "frontend->recommendationservice, recommendationservice->productcatalogservice",
+        "expected_pattern": "Extreme latency increase (e.g., hundreds or thousands of times normal) for calls between these service pairs, with error status codes (e.g., 1-Canceled, 2-Unknown, 14-UNAVAILABLE)",
+        "instruction": "分析追踪数据，重点关注 frontend 调用 recommendationservice 以及 recommendationservice 调用 productcatalogservice 的调用链，检查其平均持续时间和状态码是否出现极端延迟和大量失败"
+      }
+    ]
+  }
+}

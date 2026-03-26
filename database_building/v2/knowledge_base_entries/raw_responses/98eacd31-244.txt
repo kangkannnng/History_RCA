@@ -1,0 +1,35 @@
+```json
+{
+    "uuid": "98eacd31-244",
+    "fault_type": "service_connection_failure",
+    "symptom_vector": "Connection errors from upstream services, spike in client error ratio, significant increase in service response latency.",
+    "expert_knowledge": {
+        "root_cause_desc": "emailservice端口配置错误，导致其他服务（如cartservice, checkoutservice）在尝试连接其5000端口时发生‘connection refused’错误，进而引发级联的客户端错误率上升与响应延迟。",
+        "reasoning_chain": [
+            "Step 1: 在故障时间段的Log数据中，观察到来自checkoutservice-2的明确错误日志，内容为 'transport: Error while dialing dial tcp 10.233.49.244:5000: connect: connection refused'，这直接指出对emailservice（IP: 10.233.49.244）端口5000的连接被拒绝。",
+            "Step 2: 在Metric数据中，观察到cartservice-0的client_error_ratio和error_ratio的p99值从正常的0.0激增至故障时的19.29（变化率200%），表明其作为调用方出现了大量错误。同时，emailservice所有实例的rrt_max（最大响应时间）均出现严重恶化，例如emailservice-0的p99值从6582.8上升至61502.0（变化率161.33%），暗示其自身或其依赖出现了严重瓶颈。",
+            "Step 3: 结合系统拓扑与观测数据，调用链关系（cartservice->emailservice）与故障现象（调用方错误激增、被调用方响应恶化、明确的连接拒绝日志）构成完整的证据链，确认根因为emailservice端口（5000）配置错误，导致依赖其的服务无法建立连接，从而引发系统级故障。"
+        ],
+        "critical_checks": [
+            {
+                "modality": "Log",
+                "target": "Connection refused, Error while dialing, dial tcp",
+                "expected_pattern": "日志中应包含明确的连接拒绝错误，且错误消息指向特定的服务和端口（如emailservice:5000）。",
+                "instruction": "在故障时间段内，搜索所有服务（特别是checkoutservice, cartservice等潜在调用方）的日志，查找包含'connection refused'、'Error while dialing'或'dial tcp'等关键词的错误条目，确认错误的目标地址和端口。"
+            },
+            {
+                "modality": "Metric",
+                "target": "client_error_ratio, error_ratio",
+                "expected_pattern": "调用依赖故障服务的上游服务（如cartservice）的client_error_ratio和error_ratio指标应出现显著峰值（如从0%跃升至非零高值）。",
+                "instruction": "检查故障时间段内，所有可能调用emailservice的服务（如cartservice, checkoutservice）的client_error_ratio和error_ratio指标。特别关注这些指标的p99值，寻找从基线（通常接近0）突然飙升的异常模式，这通常表明因下游不可用而产生的客户端请求失败。"
+            },
+            {
+                "modality": "Metric",
+                "target": "rrt_max, rrt",
+                "expected_pattern": "发生端口连接问题的目标服务（emailservice）及其依赖的服务，其响应时间（尤其是rrt_max）可能出现异常升高或剧烈波动。",
+                "instruction": "检查故障服务的rrt（响应时间）和rrt_max（最大响应时间）指标。观察其p99值在故障期间是否有显著增长（例如变化率超过100%），这可能是连接池耗尽、请求排队或服务内部状态异常的表现。"
+            }
+        ]
+    }
+}
+```

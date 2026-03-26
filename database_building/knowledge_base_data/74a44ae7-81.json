@@ -1,0 +1,71 @@
+{
+  "uuid": "74a44ae7-81",
+  "fault_type": "rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets",
+  "symptom_vector": "Network packet corruption and data corruption causing bit errors on network with corrupted packets",
+  "expert_knowledge": {
+    "root_cause_desc": "Component [checkoutservice, shippingservice] experienced [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] fault.",
+    "reasoning_chain": [
+      "Step 1: Check Metadata - Confirm faulty component is [checkoutservice, shippingservice] (From Ground Truth instance field)",
+      "Step 2: Check Observation - Found keyword [Error, while, dialing] in Log (From GT key_observations) - appears in trace status combinations as 'transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout'",
+      "Step 3: Check Observation - Found keyword [failure] in Log (From GT key_observations) - appears in log messages as 'shipping quote failure'",
+      "Step 4: Check Observation - Found keyword [Rpc, error, code, canceled, desc, context canceled] in Log (From GT key_observations) - appears in trace status combinations as 'context canceled' with 11 occurrences",
+      "Step 5: Check Observation - Found keyword [timeout] in Log (From GT key_observations) - appears in trace status combinations as 'i/o timeout' and 'timed out waiting for server handshake'",
+      "Step 6: Check Observation - Found keyword [unavailable] in Log (From GT key_observations) - appears in trace status combinations as 'rpc error: code = Unavailable desc'",
+      "Step 7: Check Observation - Found keyword [checkoutservice, frontend] in Trace (From GT key_observations) - appears in filtered_traces with checkoutservice calls from frontend pods",
+      "Step 8: Check Observation - Found keyword [client_error, client_error_ratio, error, error_ratio] in Metric (From GT key_observations) - appears in anomaly_metrics with shippingservice-1 showing error_ratio from 0.0 to 50.0 and client_error_ratio from 0.0 to 50.0",
+      "Step 9: Check Observation - Found keyword [rrt, rrt_max] in Metric (From GT key_observations) - appears in anomaly_metrics with shippingservice-1 rrt_max spike from 1827.5 to 1603.0 and checkoutservice-2 rrt from 7337.07 to 995315.21",
+      "Step 10: Check Observation - Found keyword [request, response] in Metric (From GT key_observations) - implied by rrt (request response time) metrics showing anomalies",
+      "Step 11: Derive Root Cause - Based on above network-related error patterns and metric anomalies, determined cause is [rrt, rrt_max, request, response, pod_network_receive_bytes, pod_network_receive_packets, pod_network_transmit_bytes, pod_network_transmit_packets] indicating network corruption issues"
+    ],
+    "critical_checks": [
+      {
+        "modality": "Log",
+        "target": "Error, while, dialing",
+        "expected_pattern": "Log entries containing 'transport: Error while dialing dial tcp 10.233.27.213:50051: i/o timeout'",
+        "instruction": "Search for keyword 'Error while dialing' in logs from checkoutservice and shippingservice"
+      },
+      {
+        "modality": "Log",
+        "target": "failure",
+        "expected_pattern": "Log entries containing 'shipping quote failure' in frontend service logs",
+        "instruction": "Search for keyword 'failure' in logs, particularly in frontend service error messages"
+      },
+      {
+        "modality": "Log",
+        "target": "Rpc, error, code, canceled, desc, context canceled",
+        "expected_pattern": "Trace status combinations showing 'context canceled' with status code 1",
+        "instruction": "Check trace data for status_code 1 with message containing 'context canceled'"
+      },
+      {
+        "modality": "Log",
+        "target": "timeout",
+        "expected_pattern": "Multiple timeout patterns: 'i/o timeout' and 'timed out waiting for server handshake' in trace status messages",
+        "instruction": "Search for keyword 'timeout' in both logs and trace status messages"
+      },
+      {
+        "modality": "Log",
+        "target": "unavailable",
+        "expected_pattern": "RPC Unavailable errors in trace status combinations",
+        "instruction": "Search for keyword 'Unavailable' in trace status messages"
+      },
+      {
+        "modality": "Trace",
+        "target": "checkoutservice, frontend",
+        "expected_pattern": "Trace entries showing calls from frontend to checkoutservice with abnormal latency",
+        "instruction": "Check filtered_traces for service_name 'checkoutservice' with parent_pod containing 'frontend'"
+      },
+      {
+        "modality": "Metric",
+        "target": "client_error, client_error_ratio, error, error_ratio",
+        "expected_pattern": "Anomaly metrics showing error_ratio and client_error_ratio increases for shippingservice instances",
+        "instruction": "Check anomaly_metrics for metric_name containing 'error_ratio' or 'client_error_ratio' for shippingservice"
+      },
+      {
+        "modality": "Metric",
+        "target": "rrt, rrt_max",
+        "expected_pattern": "Significant rrt and rrt_max increases for checkoutservice and shippingservice",
+        "instruction": "Check anomaly_metrics for metric_name 'rrt' and 'rrt_max' with high median_change_ratio values"
+      }
+    ]
+  }
+}
