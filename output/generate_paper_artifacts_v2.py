@@ -261,31 +261,34 @@ def plot_grouped_metrics(
 def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     target_metric = "component_acc"
     order = [
-        "dns fault",
-        "erroneous change",
-        "io fault",
-        "jvm fault",
-        "misconfiguration",
-        "network attack",
-        "node fault",
-        "pod fault",
-        "stress test",
+        ("dns fault", "DNS故障"),
+        ("erroneous change", "错误变更"),
+        ("io fault", "IO故障"),
+        ("jvm fault", "JVM故障"),
+        ("misconfiguration", "配置错误"),
+        ("network attack", "网络攻击"),
+        ("node fault", "节点故障"),
+        ("pod fault", "Pod故障"),
+        ("stress test", "压力测试"),
     ]
+    order_keys = [k for k, _ in order]
+    order_labels = [v for _, v in order]
 
     pivot = (
         category_df.pivot(index="fault_category", columns="method", values=target_metric)
-        .reindex(order)
+        .reindex(order_keys)
         .reindex(columns=METHOD_ORDER)
     )
 
     export_df = pivot.reset_index().copy()
     export_df.columns = ["fault_category"] + [format_method_name(c) for c in METHOD_ORDER]
+    export_df["fault_category"] = export_df["fault_category"].map(dict(order)).fillna(export_df["fault_category"])
     for col in export_df.columns[1:]:
         export_df[col] = export_df[col].map(lambda v: "" if pd.isna(v) else f"{float(v):.2f}")
     export_df.to_csv(OUT_DIR / "tab3_fault_category_component_acc.csv", index=False)
 
     fig, ax = plt.subplots(figsize=(10.4, 5.8))
-    x = np.arange(len(order))
+    x = np.arange(len(order_keys))
     marker_map = {
         "History-RCA": "o",
         "MicroRCA": "s",
@@ -314,7 +317,7 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
         )
 
     ax.set_xticks(x)
-    ax.set_xticklabels(order, rotation=22, ha="right")
+    ax.set_xticklabels(order_labels, rotation=22, ha="right")
     ax.set_ylabel("组件定位准确率 (%)")
     ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
     max_val = float(np.nanmax(pivot.to_numpy(dtype=float))) if not pivot.empty else 0.0
@@ -365,6 +368,33 @@ def normalize_label(name: str) -> str:
     return s
 
 
+COMPONENT_DISPLAY = {
+    "adservice": "广告服务",
+    "cartservice": "购物车服务",
+    "checkoutservice": "结账服务",
+    "currencyservice": "货币服务",
+    "emailservice": "邮件服务",
+    "frontend": "前端服务",
+    "paymentservice": "支付服务",
+    "productcatalogservice": "商品目录服务",
+    "recommendationservice": "推荐服务",
+    "shippingservice": "物流服务",
+    "redis-cart": "Redis-购物车",
+    "redis-order": "Redis-订单",
+    "tidb-tikv": "TiDB-TiKV",
+    "tidb-tidb": "TiDB-Server",
+    "tidb-pd": "TiDB-PD",
+    "coredns": "CoreDNS",
+    "k8s-node": "K8s节点",
+    "other": "其他",
+    "unknown": "未知",
+}
+
+
+def format_component_label(label: str) -> str:
+    return COMPONENT_DISPLAY.get(label, label)
+
+
 def choose_gt_primary_instance(item: Dict) -> str:
     service = str(item.get("service", "")).strip()
     source = str(item.get("source", "")).strip()
@@ -402,7 +432,8 @@ def build_confusion_matrix() -> None:
     cm = confusion_matrix(y_true_mapped, y_pred_mapped, labels=labels)
     cm_norm = cm.astype(float) / np.clip(cm.sum(axis=1, keepdims=True), a_min=1.0, a_max=None)
 
-    cm_df = pd.DataFrame(cm_norm, index=labels, columns=labels)
+    display_labels = [format_component_label(x) for x in labels]
+    cm_df = pd.DataFrame(cm_norm, index=display_labels, columns=display_labels)
     cm_df.to_csv(OUT_DIR / "tab4_confusion_matrix_normalized.csv")
 
     fig, ax = plt.subplots(figsize=(10.2, 8.8))
