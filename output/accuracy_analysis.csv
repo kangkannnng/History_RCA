@@ -49,3 +49,13 @@ history_rca_result/single/4701-result.jsonl,fault_category,network attack,contai
 history_rca_result/single/4701-result.jsonl,fault_category,node fault,contains,82,22,26.8293,20,24.3902,20,24.3902
 history_rca_result/single/4701-result.jsonl,fault_category,pod fault,contains,60,25,41.6667,18,30.0,12,20.0
 history_rca_result/single/4701-result.jsonl,fault_category,stress test,contains,42,32,76.1905,15,35.7143,15,35.7143
+output/with_rag_sample.jsonl,overall,ALL,contains,400,299,74.75,250,62.5,227,56.75
+output/with_rag_sample.jsonl,fault_category,dns fault,contains,21,10,47.619,14,66.6667,10,47.619
+output/with_rag_sample.jsonl,fault_category,erroneous change,contains,21,18,85.7143,3,14.2857,3,14.2857
+output/with_rag_sample.jsonl,fault_category,io fault,contains,28,26,92.8571,28,100.0,26,92.8571
+output/with_rag_sample.jsonl,fault_category,jvm fault,contains,55,47,85.4545,47,85.4545,43,78.1818
+output/with_rag_sample.jsonl,fault_category,misconfiguration,contains,18,17,94.4444,15,83.3333,15,83.3333
+output/with_rag_sample.jsonl,fault_category,network attack,contains,73,69,94.5205,62,84.9315,62,84.9315
+output/with_rag_sample.jsonl,fault_category,node fault,contains,82,37,45.122,38,46.3415,35,42.6829
+output/with_rag_sample.jsonl,fault_category,pod fault,contains,60,36,60.0,29,48.3333,19,31.6667
+output/with_rag_sample.jsonl,fault_category,stress test,contains,42,39,92.8571,14,33.3333,14,33.3333

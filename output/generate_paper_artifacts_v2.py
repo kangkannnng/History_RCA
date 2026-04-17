@@ -41,6 +41,7 @@ METHOD_DISPLAY = {
     "MicroRCA": "MicroRCA-Agent",
     "No-History": "w/o History",
     "Single-Step": "Single-Agent with Tools",
+    "Context-RCA": "Context-RCA+History-RCA",
 }
 
 # Tuned palette: keep baseline methods visually softer than History-RCA.
@@ -49,6 +50,7 @@ METHOD_COLORS = {
     "MicroRCA": "#E07A5F",
     "No-History": "#90C695",
     "Single-Step": "#B5BDC7",
+    "Context-RCA": "#2A9D8F",
 }
 
 METRICS = [
@@ -111,6 +113,8 @@ def infer_method(result_file: str) -> str:
         return "No-History"
     if "history_rca_result/single/" in result_file:
         return "Single-Step"
+    if result_file.endswith("output/with_rag_sample.jsonl"):
+        return "Context-RCA"
     return "Unknown"
 
 
@@ -287,6 +291,10 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     order_keys = [k for k, _ in order]
     order_labels = [v for _, v in order]
 
+    fig3_methods = METHOD_ORDER.copy()
+    if "Context-RCA" in set(category_df["method"].astype(str).tolist()):
+        fig3_methods.append("Context-RCA")
+
     category_dedup = (
         category_df.groupby(["fault_category", "method"], as_index=False)[target_metric]
         .mean()
@@ -295,11 +303,11 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     pivot = (
         category_dedup.pivot(index="fault_category", columns="method", values=target_metric)
         .reindex(order_keys)
-        .reindex(columns=METHOD_ORDER)
+        .reindex(columns=fig3_methods)
     )
 
     export_df = pivot.reset_index().copy()
-    export_df.columns = ["fault_category"] + [format_method_name(c) for c in METHOD_ORDER]
+    export_df.columns = ["fault_category"] + [format_method_name(c) for c in fig3_methods]
     export_df["fault_category"] = export_df["fault_category"].map(dict(order)).fillna(export_df["fault_category"])
     for col in export_df.columns[1:]:
         export_df[col] = export_df[col].map(lambda v: "" if pd.isna(v) else f"{float(v):.2f}")
@@ -312,15 +320,17 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
         "MicroRCA": "s",
         "No-History": "^",
         "Single-Step": "D",
+        "Context-RCA": "P",
     }
     linestyle_map = {
         "History-RCA": "-",
         "MicroRCA": "--",
         "No-History": "-.",
         "Single-Step": ":",
+        "Context-RCA": "-",
     }
 
-    for method in METHOD_ORDER:
+    for method in fig3_methods:
         vals = pivot[method].to_numpy(dtype=float)
         ax.plot(
             x,
@@ -339,7 +349,8 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     ax.set_ylabel("组件定位准确率 (%)")
     ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
     max_val = float(np.nanmax(pivot.to_numpy(dtype=float))) if not pivot.empty else 0.0
-    ax.set_ylim(0, min(100, max(70, max_val + 8)))
+    # Keep a small top margin so 100% markers are not clipped by the plot boundary.
+    ax.set_ylim(0, min(105, max(72, max_val + 5)))
     ax.legend(ncol=2, loc="upper left", fontsize=9)
     beautify_axis(ax)
 
