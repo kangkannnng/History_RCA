@@ -103,13 +103,13 @@ def load_jsonl(path: Path) -> List[Dict]:
 
 def infer_method(result_file: str) -> str:
     result_file = str(result_file)
-    if "/history_rca_result/history_rca/" in result_file:
+    if "history_rca_result/history_rca/" in result_file:
         return "History-RCA"
-    if "/history_rca_result/micro_rca/" in result_file:
+    if "history_rca_result/micro_rca/" in result_file:
         return "MicroRCA"
-    if "/history_rca_result/no_history/" in result_file:
+    if "history_rca_result/no_history/" in result_file:
         return "No-History"
-    if "/history_rca_result/single/" in result_file:
+    if "history_rca_result/single/" in result_file:
         return "Single-Step"
     return "Unknown"
 
@@ -136,8 +136,21 @@ def load_accuracy_df(path: Path) -> pd.DataFrame:
     df["official_score"] = df["method"].map(OFFICIAL_SCORE)
 
     if "match_mode" in df.columns:
-        df = df[df["match_mode"] == "exact"].copy()
+        exact_mask = df["match_mode"].astype(str).str.lower().eq("exact")
+        if exact_mask.any():
+            df = df[exact_mask].copy()
     return df
+
+
+def get_metric_value(df: pd.DataFrame, method: str, metric: str) -> float:
+    rows = df.loc[df["method"] == method, metric]
+    if rows.empty:
+        available_methods = sorted(df["method"].dropna().astype(str).unique().tolist())
+        raise ValueError(
+            f"Method '{method}' not found when reading metric '{metric}'. "
+            f"Available methods: {available_methods}"
+        )
+    return float(rows.iloc[0])
 
 
 def save_table(df: pd.DataFrame, stem: str, caption: str, label: str) -> None:
@@ -274,8 +287,13 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     order_keys = [k for k, _ in order]
     order_labels = [v for _, v in order]
 
+    category_dedup = (
+        category_df.groupby(["fault_category", "method"], as_index=False)[target_metric]
+        .mean()
+    )
+
     pivot = (
-        category_df.pivot(index="fault_category", columns="method", values=target_metric)
+        category_dedup.pivot(index="fault_category", columns="method", values=target_metric)
         .reindex(order_keys)
         .reindex(columns=METHOD_ORDER)
     )
@@ -581,6 +599,19 @@ def main() -> None:
 
     overall = overall[["method", "n", "official_score", "component_acc", "keyword_hit_rate", "both_hit_rate"]]
     overall = overall[overall["method"].isin(METHOD_ORDER)].copy()
+    overall = (
+        overall.groupby("method", as_index=False)[
+            ["n", "official_score", "component_acc", "keyword_hit_rate", "both_hit_rate"]
+        ]
+        .mean()
+    )
+    overall["n"] = overall["n"].round().astype(int)
+
+    if overall.empty:
+        raise ValueError(
+            "No valid overall rows found after filtering. "
+            "Please check method mapping and match_mode values in accuracy_analysis.csv."
+        )
 
     # 1) Main results (non-ablation methods)
     main_df = overall[overall["method"].isin(MAIN_METHODS)].copy()
@@ -590,7 +621,9 @@ def main() -> None:
     baseline_df = main_df[main_df["method"] != "History-RCA"]
     gains = {}
     for metric, _ in METRICS:
-        gains[metric] = float(main_df.loc[main_df["method"] == "History-RCA", metric].iloc[0] - baseline_df[metric].max())
+        ours = get_metric_value(main_df, "History-RCA", metric)
+        base = float(baseline_df[metric].max())
+        gains[metric] = ours - base
 
     tab1 = main_df.copy()
     tab1["method"] = tab1["method"].map(format_method_name)
@@ -635,8 +668,8 @@ def main() -> None:
 
     delta = {}
     for metric, _ in METRICS:
-        ours = float(ablation_df.loc[ablation_df["method"] == "History-RCA", metric].iloc[0])
-        no_hist = float(ablation_df.loc[ablation_df["method"] == "No-History", metric].iloc[0])
+        ours = get_metric_value(ablation_df, "History-RCA", metric)
+        no_hist = get_metric_value(ablation_df, "No-History", metric)
         delta[metric] = ours - no_hist
 
     tab2 = ablation_df.copy()

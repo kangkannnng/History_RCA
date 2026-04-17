@@ -1,0 +1,5 @@
+Method,Cases,Official Score,Component Acc (%),Keyword Hit Rate (%),Both Hit Rate (%)
+History-RCA,400,56.62,64.5,48.0,39.75
+MicroRCA-Agent,400,48.48,56.5,45.25,34.75
+Single-Agent with Tools,400,47.01,60.0,39.75,33.25
+Gain vs Best Baseline,,8.14,4.5,2.75,5.0

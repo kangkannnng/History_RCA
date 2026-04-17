@@ -1,0 +1,4 @@
+Method,Cases,Official Score,Component Acc (%),Keyword Hit Rate (%),Both Hit Rate (%)
+History-RCA,400,56.62,64.5,48.0,39.75
+w/o History,400,49.83,58.25,37.75,28.75
+Delta (History-RCA - w/o History),,6.79,6.25,10.25,11.0
