@@ -581,40 +581,56 @@ def build_generalization_results() -> pd.DataFrame:
 
 
 def plot_generalization(df: pd.DataFrame) -> None:
-    fig, ax = plt.subplots(figsize=(9.0, 5.2))
-    groups = ["已知故障子集", "未知故障子集"]
-    x = np.arange(len(groups))
-    width = 0.18
-    start = -1.5 * width
-
-    for i, method in enumerate(METHOD_ORDER):
+    # Create two separate bar charts: one for seen subset, one for unseen subset.
+    methods = METHOD_ORDER.copy()
+    # Seen plot
+    fig_s, ax_s = plt.subplots(figsize=(9.0, 5.2))
+    x = np.arange(len(methods))
+    vals_seen = []
+    colors = []
+    for method in methods:
         row = df[df["method"] == method].iloc[0]
-        vals = [row["seen_acc"], row["unseen_acc"]]
-        pos = x + start + i * width
-        bars = ax.bar(
-            pos,
-            vals,
-            width=width,
-            color=METHOD_COLORS[method],
-            label=format_method_name(method),
-            edgecolor="white",
-            linewidth=1.0,
-        )
-        for b in bars:
-            h = b.get_height()
-            ax.text(b.get_x() + b.get_width() / 2, h + 0.8, f"{h:.2f}", ha="center", va="bottom", fontsize=8)
+        vals_seen.append(row["seen_acc"])
+        colors.append(METHOD_COLORS.get(method, "#888888"))
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(groups, rotation=0)
-    ax.set_ylabel("组件定位准确率 (%)")
-    ax.set_ylim(0, 105)
-    ax.legend(fontsize=9, loc="upper left", ncol=2)
-    beautify_axis(ax)
+    bars = ax_s.bar(x, vals_seen, width=0.6, color=colors, edgecolor="white", linewidth=1.0)
+    for i, b in enumerate(bars):
+        h = b.get_height()
+        ax_s.text(b.get_x() + b.get_width() / 2, h + 0.8, f"{h:.2f}", ha="center", va="bottom", fontsize=8)
 
-    fig.tight_layout()
-    fig.savefig(OUT_DIR / "fig5_seen_unseen_generalization.png", dpi=320, bbox_inches="tight")
-    fig.savefig(OUT_DIR / "fig5_seen_unseen_generalization.pdf", dpi=320, bbox_inches="tight")
-    plt.close(fig)
+    ax_s.set_xticks(x)
+    ax_s.set_xticklabels([format_method_name(m) for m in methods], rotation=0)
+    ax_s.set_ylabel("组件定位准确率 (%)")
+    ax_s.set_ylim(0, 105)
+    beautify_axis(ax_s)
+    fig_s.tight_layout()
+    fig_s.savefig(OUT_DIR / "fig5_seen_generalization.png", dpi=320, bbox_inches="tight")
+    fig_s.savefig(OUT_DIR / "fig5_seen_generalization.pdf", dpi=320, bbox_inches="tight")
+    plt.close(fig_s)
+
+    # Unseen plot
+    fig_u, ax_u = plt.subplots(figsize=(9.0, 5.2))
+    vals_unseen = []
+    colors = []
+    for method in methods:
+        row = df[df["method"] == method].iloc[0]
+        vals_unseen.append(row["unseen_acc"])
+        colors.append(METHOD_COLORS.get(method, "#888888"))
+
+    bars = ax_u.bar(x, vals_unseen, width=0.6, color=colors, edgecolor="white", linewidth=1.0)
+    for i, b in enumerate(bars):
+        h = b.get_height()
+        ax_u.text(b.get_x() + b.get_width() / 2, h + 0.8, f"{h:.2f}", ha="center", va="bottom", fontsize=8)
+
+    ax_u.set_xticks(x)
+    ax_u.set_xticklabels([format_method_name(m) for m in methods], rotation=0)
+    ax_u.set_ylabel("组件定位准确率 (%)")
+    ax_u.set_ylim(0, 105)
+    beautify_axis(ax_u)
+    fig_u.tight_layout()
+    fig_u.savefig(OUT_DIR / "fig5_unseen_generalization.png", dpi=320, bbox_inches="tight")
+    fig_u.savefig(OUT_DIR / "fig5_unseen_generalization.pdf", dpi=320, bbox_inches="tight")
+    plt.close(fig_u)
 
 
 def main() -> None:
