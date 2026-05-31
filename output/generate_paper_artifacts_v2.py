@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import font_manager as fm
 from matplotlib.ticker import FormatStrFormatter
 from sklearn.metrics import confusion_matrix
 
@@ -60,8 +61,13 @@ METRICS = [
     ("both_hit_rate", "联合命中率 (%)"),
 ]
 
+YAHEI_FONT_PATH = Path.home() / ".local/share/fonts/msyh.ttc"
+
 
 def set_plot_theme() -> None:
+    if YAHEI_FONT_PATH.exists():
+        fm.fontManager.addfont(str(YAHEI_FONT_PATH))
+
     sns.set_theme(style="whitegrid", context="paper")
     plt.rcParams.update(
         {
@@ -80,6 +86,12 @@ def set_plot_theme() -> None:
             "font.family": "sans-serif",
             "font.sans-serif": [
                 "Microsoft YaHei",
+                "微软雅黑",
+                "Noto Sans CJK SC",
+                "Noto Sans CJK JP",
+                "WenQuanYi Micro Hei",
+                "SimHei",
+                "DejaVu Sans",
             ],
             "axes.unicode_minus": False,
         }
@@ -277,19 +289,17 @@ def plot_grouped_metrics(
 
 def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     target_metric = "component_acc"
-    order = [
-        ("dns fault", "DNS故障"),
-        ("erroneous change", "错误变更"),
-        ("io fault", "IO故障"),
-        ("jvm fault", "JVM故障"),
-        ("misconfiguration", "配置错误"),
-        ("network attack", "网络攻击"),
-        ("node fault", "节点故障"),
-        ("pod fault", "Pod故障"),
-        ("stress test", "压力测试"),
-    ]
-    order_keys = [k for k, _ in order]
-    order_labels = [v for _, v in order]
+    display_map = {
+        "dns fault": "DNS故障",
+        "erroneous change": "错误变更",
+        "io fault": "IO故障",
+        "jvm fault": "JVM故障",
+        "misconfiguration": "配置错误",
+        "network attack": "网络攻击",
+        "node fault": "Node故障",
+        "pod fault": "Pod故障",
+        "stress test": "压力测试",
+    }
 
     fig3_methods = METHOD_ORDER.copy()
     if "Context-RCA" in set(category_df["method"].astype(str).tolist()):
@@ -302,13 +312,19 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
 
     pivot = (
         category_dedup.pivot(index="fault_category", columns="method", values=target_metric)
-        .reindex(order_keys)
         .reindex(columns=fig3_methods)
     )
 
+    sort_methods = ["History-RCA"]
+    if "Context-RCA" in pivot.columns:
+        sort_methods.append("Context-RCA")
+    order_keys = pivot[sort_methods].mean(axis=1, skipna=True).sort_values(ascending=False).index.tolist()
+    pivot = pivot.reindex(order_keys)
+    order_labels = [display_map.get(k, k) for k in order_keys]
+
     export_df = pivot.reset_index().copy()
     export_df.columns = ["fault_category"] + [format_method_name(c) for c in fig3_methods]
-    export_df["fault_category"] = export_df["fault_category"].map(dict(order)).fillna(export_df["fault_category"])
+    export_df["fault_category"] = export_df["fault_category"].map(display_map).fillna(export_df["fault_category"])
     for col in export_df.columns[1:]:
         export_df[col] = export_df[col].map(lambda v: "" if pd.isna(v) else f"{float(v):.2f}")
     export_df.to_csv(OUT_DIR / "tab3_fault_category_component_acc.csv", index=False)
@@ -351,7 +367,7 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
     max_val = float(np.nanmax(pivot.to_numpy(dtype=float))) if not pivot.empty else 0.0
     # Keep a small top margin so 100% markers are not clipped by the plot boundary.
     ax.set_ylim(0, min(105, max(72, max_val + 5)))
-    ax.legend(ncol=2, loc="upper left", fontsize=9)
+    ax.legend(ncol=2, loc="upper right", fontsize=9)
     beautify_axis(ax)
 
     fig.tight_layout()
