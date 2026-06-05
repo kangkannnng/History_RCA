@@ -1,0 +1,5 @@
+Method,Seen Acc (%),Seen N,Unseen Acc (%),Unseen N,Seen - Unseen (pp)
+History-RCA,52.99,117,82.86,35,-29.87
+MicroRCA-Agent,42.74,117,62.86,35,-20.12
+w/o History,44.44,117,74.29,35,-29.84
+Single-Agent with Tools,31.62,117,80.0,35,-48.38

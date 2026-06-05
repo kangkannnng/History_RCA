@@ -329,44 +329,27 @@ def plot_fault_category_all9(category_df: pd.DataFrame) -> None:
         export_df[col] = export_df[col].map(lambda v: "" if pd.isna(v) else f"{float(v):.2f}")
     export_df.to_csv(OUT_DIR / "tab3_fault_category_component_acc.csv", index=False)
 
-    fig, ax = plt.subplots(figsize=(10.4, 5.8))
+    fig, ax = plt.subplots(figsize=(12.0, 6.0))
     x = np.arange(len(order_keys))
-    marker_map = {
-        "History-RCA": "o",
-        "MicroRCA": "s",
-        "No-History": "^",
-        "Single-Step": "D",
-        "Context-RCA": "P",
-    }
-    linestyle_map = {
-        "History-RCA": "-",
-        "MicroRCA": "--",
-        "No-History": "-.",
-        "Single-Step": ":",
-        "Context-RCA": "-",
-    }
+    n_methods = len(fig3_methods)
+    width = 0.8 / n_methods
 
-    for method in fig3_methods:
+    for i, method in enumerate(fig3_methods):
         vals = pivot[method].to_numpy(dtype=float)
-        ax.plot(
-            x,
+        ax.bar(
+            x + (i - (n_methods - 1) / 2) * width,
             vals,
+            width=width,
             label=format_method_name(method),
             color=METHOD_COLORS[method],
-            marker=marker_map[method],
-            linestyle=linestyle_map[method],
-            linewidth=2.0,
-            markersize=5.2,
             alpha=0.95,
+            edgecolor="white"
         )
 
     ax.set_xticks(x)
     ax.set_xticklabels(order_labels, rotation=22, ha="right")
     ax.set_ylabel("组件定位准确率 (%)")
-    ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-    max_val = float(np.nanmax(pivot.to_numpy(dtype=float))) if not pivot.empty else 0.0
-    # Keep a small top margin so 100% markers are not clipped by the plot boundary.
-    ax.set_ylim(0, min(105, max(72, max_val + 5)))
+    ax.set_ylim(0, 100)
     ax.legend(ncol=2, loc="upper right", fontsize=9)
     beautify_axis(ax)
 
